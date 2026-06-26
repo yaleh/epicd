@@ -24,6 +24,7 @@
     "@clack/core": "1.2.0",
     "@clack/prompts": "1.2.0",
     "@modelcontextprotocol/sdk": "1.29.0",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/cli": "4.2.2",
     "@types/bun": "1.3.12",
     "@types/jsdom": "28.0.1",
@@ -50,7 +51,9 @@
     "tailwindcss": "4.2.2"
   },
   "scripts": {
-    "test": "bun test --parallel",
+    "test": "bun test --parallel ./src",
+    "test:e2e": "playwright test",
+    "test:all": "bun test --parallel ./src && playwright test",
     "format": "biome format --write .",
     "lint": "biome lint --write .",
     "check": "biome check .",

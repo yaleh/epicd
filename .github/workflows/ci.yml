@@ -39,11 +39,11 @@ jobs:
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             # --parallel runs test files in parallel worker processes (implies --isolate).
-            bun test --parallel --timeout=30000 --reporter=junit --reporter-outfile=test-results.xml
+            bun test --parallel ./src --timeout=30000 --reporter=junit --reporter-outfile=test-results.xml
           else
             # --parallel runs test files in parallel worker processes (implies --isolate),
             # giving each file fresh globals so suites that mutate global process state stay isolated.
-            bun test --parallel --timeout=10000 --reporter=junit --reporter-outfile=test-results.xml
+            bun test --parallel ./src --timeout=10000 --reporter=junit --reporter-outfile=test-results.xml
           fi
         shell: bash
       - name: Run interactive TUI regression tests
