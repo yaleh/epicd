@@ -67,6 +67,12 @@ export function serializeTask(task: Task): string {
 		...(task.priority && { priority: task.priority }),
 		...(task.ordinal !== undefined && { ordinal: task.ordinal }),
 		...(task.onStatusChange && { onStatusChange: task.onStatusChange }),
+		...(task.pipeline_id && { pipeline_id: task.pipeline_id }),
+		...(task.state && { state: task.state }),
+		...(task.role && { role: task.role }),
+		...(task.parent_id && { parent_id: task.parent_id }),
+		...(task.dod && task.dod.length > 0 && { dod: task.dod }),
+		...(task.cap && task.cap.length > 0 && { cap: task.cap }),
 	};
 
 	let contentBody = task.rawContent ?? "";

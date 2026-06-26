@@ -11,6 +11,16 @@ export enum EntityType {
 	Decision = "decision",
 }
 
+// Engine pipeline fields
+export interface DoDItem {
+	text: string;
+	checked: boolean;
+}
+
+export interface CapMarker {
+	[key: string]: unknown;
+}
+
 // Structured Acceptance Criterion (domain-level)
 export interface AcceptanceCriterion {
 	index: number; // 1-based
@@ -73,6 +83,13 @@ export interface Task {
 	source?: "local" | "remote" | "completed" | "local-branch";
 	/** Optional per-task callback command to run on status change (overrides global config) */
 	onStatusChange?: string;
+	// Engine pipeline fields (D-7 minimal subset)
+	pipeline_id?: string;
+	state?: string;
+	role?: string;
+	parent_id?: string;
+	dod?: DoDItem[];
+	cap?: CapMarker[];
 }
 
 export interface MilestoneBucket {

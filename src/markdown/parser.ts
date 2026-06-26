@@ -1,5 +1,14 @@
 import matter from "gray-matter";
-import type { AcceptanceCriterion, Decision, Document, Milestone, ParsedMarkdown, Task } from "../types/index.ts";
+import type {
+	AcceptanceCriterion,
+	CapMarker,
+	Decision,
+	Document,
+	DoDItem,
+	Milestone,
+	ParsedMarkdown,
+	Task,
+} from "../types/index.ts";
 import {
 	AcceptanceCriteriaManager,
 	CommentsManager,
@@ -195,6 +204,14 @@ export function parseTask(content: string): Task {
 		priority: validatedPriority,
 		ordinal: frontmatter.ordinal !== undefined ? Number(frontmatter.ordinal) : undefined,
 		onStatusChange: frontmatter.onStatusChange ? String(frontmatter.onStatusChange) : undefined,
+		pipeline_id: frontmatter.pipeline_id ? String(frontmatter.pipeline_id) : undefined,
+		state: frontmatter.state ? String(frontmatter.state) : undefined,
+		role: frontmatter.role ? String(frontmatter.role) : undefined,
+		parent_id: frontmatter.parent_id ? String(frontmatter.parent_id) : undefined,
+		dod: Array.isArray(frontmatter.dod)
+			? (frontmatter.dod as DoDItem[]).map((item) => ({ text: String(item.text), checked: Boolean(item.checked) }))
+			: undefined,
+		cap: Array.isArray(frontmatter.cap) ? (frontmatter.cap as CapMarker[]) : undefined,
 	};
 }
 
