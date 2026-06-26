@@ -1,7 +1,7 @@
 ---
 adr: "011"
 title: "Task Schema 与 Pipeline 契约：引擎核心数据模型"
-status: Proposed
+status: Accepted
 date: 2026-06-26
 applies-to:
   - "src/types/index.ts"
@@ -17,7 +17,7 @@ lint: |
 
 # ADR-011: Task Schema 与 Pipeline 契约
 
-**Status**: Proposed（草案，待 human 过设计 gate）
+**Status**: Accepted（2026-06-26 human 设计 gate 通过）
 **Date**: 2026-06-26
 **Deciders**: Yale Huang
 **Crystallizes**: baime 讨论记录 `docs/discussions/2026-06-26-backlog-engine-fork-direction.md` 的决策 D1–D8（§7/§12/§13）
