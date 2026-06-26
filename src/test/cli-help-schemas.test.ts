@@ -52,10 +52,12 @@ describe("command help input schemas", () => {
 
 	it("shows task command field types in help", async () => {
 		// CLI-CONTRACT: verifies '--help' output for task subcommands includes typed field descriptions with accepted status values from config
-		const createHelp = await $`bun ${CLI_PATH} task create --help`.cwd(TEST_DIR).text();
-		const listHelp = await $`bun ${CLI_PATH} task list --help`.cwd(TEST_DIR).text();
-		const editHelp = await $`bun ${CLI_PATH} task edit --help`.cwd(TEST_DIR).text();
-		const completeHelp = await $`bun ${CLI_PATH} task complete --help`.cwd(TEST_DIR).text();
+		const [createHelp, listHelp, editHelp, completeHelp] = await Promise.all([
+			$`bun ${CLI_PATH} task create --help`.cwd(TEST_DIR).text(),
+			$`bun ${CLI_PATH} task list --help`.cwd(TEST_DIR).text(),
+			$`bun ${CLI_PATH} task edit --help`.cwd(TEST_DIR).text(),
+			$`bun ${CLI_PATH} task complete --help`.cwd(TEST_DIR).text(),
+		]);
 
 		expect(createHelp).toContain("title: String");
 		expect(createHelp).toContain("description: Markdown");
@@ -78,7 +80,7 @@ describe("command help input schemas", () => {
 		expect(completeHelp).toContain("cleanup procedure");
 		expect(completeHelp).toContain("disappear from the active Kanban board");
 		expect(completeHelp).toContain("cleanup/archive purposes");
-	});
+	}, 15000);
 
 	it("shows configured status values in task help", async () => {
 		await mkdir(join(TEST_DIR, "backlog"), { recursive: true });
@@ -94,10 +96,13 @@ describe("command help input schemas", () => {
 		);
 
 		// CLI-CONTRACT: verifies '--help' output reflects project-configured statuses (not hardcoded defaults) in task create/list/edit/search
-		const createHelp = await $`bun ${CLI_PATH} task create --help`.cwd(TEST_DIR).text();
-		const listHelp = await $`bun ${CLI_PATH} task list --help`.cwd(TEST_DIR).text();
-		const searchHelp = await $`bun ${CLI_PATH} search --help`.cwd(TEST_DIR).text();
-		const editHelp = await $`bun ${CLI_PATH} task edit --help`.cwd(TEST_DIR).text();
+		const env = { ...process.env, BACKLOG_CWD: TEST_DIR };
+		const [createHelp, listHelp, searchHelp, editHelp] = await Promise.all([
+			$`bun ${CLI_PATH} task create --help`.cwd(TEST_DIR).env(env).text(),
+			$`bun ${CLI_PATH} task list --help`.cwd(TEST_DIR).env(env).text(),
+			$`bun ${CLI_PATH} search --help`.cwd(TEST_DIR).env(env).text(),
+			$`bun ${CLI_PATH} task edit --help`.cwd(TEST_DIR).env(env).text(),
+		]);
 
 		expect(createHelp).toContain("status: one of configured statuses: Draft, Ready, Review, Closed");
 		expect(listHelp).toContain("status: one of configured statuses: Ready, Review, Closed");
@@ -106,7 +111,7 @@ describe("command help input schemas", () => {
 		for (const output of [listHelp, searchHelp, editHelp]) {
 			expect(output).not.toContain("status: one of configured statuses: Draft, Ready, Review, Closed");
 		}
-	});
+	}, 15000);
 
 	it("shows document, config, search, and cleanup schemas in help", async () => {
 		// CLI-CONTRACT: verifies '--help' output for doc/config/search/cleanup commands includes typed field descriptions

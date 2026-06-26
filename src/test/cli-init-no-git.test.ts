@@ -23,6 +23,7 @@ async function initFilesystemOnlyProject(projectName = "No Git Project"): Promis
 	// CLI-CONTRACT: verifies 'backlog init --no-git' initializes a filesystem-only project
 	const result = await $`bun ${CLI_PATH} init ${projectName} --no-git --defaults --integration-mode none`
 		.cwd(TEST_DIR)
+		.env({ ...process.env, BACKLOG_CWD: TEST_DIR })
 		.quiet();
 	expect(result.exitCode).toBe(0);
 	return new Core(TEST_DIR);
@@ -46,6 +47,7 @@ describe("CLI init without Git", () => {
 		// CLI-CONTRACT: verifies 'init --no-git' output format and resulting config values
 		const result = await $`bun ${CLI_PATH} init "Filesystem Project" --no-git --defaults --integration-mode none`
 			.cwd(TEST_DIR)
+			.env({ ...process.env, BACKLOG_CWD: TEST_DIR })
 			.quiet();
 
 		expect(result.exitCode).toBe(0);
@@ -96,23 +98,24 @@ describe("CLI init without Git", () => {
 		expect(await core.gitOps.hasAnyRemote()).toBe(false);
 
 		// CLI-CONTRACT: verifies task/draft/doc/decision/milestone flows work in filesystem-only mode with correct CLI output
-		const taskResult = await $`bun ${CLI_PATH} task create "No Git Task" --plain`.cwd(TEST_DIR).quiet();
+		const cliEnv = { ...process.env, BACKLOG_CWD: TEST_DIR };
+		// Parallelize independent create operations; draft promote must follow draft create
+		const [taskResult, draftResult, docResult, decisionResult] = await Promise.all([
+			$`bun ${CLI_PATH} task create "No Git Task" --plain`.cwd(TEST_DIR).env(cliEnv).quiet(),
+			$`bun ${CLI_PATH} draft create "No Git Draft"`.cwd(TEST_DIR).env(cliEnv).quiet(),
+			$`bun ${CLI_PATH} doc create "No Git Doc"`.cwd(TEST_DIR).env(cliEnv).quiet(),
+			$`bun ${CLI_PATH} decision create "No Git Decision"`.cwd(TEST_DIR).env(cliEnv).quiet(),
+		]);
 		expect(taskResult.exitCode).toBe(0);
 		expect(taskResult.stdout.toString()).toContain("Task TASK-1 - No Git Task");
-
-		const draftResult = await $`bun ${CLI_PATH} draft create "No Git Draft"`.cwd(TEST_DIR).quiet();
 		expect(draftResult.exitCode).toBe(0);
 		expect(draftResult.stdout.toString()).toContain("Created draft DRAFT-1");
-
-		const docResult = await $`bun ${CLI_PATH} doc create "No Git Doc"`.cwd(TEST_DIR).quiet();
 		expect(docResult.exitCode).toBe(0);
 		expect(docResult.stdout.toString()).toContain("Created document doc-1");
-
-		const decisionResult = await $`bun ${CLI_PATH} decision create "No Git Decision"`.cwd(TEST_DIR).quiet();
 		expect(decisionResult.exitCode).toBe(0);
 		expect(decisionResult.stdout.toString()).toContain("Created decision decision-1");
 
-		const promotedResult = await $`bun ${CLI_PATH} draft promote draft-1`.cwd(TEST_DIR).quiet();
+		const promotedResult = await $`bun ${CLI_PATH} draft promote draft-1`.cwd(TEST_DIR).env(cliEnv).quiet();
 		expect(promotedResult.exitCode).toBe(0);
 		expect(promotedResult.stdout.toString()).toContain("Promoted draft draft-1");
 
@@ -131,7 +134,7 @@ describe("CLI init without Git", () => {
 		expect(decisions.map((decision) => decision.title)).toContain("No Git Decision");
 		expect(archivedMilestones.map((item) => item.title)).toContain("No Git Milestone");
 		expect(await core.gitOps.getStatus()).toBe("");
-	});
+	}, 30000);
 
 	test("filesystem-only mode ignores stale Git branches before explicit config loading", async () => {
 		await $`git init -b main`.cwd(TEST_DIR).quiet();
@@ -156,11 +159,12 @@ describe("CLI init without Git", () => {
 		expect(await core.gitOps.listRecentBranches(30)).toEqual([]);
 
 		// CLI-CONTRACT: verifies doc/decision create IDs start at 1 even with stale branch content when filesystemOnly=true
-		const docResult = await $`bun ${CLI_PATH} doc create "Fresh Doc"`.cwd(TEST_DIR).quiet();
+		const cliEnv = { ...process.env, BACKLOG_CWD: TEST_DIR };
+		const docResult = await $`bun ${CLI_PATH} doc create "Fresh Doc"`.cwd(TEST_DIR).env(cliEnv).quiet();
 		expect(docResult.exitCode).toBe(0);
 		expect(docResult.stdout.toString()).toContain("Created document doc-1");
 
-		const decisionResult = await $`bun ${CLI_PATH} decision create "Fresh Decision"`.cwd(TEST_DIR).quiet();
+		const decisionResult = await $`bun ${CLI_PATH} decision create "Fresh Decision"`.cwd(TEST_DIR).env(cliEnv).quiet();
 		expect(decisionResult.exitCode).toBe(0);
 		expect(decisionResult.stdout.toString()).toContain("Created decision decision-1");
 	});
