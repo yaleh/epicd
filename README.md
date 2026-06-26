@@ -1,8 +1,8 @@
-<h1 align="center">Backlog.md</h1>
+<h1 align="center">epicd</h1>
 <p align="center">Markdown‑native Task Manager &amp; Kanban visualizer for any Git repository</p>
 
 <p align="center">
-<code>npm i -g backlog.md</code> or <code>bun add -g backlog.md</code> or <code>brew install backlog-md</code> or <code>nix run github:MrLesk/Backlog.md</code>
+<code>npm i -g epicd</code> or <code>bun add -g epicd</code> or <code>brew install backlog-md</code> or <code>nix run github:MrLesk/Backlog.md</code>
 </p>
 
 ![Backlog demo GIF using: backlog board](./.github/backlog-v1.40.gif)
@@ -44,8 +44,8 @@
 
 ```bash
 # Install
-bun i -g backlog.md
-# or: npm i -g backlog.md
+bun i -g epicd
+# or: npm i -g epicd
 # or: brew install backlog-md
 
 # Initialize in any Git repo
