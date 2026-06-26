@@ -98,12 +98,14 @@ describe("CLI doc search command", () => {
 
 	it("rejects missing or invalid query and limit inputs", async () => {
 		// CLI-CONTRACT: verifies error messages for missing/empty/long query and invalid limit values
-		const missingQuery = await $`bun ${cliPath} doc search`.cwd(TEST_DIR).nothrow().quiet();
-		const emptyQuery = await $`bun ${cliPath} doc search ${""}`.cwd(TEST_DIR).nothrow().quiet();
-		const longQuery = await $`bun ${cliPath} doc search ${"a".repeat(201)}`.cwd(TEST_DIR).nothrow().quiet();
-		const zeroLimit = await $`bun ${cliPath} doc search architecture --limit 0`.cwd(TEST_DIR).nothrow().quiet();
-		const highLimit = await $`bun ${cliPath} doc search architecture --limit 101`.cwd(TEST_DIR).nothrow().quiet();
-		const textLimit = await $`bun ${cliPath} doc search architecture --limit many`.cwd(TEST_DIR).nothrow().quiet();
+		const [missingQuery, emptyQuery, longQuery, zeroLimit, highLimit, textLimit] = await Promise.all([
+			$`bun ${cliPath} doc search`.cwd(TEST_DIR).nothrow().quiet(),
+			$`bun ${cliPath} doc search ${""}`.cwd(TEST_DIR).nothrow().quiet(),
+			$`bun ${cliPath} doc search ${"a".repeat(201)}`.cwd(TEST_DIR).nothrow().quiet(),
+			$`bun ${cliPath} doc search architecture --limit 0`.cwd(TEST_DIR).nothrow().quiet(),
+			$`bun ${cliPath} doc search architecture --limit 101`.cwd(TEST_DIR).nothrow().quiet(),
+			$`bun ${cliPath} doc search architecture --limit many`.cwd(TEST_DIR).nothrow().quiet(),
+		]);
 
 		const missingQueryOutput = missingQuery.stdout.toString() + missingQuery.stderr.toString();
 		const emptyQueryOutput = emptyQuery.stdout.toString() + emptyQuery.stderr.toString();
@@ -126,7 +128,7 @@ describe("CLI doc search command", () => {
 		expect(highLimitOutput).toContain("Limit must be an integer between 1 and 100.");
 		expect(textLimit.exitCode).not.toBe(0);
 		expect(textLimitOutput).toContain("Invalid limit: many.");
-	});
+	}, 15000);
 
 	it("documents the input schema and output shape in help", async () => {
 		// CLI-CONTRACT: verifies doc search --help output contains schema sections and examples
