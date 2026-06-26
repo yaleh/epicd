@@ -21,7 +21,7 @@ lint: |
 **Date**: 2026-06-26
 **Deciders**: Yale Huang
 **Crystallizes**: baime 讨论记录 `docs/discussions/2026-06-26-backlog-engine-fork-direction.md` 的决策 D1–D8（§7/§12/§13）
-**Provisional engine name**: Mainspring（裸 npm/org 名已被无关小项目占用，需 scoped 包名或换 org；终名待定）
+**Engine name**: **`epicd`**（已定 2026-06-26）。Unix daemon 命名（`-d`，如 `sshd`/`systemd`）= "自治运行 epic 颗粒度工作的守护进程"；npm 名空闲、无著名同名 GitHub 项目。配套 CLI 动词集走 `epic`/`epicd` 客户端（`epicd propose`/`promote`/`inbox`/`run`/`init`）。
 
 ## Context
 
@@ -232,7 +232,7 @@ E0 只需实现以下子集（其余推给 MVD 自驱完成，见 §15.4）：
 - escalation predicate 先上哪个（不可逆闸门 vs 校准置信度）—— §11.8。
 - gate-event 存储是否最终走"结构化为唯一真相源"—— §11/§13 的更激进选项。
 - 是否需要 baime 私有扩展 *表* 对 E/C/H 做重度索引查询 —— §7。
-- 引擎终名 + scoped 包名 / org 决策。
+- ~~引擎终名~~ → 已定 `epicd`（2026-06-26）。npm 包名用**裸名 `epicd`**（已确认）。剩：GitHub org 决策。
 
 ## References
 
