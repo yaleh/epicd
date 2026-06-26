@@ -1,5 +1,5 @@
 {
-  "name": "backlog.md",
+  "name": "epicd",
   "version": "1.47.1",
   "type": "module",
   "module": "src/cli.ts",

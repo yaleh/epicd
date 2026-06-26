@@ -539,7 +539,7 @@ if (shouldRunMigration) {
 const program = new Command();
 program
 	.name("backlog")
-	.description("Backlog.md - Project management CLI")
+	.description("epicd - Project management CLI")
 	.version(version, "-v, --version", "display version number")
 	.showSuggestionAfterError()
 	.showHelpAfterError("Run with --help to see accepted fields and examples.");
