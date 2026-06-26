@@ -5,6 +5,7 @@
 
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Core } from "../core/backlog.ts";
 import { initializeProject as initializeProjectShared } from "../core/init.ts";
@@ -14,10 +15,10 @@ import { initializeProject as initializeProjectShared } from "../core/init.ts";
  * All test directories are created under tmp/ to keep the root directory clean
  */
 export function createUniqueTestDir(prefix: string): string {
-	const uuid = randomUUID().slice(0, 8); // Short UUID for readability
-	const timestamp = Date.now().toString(36); // Base36 timestamp
-	const pid = process.pid.toString(36); // Process ID for additional uniqueness
-	return join(process.cwd(), "tmp", `${prefix}-${timestamp}-${pid}-${uuid}`);
+	const uuid = randomUUID().slice(0, 8);
+	const timestamp = Date.now().toString(36);
+	const pid = process.pid.toString(36);
+	return join(tmpdir(), `backlog-test-${prefix}-${timestamp}-${pid}-${uuid}`);
 }
 
 /**
