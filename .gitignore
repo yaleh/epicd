@@ -69,3 +69,9 @@ test-benchmark-report.json
 
 # TUI screenshot captures
 .tui-screenshots
+
+# Playwright E2E artifacts
+tests/e2e/.artifacts/
+playwright-report/
+test-results/
+.playwright-mcp/
