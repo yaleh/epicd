@@ -94,3 +94,10 @@ Do not edit Backlog task, draft, document, decision, or milestone markdown files
 
 </CRITICAL_INSTRUCTION>
 <!-- BACKLOG.MD GUIDELINES END -->
+
+## L0 Config
+
+test-cmd: bun test
+test-all: bun test
+doc-path: docs
+worktree-symlinks: node_modules
