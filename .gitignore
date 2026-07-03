@@ -75,3 +75,15 @@ tests/e2e/.artifacts/
 playwright-report/
 test-results/
 .playwright-mcp/
+
+# loop-backlog / engine daemon runtime state (machine-local, rebuilt each run)
+backlog/.active-agents
+backlog/.basic-daemon.log
+backlog/.caps/
+backlog/.last-review-commit
+backlog/.loop-checkpoint
+backlog/.monitor-task-id
+backlog/tasks/.scanner-*.lock
+
+# gate-event log runtime output
+docs/research/gcl-events.jsonl
