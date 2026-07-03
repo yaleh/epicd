@@ -4,7 +4,7 @@ title: 'E0: 引擎自驱 MVD（keystone）'
 status: 'Epic: Awaiting Children'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-06-26 09:10'
+updated_date: '2026-06-27 09:51'
 labels:
   - 'kind:epic'
   - 'epicd:E0'
@@ -148,4 +148,24 @@ cap:decompose=done
 epicDecompose: 6 children created via feature-to-backlog and parked at Basic: Proposal. Sequencing: (1‖2) → 3 → 4 → 5 → 6. Promote chosen children to Basic: Ready to authorize execution.
 
 Sub-task BACK-600.2 completed: 2026-06-26T09:10:10Z
+
+Sub-task BACK-600.1 completed: 2026-06-26T09:18:42Z
+
+onChildDone: 2/6 children done
+
+onChildDone: 2/6 children done (BACK-600.1, BACK-600.2 reached Basic: Done; remaining children at Basic: Backlog)
+
+onChildDone: 2/6 children done (BACK-600.1, BACK-600.2 reached Basic: Done)
+
+Sub-task BACK-600.3 completed: 2026-06-26T11:55:32Z
+
+onChildDone: 3/6 children done (BACK-600.1, BACK-600.2, BACK-600.3). Remaining: BACK-600.4, BACK-600.5, BACK-600.6 at Basic: Backlog — promote to Basic: Ready to continue.
+
+onChildDone: 3/6 children done (BACK-600.1, BACK-600.2, BACK-600.3 at Basic: Done; BACK-600.4, BACK-600.5, BACK-600.6 at Basic: Backlog)
+
+onChildDone: 3/6 children done (BACK-600.1, BACK-600.2, BACK-600.3 at Basic: Done; BACK-600.4, BACK-600.5, BACK-600.6 at Basic: Backlog — awaiting human promotion to Basic: Ready)
+
+onChildDone: 3/6 children done (3 still at Basic: Backlog — awaiting human promotion)
+
+onChildDone: 3/6 children done (BACK-600.1, BACK-600.2, BACK-600.3 = Basic: Done; BACK-600.4, BACK-600.5, BACK-600.6 = Basic: Backlog). Waiting for remaining children.
 <!-- SECTION:NOTES:END -->

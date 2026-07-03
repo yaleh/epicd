@@ -1,16 +1,21 @@
 ---
 id: BACK-600.3
 title: Define execution pipeline as data and build minimal interpreter
-status: 'Basic: Backlog'
-assignee: []
+status: 'Basic: Done'
+assignee:
+  - claude
 created_date: '2026-06-26 08:39'
-updated_date: '2026-06-26 08:53'
+updated_date: '2026-06-26 11:55'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
 dependencies: []
+modified_files:
+  - src/engine/pipeline.ts
+  - src/engine/interpreter.ts
+  - src/test/engine-interpreter.test.ts
 parent_task_id: BACK-600
-ordinal: 10000
+ordinal: 1000
 ---
 
 ## Description
@@ -92,6 +97,13 @@ GCL-self-report: E=2 C=1 H=1
 cap:propose=approved
 cap:plan=approved
 Parked at Basic: Proposal under epic BACK-600. Promote to Basic: Ready to authorize execution.
+
+claimed: 2026-06-26T11:42:36Z
+
+Phase A+B ✓ 2026-06-26T11:45:00Z - pipeline.ts and interpreter.ts with scan/emit + handler registry dispatch, 19 tests pass. Pre-existing flaky failures in cli-help-schemas/cli-doc-search under parallel I/O are unrelated (pass in isolation). All DoD checks green.
+
+Completed: 2026-06-26T11:55:31Z
+workerLoop pre-merge DoD: all 5 passed (19/19 tests, no Basic/Epic literals, register found, tsc clean, 1372/1372 pass)
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

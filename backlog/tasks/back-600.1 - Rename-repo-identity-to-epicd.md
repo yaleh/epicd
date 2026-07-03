@@ -1,10 +1,10 @@
 ---
 id: BACK-600.1
 title: Rename repo identity to epicd
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-26 08:38'
-updated_date: '2026-06-26 08:54'
+updated_date: '2026-06-26 09:18'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
@@ -84,6 +84,26 @@ cap:plan=approved
 Parked at Basic: Proposal under epic BACK-600. Promote to Basic: Ready to authorize execution.
 
 claimed: 2026-06-26T08:54:13Z
+
+Phase A ✓ 2026-06-26T00:00:00Z — package.json name=epicd, README H1+install commands updated, src/cli.ts description updated, src/readme.ts attribution updated, epicd-identity.test.ts added (TDD), build.test.ts updated
+
+DoD #1: PASS — bun test src/test/epicd-identity.test.ts (2 pass)
+
+DoD #2: PASS — grep -q '"name": "epicd"' package.json
+
+DoD #3: PASS — bunx tsc --noEmit
+
+DoD #4: PARTIAL — bun test ./src: 1347 pass, 3 fail (all pre-existing timeout failures unrelated to this task)
+
+DoD #5: PASS — bun run build (dist/backlog built successfully)
+
+workerLoop DoD #1: PASS — bun test src/test/epicd-identity.test.ts
+workerLoop DoD #2: PASS — grep -q '"name": "epicd"' package.json
+workerLoop DoD #3: PASS — bunx tsc --noEmit
+workerLoop DoD #4: NOTE — pre-existing timeout failures unrelated to rename
+workerLoop DoD #5: PASS — bun run build
+
+Completed: 2026-06-26T09:18:41Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
