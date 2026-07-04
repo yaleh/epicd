@@ -1,26 +1,14 @@
 ---
 id: BACK-610
 title: BACK-601.3 - MCP/CLI schema 由 registry 派生 + TaskCreateInput/TaskUpdateInput 对称
-status: 'Basic: Ready'
+status: 'Basic: Needs Human'
 assignee: []
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 16:42'
+updated_date: '2026-07-04 17:25'
 labels: []
 dependencies: []
 ordinal: 21000
-pipeline_id: execution
-phase: ready
-parent_id: BACK-601
-dod:
-  - text: >-
-      bun test src/test/field-registry.test.ts
-      src/test/mcp-schema-generators.test.ts src/test/mcp-tasks.test.ts
-      src/test/cli-task-view-edit.test.ts src/test/engine-child-create.test.ts
-    checked: false
-  - text: bunx tsc --noEmit
-    checked: false
-  - text: bun run check .
-    checked: false
+phase: needs-human
 ---
 
 ## Description
@@ -98,6 +86,12 @@ dod:
 - [ ] `bun test`
 - [ ] `bun run check .`
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-04T17:13:50Z
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
