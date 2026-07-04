@@ -1,10 +1,10 @@
 ---
 id: BACK-600
 title: 'E0: 引擎自驱 MVD（keystone）'
-status: 'Epic: Awaiting Children'
+status: 'Epic: Evaluating'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 04:02'
+updated_date: '2026-07-04 04:53'
 labels:
   - 'kind:epic'
   - 'epicd:E0'
@@ -172,4 +172,16 @@ onChildDone: 3/6 children done (BACK-600.1, BACK-600.2, BACK-600.3 = Basic: Done
 Sub-task BACK-600.7 completed: 2026-07-04T03:57:46Z
 
 Sub-task BACK-600.4 completed: 2026-07-04T04:02:53Z
+
+Sub-task BACK-600.5 completed: 2026-07-04T04:36:22Z
+
+Sub-task BACK-600.6 completed: 2026-07-04T04:47:08Z
+
+cap:evaluate=recommendation:FINISH | done=7 needsHuman=0 | all children Basic: Done; all DoD shell-gates re-verified in main branch (108 tests, 0 fail) | data_source: measured
+
+RECOMMENDATION: FINISH.
+To finish: set status → Epic: Done.
+To iterate: set status → Epic: Proposal or Epic: Plan and re-run /epic-to-backlog.
+
+2026-07-04 里程碑校正（读引擎代码后）：600.6 的 tracer/cutover 是 in-memory 模拟（sandbox.ts::runToFixpoint 用空 stub spawn）+ config 一行注释，**证明的是循环收敛，不是真板自治**。引擎当前仍 test-only、spawn 为 stub、safety 未接 driver、complete 线性无 role/DoD 分叉。故 **E0 六 children 全 done ≠ M1 自治**。新增装配 children：**600.7**（四轴 reconcile，已建）、**600.8**（真板驱动器：board-backed store + 接 safety + role/DoD 分叉 + run 循环，stub spawn）、**600.9**（真 spawn worker → 自治跑通一条 Basic task = M1 自治最小证明）。**M1 自治 gate 应挂在 600.9 通过，而非 600.6。** Guard 1（跨机制锁）已由 safety.ts 共享 .merge-lock 解。
 <!-- SECTION:NOTES:END -->
