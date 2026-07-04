@@ -18,12 +18,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, rm, writeFile, open } from "node:fs/promises";
 import { existsSync, statSync } from "node:fs";
+import { mkdir, open, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import lockfile from "proper-lockfile";
+import { MERGE_LOCK_FILENAME, type MergeLockFs, withMergeLock } from "../engine/safety.ts";
 import { createUniqueTestDir } from "./test-utils.ts";
-import { MERGE_LOCK_FILENAME, withMergeLock, type MergeLockFs } from "../engine/safety.ts";
 
 const realFs: MergeLockFs = {
 	mkdir: (dir, opts) => mkdir(dir, opts).then(() => {}),

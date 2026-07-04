@@ -7,9 +7,9 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { hasMachineWork, makeMemoryStore, runToFixpoint } from "../engine/sandbox.ts";
-import { executionPipeline } from "../engine/pipeline.ts";
 import type { Pipeline } from "../engine/pipeline.ts";
+import { executionPipeline } from "../engine/pipeline.ts";
+import { hasMachineWork, makeMemoryStore, runToFixpoint } from "../engine/sandbox.ts";
 import type { Task } from "../types/index.ts";
 
 // Minimal two-phase pipeline for sandbox tests: ready → done
@@ -67,18 +67,16 @@ describe("engine-tracer-fixpoint — Stage 1 sandbox convergence", () => {
 		expect(second.tasks.map((t) => t.phase)).toEqual(first.tasks.map((t) => t.phase));
 	});
 
-	it("respects multi-phase machine pipeline to fixpoint", async () => {
-		// Use executionPipeline: ready → decomposing → (awaiting-children is none) → evaluating → ...
-		// With a stub spawn that always succeeds, the driver advances through every machine phase.
-		// The pipeline has 'needs-human' (human-actor) and 'done' (none) as terminals.
-		// A task starting at 'ready' should advance until it hits a non-machine phase.
+	it("routes primitive task to done via role branching (not linear advance)", async () => {
+		// Primitive task (no subtasks) + stub spawn success:
+		//   ready(machine) → adjudicate → done(none)
+		// Role-based routing skips decomposing/evaluating for primitive tasks.
 		const task = makeTask("e-1", "ready", "execution");
 		const result = await runToFixpoint([task], [executionPipeline]);
 
 		const finalTask = result.tasks.find((t) => t.id === "e-1");
-		// After all machine phases, should land on first non-machine phase
-		// ready(machine)→decomposing(machine)→awaiting-children(none) — stops at awaiting-children
-		expect(finalTask?.phase).toBe("awaiting-children");
+		// Primitive + success → adjudicate → done (not awaiting-children)
+		expect(finalTask?.phase).toBe("done");
 	});
 
 	it("hasMachineWork returns false when all tasks are in terminal phases", () => {

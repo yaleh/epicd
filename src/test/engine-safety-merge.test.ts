@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { MERGE_LOCK_FILENAME, type MergeLockFs, withMergeLock } from "../engine/safety.ts";
 import { createUniqueTestDir } from "./test-utils.ts";
-import { withMergeLock, MERGE_LOCK_FILENAME, type MergeLockFs } from "../engine/safety.ts";
 
 /** Default MergeLockFs backed by real node fs for integration tests. */
 const realFs: MergeLockFs = {

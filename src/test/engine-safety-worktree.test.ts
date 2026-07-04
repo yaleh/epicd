@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { $ } from "bun";
+import { type WorktreeRunner, withWorktree } from "../engine/safety.ts";
 import { createUniqueTestDir } from "./test-utils.ts";
-import { withWorktree, type WorktreeRunner } from "../engine/safety.ts";
 
 /** Initialise a minimal git repo with one commit so worktrees can be created. */
 async function initRepo(dir: string): Promise<void> {
@@ -43,7 +43,14 @@ describe("withWorktree – worktree isolation + cleanup", () => {
 
 	it("provides an isolated worktree path to fn", async () => {
 		let receivedPath = "";
-		await withWorktree(repoDir, "task-1", async (wt) => { receivedPath = wt; }, gitRunner);
+		await withWorktree(
+			repoDir,
+			"task-1",
+			async (wt) => {
+				receivedPath = wt;
+			},
+			gitRunner,
+		);
 		expect(receivedPath).toContain("task-1");
 	});
 
@@ -83,8 +90,22 @@ describe("withWorktree – worktree isolation + cleanup", () => {
 		const paths: string[] = [];
 
 		// Run sequentially (worktrees would conflict if they shared a path)
-		await withWorktree(repoDir, "task-a", async (wt) => { paths.push(wt); }, gitRunner);
-		await withWorktree(repoDir, "task-b", async (wt) => { paths.push(wt); }, gitRunner);
+		await withWorktree(
+			repoDir,
+			"task-a",
+			async (wt) => {
+				paths.push(wt);
+			},
+			gitRunner,
+		);
+		await withWorktree(
+			repoDir,
+			"task-b",
+			async (wt) => {
+				paths.push(wt);
+			},
+			gitRunner,
+		);
 
 		expect(paths[0]).not.toBe(paths[1]);
 		expect(paths[0]).toContain("task-a");

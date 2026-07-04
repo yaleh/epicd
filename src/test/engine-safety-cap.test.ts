@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { hasCapMarker, addCapMarker, withCapGuard } from "../engine/safety.ts";
-import type { Task } from "../types/index.ts";
 import type { TaskStore } from "../engine/complete.ts";
+import { addCapMarker, hasCapMarker, withCapGuard } from "../engine/safety.ts";
+import type { Task } from "../types/index.ts";
 
 function makeTask(id: string, cap?: Task["cap"]): Task {
 	return {
@@ -129,9 +129,23 @@ describe("withCapGuard – cap idempotency", () => {
 		const calls: string[] = [];
 
 		// "build" is already done – skip
-		await withCapGuard(task, "build", async () => { calls.push("build"); }, store);
+		await withCapGuard(
+			task,
+			"build",
+			async () => {
+				calls.push("build");
+			},
+			store,
+		);
 		// "evaluate" is new – run
-		await withCapGuard(task, "evaluate", async () => { calls.push("evaluate"); }, store);
+		await withCapGuard(
+			task,
+			"evaluate",
+			async () => {
+				calls.push("evaluate");
+			},
+			store,
+		);
 
 		expect(calls).toEqual(["evaluate"]);
 		expect(hasCapMarker(all().find((t) => t.id === "t1")!, "evaluate")).toBe(true);
