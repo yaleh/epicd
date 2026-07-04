@@ -29,18 +29,19 @@ package "Plane 1 · core state machine  (pure, canonical, slowest-changing)" {
   class Task <<pure>> {
     +id : string
     +pipeline_id : string             '' LANE axis (structural, ~immutable)
-    +state : string                    '' PHASE axis only (pure progress; ready/in-progress MERGED)
-    +waiting_on : "machine"|"human"|"none"  '' TURN axis (persisted; needs-human ⇒ waiting_on=human)
-    +role : "compound" | "primitive"  '' derived from tree (ADR-011 D-1.1)
-    +parent_id? : string
+    +phase : string                    '' bare phase name — SOLE persisted progress axis (inert `state` DELETED)
+    .. derived, NOT stored ..
+    '' turn = actor(phase) [pipeline-data] ; role = from tree ; status = label(role,phase) display
     +labels : string[]                 '' kind:feature / kind:chore / kind:epic live here
+    +parent_id? : string
+    +refine_log? : RefineArtifact[]    '' authoring (E7)
     +dod? : ...
     +cap? : ...
   }
 
   class PipelineState <<pure>> {
     +name : string
-    +actionable : boolean
+    +actor : "machine" | "human" | "none"   '' generalizes actionable; turn = actor(phase)
   }
   class Pipeline <<pure>> {
     +id : string
@@ -68,11 +69,11 @@ note right of Interpreter
   CANONICAL vocabulary lives ONLY here.
   scan/dispatch exist today but are TEST-ONLY (src/engine/*).
   Handlers are the extension point (Plane-2 wiring + authoring strategies).
-  FOUR-AXIS (2026-07-04): today's single `state` splits into
-  lane(pipeline_id) · phase(state) · turn(waiting_on) · claim(runtime).
-  pick-up predicate = phase actionable ∧ waiting_on==machine ∧ no live claim.
-  `ready`/`in-progress` merged (claim distinguishes queued vs active);
-  `needs-human` is NOT a state → it is waiting_on==human.
+  FOUR-AXIS (2026-07-04 FINAL): per-task stores pipeline_id + bare phase.
+  turn = pipelineDef[phase].actor (pipeline-data, NOT a field) · role from tree · claim runtime.
+  pick-up predicate = pipelineDef[phase].actor==machine ∧ no live claim.
+  `ready`/`in-progress` by claim; `needs-human` IS a phase (actor=human).
+  status = label(role,phase) display only. Inert engine `state` DELETED (E1/BACK-601).
 end note
 
 ' ============================================================

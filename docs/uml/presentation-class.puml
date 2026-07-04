@@ -57,8 +57,8 @@ package "Issue-list view  (extends TaskList.tsx base)" {
     '' base = MilestoneTaskRow / TaskList row
   }
   class DriverIndicator <<new>> {
-    '' 👤 / 🤖 / ⏳ / ⚠️ / ✓  from (waiting_on ⋈ claim)
-    +compute(waiting_on, claim) : Icon
+    '' 👤 / 🤖 / ⏳ / ⚠️ / ✓  from (actor(phase) ⋈ claim)
+    +compute(actor, claim) : Icon    '' actor = pipelineDef[phase].actor
   }
   class InlineGateReview <<new>> {
     '' approve / reject / escalate on waiting_on=human rows (gate-inbox folded in)
@@ -130,10 +130,11 @@ note as N_reuse
   pipeline_id, column = ordered phase. No new grouping subsystem.
 end note
 note as N_join
-  **Four-axis join at the row:** TaskRow reads persisted (phase, waiting_on)
-  from Task and live claim from Coordinator → DriverIndicator.
-  waiting_on=human ⇒ 👤 (+InlineGateReview) · machine∧claim ⇒ 🤖 ·
-  machine∧¬claim ⇒ ⏳ · machine∧stale ⇒ ⚠️ · none ⇒ ✓.
+  **Row join:** TaskRow reads persisted `phase` from Task, looks up
+  actor = pipelineDef[phase].actor (pipeline-data), joins live claim from
+  Coordinator → DriverIndicator. actor=human ⇒ 👤 (+InlineGateReview) ·
+  machine∧claim ⇒ 🤖 · machine∧¬claim ⇒ ⏳ · machine∧stale ⇒ ⚠️ · none ⇒ ✓.
+  turn is NOT a Task field — it is derived from phase.
 end note
 note as N_gap
   **Backend gaps (blue):** (1) SearchService.NormalizedFilters + pipeline_id/

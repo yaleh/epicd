@@ -1,12 +1,13 @@
 @startuml epicd-workitem-state
 ' epicd — State diagram: a Task's lifecycle across the authoring & execution pipelines.
-' FOUR-AXIS model (2026-07-04, proposal §2.3): today's single `state` is decomposed into
-'   lane   = pipeline_id (structural)            — which board lane
-'   phase  = state (pure progress)               — THIS main diagram
-'   turn   = waiting_on ∈ {machine,human,none}   — orthogonal fragment (bottom-left)
-'   claim  = Coordinator runtime fact            — legend (queued vs active vs stale)
-' `ready`/`in-progress` are MERGED (claim distinguishes queued vs active).
-' `needs-human` is NOT a phase — it is waiting_on:=human on whatever phase it happens.
+' FOUR-AXIS model (2026-07-04 FINAL): per-task stores only pipeline_id + bare `phase`.
+'   lane   = pipeline_id (field)                    — which board lane
+'   phase  = bare phase name (this main diagram)     — the ONLY persisted progress axis
+'   turn   = actor(phase) = pipelineDef[phase].actor ∈ {machine,human,none} — DERIVED from pipeline-data, NOT a field
+'   role   = derived from tree (ADR-011 D-1.1)
+'   claim  = Coordinator runtime fact               — legend (queued vs active vs stale)
+' `needs-human` IS a phase (actor=human), not a stored turn. `ready`/`in-progress` distinguished
+' by CLAIM. status string "Basic: Ready" = label(role, phase) is DERIVED display only. Inert `state` DELETED.
 
 skinparam backgroundColor #FFFFFF
 skinparam shadowing false
@@ -66,7 +67,7 @@ Evaluating --> Executing : epic escalate → **waiting_on:=human**
 Done --> [*]
 
 ' ============ TURN axis (orthogonal — the ball's court; persisted waiting_on) ============
-state "TURN axis · waiting_on (orthogonal to phase)" as Turn {
+state "actor(phase) — from pipeline-data (turn is NOT stored; determined by phase)" as Turn {
   state "machine" as T_m
   state "human" as T_h
   state "none" as T_n <<terminal>>
@@ -78,9 +79,9 @@ state "TURN axis · waiting_on (orthogonal to phase)" as Turn {
 }
 
 note bottom of Turn
-  **needs-human is HERE, not a phase.** Any phase can hold waiting_on=human
-  (promote-gate / gate-review / DoD-fail / epic-escalate all collapse to it).
-  monitor picks up ONLY when waiting_on=machine.
+  **needs-human IS a phase (actor=human)** — not a stored turn. The 4 "human" cases
+  (promote-gate / gate-review / DoD-fail / epic-escalate) are human-actor phases.
+  monitor picks up ONLY phases whose actor==machine.
 end note
 
 note as N_claim

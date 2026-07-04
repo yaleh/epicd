@@ -65,31 +65,35 @@ Claude Code）处理"这一运行时事实。本提案把它升级为**多车道
 
 **总原则**：状态机是唯一权威词汇；另两平面**从它投影**，永不反向定义它。可变性被推到投影函数与注册表里，核心 closed（开闭）；两平面各设一道**只读防腐契约**——数据面 = `IssueSource`，运行时面 = `Coordinator`。UI 只消费投影，禁止显示/config 字符串反喂引擎逻辑。
 
-### 2.3 四轴分解（2026-07-04 裁决：把 turn 从 phase 抽出）
+### 2.3 四轴分解（2026-07-04 终版：turn/role 派生，per-task 只存 `pipeline_id` + `phase`）
 
-今天单一 `state` 把两个正交轴焊在一起：**phase**（进度）与 **turn**（该谁动）。`ready/in-progress/needs-human`
-其实是 `phase × turn × active` 的乘积。经裁决拆成四轴（这是 §2.2 axis-factoring 的第三次、也是收口的一次：
-lane 从 label 抽出 → claim 从 state 抽出 → turn 从 phase 抽出）：
+生命周期位置有多维：**lane**（哪条 pipeline）· **phase**（进度）· **turn**（该谁动）· **active**（此刻在动）。
+终版裁决：**turn 与 role 都是派生量，不 per-task 持久；per-task 只存两个结构量 `pipeline_id` + `phase`。**
 
-| 轴 | 载体 | 性质 | 谁写 |
-|---|---|---|---|
-| **lane** | `pipeline_id` | 结构、近乎不可变 | config/创建 |
-| **phase** | `state`（纯进度）| 持久、单调 | 引擎推进 |
-| **turn** | **新字段 `waiting_on ∈ {machine,human,none}`** | 持久、每次交接翻转 | 引擎或人 |
-| **claim** | Coordinator（运行时）| 短暂、"此刻在动" | driver |
+| 轴 | 载体 | 存 / 派生 |
+|---|---|---|
+| **lane** | `pipeline_id`（字段）| 存 |
+| **phase** | pipeline DAG 节点（裸 phase 名，如 `ready`/`needs-human`/`done`）| **存**（唯一进度真值）|
+| **turn / actor** | `pipelineDef[phase].actor ∈ {machine,human,none}`（pipeline-as-data）| 派生 |
+| **role** | 树位置（ADR-011 D-1.1）| 派生 |
+| **active** | Coordinator claim | 运行时，非持久 |
 
 裁决要点：
-- **turn 用结构化字段 `waiting_on`，非 label**（与 E1「结构轴不当 label」一致；label 继续只做正交 OR）。
-- **`needs-human` 不再是 state** → 统一为 `waiting_on=human`（promote-gate / gate-review / DoD-fail /
-  epic-escalate 四种「等人」收敛成一个谓词，monitor 天然跳过）。
-- **`ready` 与 `in-progress` 合并**为单一可动作 phase；「排队待取 vs 正在跑」靠 Coordinator **claim** 区分；
-  **stale = claim 超时**（claim 须持久 + 带时间戳，`.active-agents` 加时间戳即可）。
-- **monitor pick-up 谓词**：`phase 可动作 ∧ waiting_on==machine ∧ 无有效 claim`。
-- **turn 一律显式持久**（含结构点冗余），用统一换 monitor/UI 单谓词；理由：DoD-fail 等**动态结局**无法从
-  phase 派生（同 phase 可能 `waiting_on=machine` 重试或 `=human` 放弃），故 turn 必须被引擎写下。
-- 影响（均 pre-M1）：`Interpreter.scan` 判据、item-ready keying `(pipeline,phase)+turn guard`、config
-  `statuses[]` 变 phase-only、R3 投影升为 `label(phase, turn, role, plane)`、历史 `status`→(phase,turn) 映射（R2 类）。
-- 与 R3 一致：不统一词汇、边界处投影；只是 canonical 从「单一 state」细化为「phase + waiting_on + claim」。
+- **turn 不是独立持久轴**：把每个「进度×该谁动」位置都建成一个 phase 后，`turn = actor(phase)`。
+  `needs-human` 不是「某 phase + turn=human」，它**本身是一个 `actor=human` 的 phase**。DoD-fail 的结局被记成
+  **phase 迁移**（retry→机器 phase / escalate→needs-human phase），不是同 phase 翻 turn；「人中途帮忙」= 运行时
+  claim，非 turn；trust-ratcheting = 运行时策略（机器代人满足 human-actor gate），gate 的 actor 定义不变。
+- **`PipelineState.actionable: boolean` 泛化为 `actor: machine|human|none`**。scan 谓词 =
+  `pipelineDef[phase].actor==machine ∧ 无有效 claim`；`ready`/`in-progress` 靠 claim 分 queued/active。
+- **落盘编码（次要、可逆）**：frontmatter 存**裸 `phase`**（+ `pipeline_id`）；人看的 `status` 串
+  `"Basic: Ready"` = `label(role, phase)` **派生显示**。删除惰性 `state` 字段。status 词汇 = phase 名（~8 个），
+  role/turn 不再摊进串。
+- **engine 读 `phase`（一个 key）查 pipeline-data 拿 actor，从不解读串里的英文字** → 不违反 R3。
+- 落点：**E1（存 phase、删 state、role/turn 派生、迁移）· E3（`PipelineState.actor`）· E4（指示读 `actor(phase)`）**。
+
+> **设计演进（记录，避免再漂）**：曾在「更多字段（独立 `waiting_on` 列）+ 更少 status」（c4562bb）与
+> 「更少字段（`status` 唯一 canonical）+ 更多 status」之间摇摆。二者共犯同一错误——都把 turn 当成**必须持久的
+> per-task 轴**。终版把 turn/role 判为派生，故字段与 status **两者都更少**，脱离该摇摆轴。
 
 ## 3. 用户可见行为（RUP 行为图索引）
 
@@ -124,13 +128,13 @@ lane 从 label 抽出 → claim 从 state 抽出 → turn 从 phase 抽出）：
 
 ### 4.2 人机双驱动可视（核心差异点）
 
-每行显示**谁在驱动这条 task**，由 `waiting_on`（IssueSource，持久 turn 轴）与 live claim（Coordinator）**join** 得出：
+每行显示**谁在驱动这条 task**，由 `actor(phase)`（从 pipeline-data 查，见 §2.3）与 live claim（Coordinator）**join** 得出：
 
-| waiting_on | 有 active claim? | 指示 | 含义 |
+| actor(phase) | 有 active claim? | 指示 | 含义 |
 |---|---|---|---|
 | human | — | 👤 | 待你 gate（promote / gate-review / DoD-fail / escalate）|
 | machine | 有 | 🤖 | Claude Code 正在跑 |
-| machine | 无 · claim 超时/有 checkout 痕迹 | ⚠️ stale | 崩溃/孤儿 |
+| machine | 无 · claim 超时 | ⚠️ stale | 崩溃/孤儿 |
 | machine | 无 | ⏳ | 排队待取 |
 | none | — | ✓ | 终态（默认隐藏）|
 

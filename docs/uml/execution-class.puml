@@ -33,9 +33,9 @@ package "Core state machine  (pure — EXISTS, test-only)" {
     +states : PipelineState[]
   }
   note bottom of Pipeline
-    executionPipeline states become PHASE-only under four-axis:
-    ready+in-progress MERGE; needs-human is NOT a state (→ waiting_on).
-    scan predicate → phase actionable ∧ waiting_on=machine ∧ no live claim.
+    executionPipeline states = phases, each with actor (machine|human|none).
+    ready+in-progress by claim; needs-human IS a phase (actor=human).
+    scan predicate → pipelineDef[phase].actor=machine ∧ no live claim.
   end note
 }
 
@@ -122,8 +122,8 @@ ExecutionDriver ..> Coordinator : claim during work
 ExecutionDriver ..> IssueSource : advance phase / waiting_on
 FeatureWorker ..> CompleteHandshake : engine.complete(result)
 ChoreWorker ..> CompleteHandshake : engine.complete(result)
-Adjudicator ..> IssueSource : pass → phase:=done, waiting_on:=none
-Adjudicator ..> IssueSource : fail → waiting_on:=human
+Adjudicator ..> IssueSource : pass → phase:=done
+Adjudicator ..> IssueSource : fail → phase:=needs-human
 SafetyMonitor ..> Coordinator : read claim age
 
 ' ===================== NOTES =====================

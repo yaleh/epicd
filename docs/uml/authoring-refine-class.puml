@@ -139,8 +139,8 @@ package "Driver  (IMPURE — performs side effects)" {
     '' 4. execute(step):
     ''      produce  → spawn AuthorWorker → append Produced
     ''      review   → spawn ReviewerWorker → append Reviewed(verdict)
-    ''      promote  → IssueSource.upsert(phase=Backlog, waiting_on=human)
-    ''      escalate → IssueSource.upsert(waiting_on=human) + append reason
+    ''      promote  → IssueSource.upsert(phase=Backlog)   // actor=human via pipeline-data
+    ''      escalate → IssueSource.upsert(phase=needs-human) + append reason
     '' 5. release claim
   }
   interface Handler <<pure>>
