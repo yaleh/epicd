@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { Core } from "../core/backlog.ts";
 import type { WorktreeOps } from "../engine/driver.ts";
 import { ACTIVE_AGENTS_FILE, isDriverActive, runEngine } from "../engine/run.ts";
+import { makeDecomposer } from "../harness/decomposer.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
@@ -105,6 +106,33 @@ describe("runEngine – fixpoint loop", () => {
 
 		const updated = await core.getTask(task.id);
 		expect(updated?.phase).toBe("needs-human");
+	});
+
+	it("E2E: compound epic decomposes, then engine drives the created children to done", async () => {
+		// A compound epic enrolled in the execution pipeline (this is the E1 shape).
+		const { task } = await core.createTaskFromInput({ title: "E2E epic", status: "To Do" }, false);
+		const epic = { ...task, role: "compound" as const, pipeline_id: "execution", phase: "ready" };
+		await core.updateTask(epic, false);
+
+		// Worker proposes two children; the engine creates them and drives them.
+		const fakeSpawn = async () => ({ success: true, output: '[{"title":"Child A"},{"title":"Child B"}]' });
+		const decompose = makeDecomposer(fakeSpawn, core);
+
+		const result = await runEngine(core, stubWorktree, { decompose, maxTicks: 20 });
+		expect(result.ticks).toBeGreaterThan(0);
+
+		// Epic parked at awaiting-children (actor none).
+		const reloadedEpic = await core.getTask(epic.id);
+		expect(reloadedEpic?.phase).toBe("awaiting-children");
+
+		// Two children were created engine-visible AND driven to done by the same run.
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(2);
+		for (const child of children) {
+			expect(child.pipeline_id).toBe("execution");
+			const reloaded = await core.getTask(child.id);
+			expect(reloaded?.phase).toBe("done");
+		}
 	});
 
 	it("ticks multiple tasks to fixpoint in one run", async () => {
