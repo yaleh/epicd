@@ -26,7 +26,7 @@ import { createUniqueTestDir } from "./test-utils.ts";
 import { MERGE_LOCK_FILENAME, withMergeLock, type MergeLockFs } from "../engine/safety.ts";
 
 const realFs: MergeLockFs = {
-	mkdir: (dir, opts) => mkdir(dir, opts),
+	mkdir: (dir, opts) => mkdir(dir, opts).then(() => {}),
 	writeFile: (p, d) => writeFile(p, d),
 	exists: (p) => existsSync(p),
 	join: (...parts) => join(...parts),

@@ -7,7 +7,7 @@ import { withMergeLock, MERGE_LOCK_FILENAME, type MergeLockFs } from "../engine/
 
 /** Default MergeLockFs backed by real node fs for integration tests. */
 const realFs: MergeLockFs = {
-	mkdir: (dir, opts) => mkdir(dir, opts),
+	mkdir: (dir, opts) => mkdir(dir, opts).then(() => {}),
 	writeFile: (p, d) => writeFile(p, d),
 	exists: (p) => existsSync(p),
 	join: (...parts) => join(...parts),
