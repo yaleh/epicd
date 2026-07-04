@@ -5,7 +5,8 @@
 > 渲染：`PLANTUML_LIMIT_SIZE=16384 plantuml -tpng docs/uml/use-case-model.puml`
 >
 > **RUP 行为图（用户可见行为）**：
-> [State](workitem-lifecycle-state.puml) · [Activity](issue-list-activity.puml) · [Sequence×3](issue-list-sequence.puml)。
+> [State](workitem-lifecycle-state.puml) · [Activity](issue-list-activity.puml) · [Sequence×3](issue-list-sequence.puml) ·
+> [人类操作集 Human-ops](human-operations-activity.puml)（人只在 actor=human 的 👤 行动手 + capture）。
 > 多车道 issue-list 模型见 proposal [`2026-07-04-multi-lane-issue-list.md`](../proposals/2026-07-04-multi-lane-issue-list.md)。
 > **内部架构骨架（class 图输入）**：[`architecture-class-skeleton.puml`](architecture-class-skeleton.puml) —
 > 三平面（核心状态机 / 执行-驱动 / 展示）+ 两只读契约（IssueSource · Coordinator）+ RefineStrategy 注册表。

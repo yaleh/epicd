@@ -1,0 +1,59 @@
+@startuml epicd-human-operations
+' epicd — Human operation set (companion to use-case View 1).
+' The human is the GATE OWNER: they act ONLY on actor=human phases (👤 rows) + capture.
+' Everything else is engine work they watch. Grounded in the final four-axis model:
+' turn = actor(phase); the green (actor=human) phases are the only human touchpoints.
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam activity {
+  BorderColor #555555
+  BackgroundColor #C8E6C9
+  DiamondBackgroundColor #FFE0B2
+}
+
+title epicd — Human operation set (you are the gate owner; you act only on 👤 rows)
+
+start
+:Open the **multi-lane issue-list** (primary view);
+note right
+  Each row shows a driver indicator:
+  👤 your turn · 🤖 engine working ·
+  ⏳ queued · ⚠️ orphaned · ✓ done
+end note
+:**Capture** a work-item whenever you have an idea\n(one-line intent + kind: feature / chore / epic);
+note right: lands as **Draft** (Authoring lane) → engine refines it (🤖)
+
+repeat
+  :Scan the board for **👤 rows** (actor = human);
+  if (which gate?) then (Backlog · promote)
+    :**Promote gate**\nread Proposal / Plan → approve / hold / reject;
+    note right: *"should we do it?"*\napprove → engine executes (Ready)
+  elseif (Needs Human · review) then
+    :**Gate-review** (inline)\napprove / re-open · reject · escalate;
+    note right: *"is it done right?"* + exceptions\n(DoD-fail / epic-escalate)
+  elseif (⚠️ orphaned) then
+    :**Restart** the stale row\n(crashed claim — re-queue);
+  else (none pending)
+    :**Observe** 🤖 / ⏳ rows\nengine self-drives — no action;
+  endif
+repeat while (keep working?) is (yes)
+->no;
+stop
+
+legend right
+  |= Operation |= When (row) |= Meaning |
+  | **Capture / intake** | any time | start a work-item (→ Draft; engine refines) |
+  | **Promote gate** | Backlog (👤) | authorize execution — *should we do it?* |
+  | **Gate-review** | Needs Human (👤) | *is it done right?* + exception adjudication |
+  | Restart | ⚠️ orphaned | re-queue a crashed row |
+  | Priority (opt) | any | intra-lane sort only — does not change flow |
+  | Label filter (opt) | any | orthogonal OR — narrow the view |
+  | Config pipelines[] (opt) | rare | add / remove a lane; set per-phase actor |
+  | Trust ratchet (opt · E6) | per gate | ask-me → sampled → auto |
+  ..
+  **Invariant:** human touchpoints = actor=human phases (Backlog, Needs-Human)
+  + capture. You own DECISIONS (do it? / done right?); the engine owns EXECUTION.
+endlegend
+
+@enduml

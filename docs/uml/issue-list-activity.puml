@@ -38,8 +38,8 @@ else (hold / reject)
 endif
 
 |#E1F5FE|Execution engine (auto, monitor-driven)|
-:Scan actionable → spawn worker in worktree;
-note right: row now shows **🤖 In Progress**
+:Scan actionable → claim → spawn worker in worktree;
+note right: same **Ready** phase, now claimed →\nrow shows **🤖** (active vs ⏳ queued by claim)
 if (role?) then (primitive: feature/chore)
   :Execute (implement / run checklist);
   :engine.complete() → merge/advance;
