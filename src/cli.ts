@@ -1572,6 +1572,11 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		createMultiValueAccumulator(),
 	)
 	.option("--dod <item>", "add Definition of Done item (can be used multiple times)", createMultiValueAccumulator())
+	.option(
+		"--dod-gate <cmd>",
+		"add a structured executable DoD gate — a shell command the engine re-runs before merge (can be used multiple times)",
+		createMultiValueAccumulator(),
+	)
 	.option("--no-dod-defaults", "disable Definition of Done defaults")
 	.option("--plan <text>", "add implementation plan")
 	.option("--notes <text>", "add implementation notes")
@@ -1686,6 +1691,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 				finalSummary: options.finalSummary ? String(options.finalSummary) : undefined,
 				acceptanceCriteria: criteria.map((text) => ({ text, checked: false })),
 				definitionOfDoneAdd: toStringArray(options.dod),
+				dodGates: toStringArray(options.dodGate),
 				disableDefinitionOfDoneDefaults: options.dodDefaults === false,
 			});
 
@@ -2378,6 +2384,11 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 	.option("--ac <criteria>", "add acceptance criteria (can be used multiple times)", createMultiValueAccumulator())
 	.option("--dod <item>", "add Definition of Done item (can be used multiple times)", createMultiValueAccumulator())
 	.option(
+		"--dod-gate <cmd>",
+		"add a structured executable DoD gate — a shell command the engine re-runs before merge (can be used multiple times)",
+		createMultiValueAccumulator(),
+	)
+	.option(
 		"--remove-ac <index>",
 		"remove acceptance criterion by index (1-based, can be used multiple times)",
 		createMultiValueAccumulator(),
@@ -2727,6 +2738,21 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 			console.error(formatTaskEditError(error, canonicalId));
 			process.exitCode = 1;
 			return;
+		}
+
+		// BACK-613: append structured executable DoD gates (--dod-gate). Kept as a
+		// focused post-step so it composes with the rest of the edit without threading
+		// through the edit-args builder. These are what runDoD re-runs (ENG-8), distinct
+		// from the human-facing prose `--dod` checklist.
+		const dodGateAdds = toStringArray(options.dodGate)
+			.map((v) => String(v).trim())
+			.filter((v) => v.length > 0);
+		if (dodGateAdds.length > 0) {
+			updatedTask = {
+				...updatedTask,
+				dod: [...(updatedTask.dod ?? []), ...dodGateAdds.map((text) => ({ text, checked: false }))],
+			};
+			await core.updateTask(updatedTask);
 		}
 
 		const usePlainOutput = isPlainRequested(options);
@@ -4488,34 +4514,30 @@ program
 // Engine command group
 // Note: the old `engine run` command (which spawned a `claude` CLI subprocess as its
 // WorkerRunner/decompose primitive) has been retired — see BACK-605.8 Phase D. The engine
-// no longer spawns agents itself: `engine watch` (data-derived emit) drives the epicd-run
+// no longer spawns agents itself: `engine scan` (data-derived emit) drives the epicd-run
 // skill, which performs the actual work as an in-session Agent tool call and then calls
 // `engine complete` to adjudicate + merge.
 const engineCmd = program.command("engine").description("execution engine commands");
 
 engineCmd
-	.command("watch")
+	.command("scan")
 	.description(
-		"emit rendered instruction blobs for actionable board tasks (data-derived; never spawns an Agent/subprocess)",
+		"emit one machine line ('basic-ready:<id>') per actionable board task (data-derived; one-shot, never spawns an Agent/subprocess). Rendering is the scan-loop.js daemon's job.",
 	)
 	.option("--once", "scan once and exit (default when --interval is not given)")
 	.option("--interval <ms>", "poll interval in milliseconds for repeated scanning")
-	.option("--templates-dir <path>", "directory containing event templates (default: .codex/skills/epicd-run/templates)")
 	.action(async (options) => {
 		try {
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
-			const { scanForEvents, formatEventOutput } = await import("./engine/watch.ts");
-			const { join } = await import("node:path");
+			const { scanReadyLines } = await import("./engine/scan.ts");
 
 			const core = new Core(cwd);
-			const templatesDir = options.templatesDir ?? join(cwd, ".codex", "skills", "epicd-run", "templates");
 
 			const runOnce = async () => {
 				const tasks = await core.queryTasks({});
-				const events = scanForEvents(tasks, { templatesDir });
-				for (const event of events) {
-					process.stdout.write(formatEventOutput(event));
+				for (const line of scanReadyLines(tasks)) {
+					process.stdout.write(`${line}\n`);
 				}
 			};
 
@@ -4535,7 +4557,7 @@ engineCmd
 				await runOnce();
 			}
 		} catch (err) {
-			console.error("engine watch failed:", err instanceof Error ? err.message : String(err));
+			console.error("engine scan failed:", err instanceof Error ? err.message : String(err));
 			process.exitCode = 1;
 		}
 	});

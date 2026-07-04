@@ -135,7 +135,7 @@ describe("CLI source — stub removed", () => {
 
 	// Note (BACK-605.8 Phase D): the old `engine run` CLI command — which wired
 	// makeWorkerRunner to the claude-subprocess spawn primitive — has been retired.
-	// The engine no longer spawns agents itself (see `engine watch` + the epicd-run
+	// The engine no longer spawns agents itself (see `engine scan` + the epicd-run
 	// skill + `engine complete`), so cli.ts no longer imports makeWorkerRunner. The
 	// assertion that it did has been removed; makeWorkerRunner itself still exists
 	// and is exercised directly by this file's tests above.

@@ -1,18 +1,20 @@
 /**
- * epicd-run wiring test – BACK-605.8 Phase C
+ * epicd-run wiring test – BACK-614 (crystallization norm; was BACK-605.8 Phase C)
  *
  * Asserts that:
- *  (a) plugin/scripts/scan-loop.js's board-scanning predicate now shells out
- *      to `engine watch` instead of hardcoding baime's "basic: ready" status
- *      string, while its runtime hardening (---EVENT--- delimiter protocol,
- *      renderEvent templating, edge-triggered notified dedup, EPIPE self-reap,
- *      convergeSingleton single-instance enforcement) survives untouched.
- *  (b) .codex/skills/epicd-run/SKILL.md describes a Monitor-hosted driver and
- *      no longer references the retired claude-subprocess wiring.
+ *  (a) plugin/scripts/scan-loop.js's board-scanning predicate reads `engine
+ *      watch`'s machine lines instead of hardcoding baime's "basic: ready"
+ *      status string, while its runtime hardening (---EVENT--- delimiter
+ *      protocol, renderEvent templating, edge-triggered notified dedup, EPIPE
+ *      self-reap, convergeSingleton single-instance enforcement) survives.
+ *  (b) .codex/skills/epicd-run/SKILL.md is the baime-minimal form: a SINGLE
+ *      persistent Monitor calling scan-loop.js (a script — NOT inline bash),
+ *      with no `while true` loop, no `engine scan --once` carving, and no
+ *      retired claude-subprocess wiring.
  *  (c) .codex/skills/epicd-run/templates/basic-ready.md describes the
  *      worktree + background Agent + .agent-done sentinel + engine complete
- *      flow proven by BACK-609, and no longer references claude --print or
- *      the hardcoded "Basic: Done" status literal.
+ *      flow, and no longer references claude --print or a hardcoded status
+ *      literal.
  */
 
 import { describe, expect, it } from "bun:test";
@@ -29,8 +31,8 @@ describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
 	describe("plugin/scripts/scan-loop.js", () => {
 		const contents = read("plugin/scripts/scan-loop.js");
 
-		it("shells out to `engine watch` as its scan source", () => {
-			expect(contents).toContain("engine watch");
+		it("shells out to `engine scan` as its scan source", () => {
+			expect(contents).toContain("engine scan");
 		});
 
 		it("no longer hardcodes baime's 'basic: ready' status predicate literal", () => {
@@ -60,9 +62,32 @@ describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
 
 	describe(".codex/skills/epicd-run/SKILL.md", () => {
 		const contents = read(".codex/skills/epicd-run/SKILL.md");
+		// The crystallization norm applies to the instruction BODY. The frontmatter
+		// `contracts:` block legitimately names the forbidden tokens (as not-grep
+		// declarations), so not-contain checks must run against the body only.
+		const body = contents
+			.split(/^---\s*$/m)
+			.slice(2)
+			.join("---");
 
-		it("describes hosting a Monitor", () => {
-			expect(contents).toContain("Monitor");
+		it("arms a persistent Monitor", () => {
+			expect(body).toContain("Monitor(persistent=true");
+		});
+
+		it("calls scan-loop.js as a single script (not inline bash)", () => {
+			expect(body).toContain("scan-loop.js --loop");
+		});
+
+		it("does NOT wrap the Monitor in an inline bash loop (crystallization norm)", () => {
+			expect(body).not.toContain("while true");
+		});
+
+		it("does NOT carve `engine scan --once` into the skill (that lives in scan-loop.js)", () => {
+			expect(body).not.toContain("engine scan --once");
+		});
+
+		it("declares allowed-tools: Monitor", () => {
+			expect(contents).toContain("allowed-tools: Monitor");
 		});
 
 		it("does not reference the retired `engine run` wiring", () => {

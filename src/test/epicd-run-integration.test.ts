@@ -56,9 +56,9 @@ import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 const HANDLE_BASIC_READY_SH = join(process.cwd(), "plugin", "scripts", "handle-basic-ready.sh");
 
-/** Create a primitive execution/ready task on the real board with one DoD item. */
+/** Create a primitive execution/ready task on the real board with one structured DoD gate. */
 async function createReadyTaskWithDoD(core: Core, title: string, dodCmd: string) {
-	const { task } = await core.createTaskFromInput({ title, status: "To Do", definitionOfDoneAdd: [dodCmd] }, false);
+	const { task } = await core.createTaskFromInput({ title, status: "To Do", dodGates: [dodCmd] }, false);
 	const withPipeline = { ...task, pipeline_id: "execution", phase: "ready" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;

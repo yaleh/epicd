@@ -21,9 +21,13 @@ import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 
-/** Create a primitive task on the real board with pipeline fields + one DoD item set. */
-async function createReadyTaskWithDoD(core: Core, title: string, dodCmd: string) {
-	const { task } = await core.createTaskFromInput({ title, status: "To Do", definitionOfDoneAdd: [dodCmd] }, false);
+/**
+ * Create a primitive task on the real board with pipeline fields + structured
+ * executable DoD gates (BACK-613: runDoD re-runs task.dod, not the prose checklist).
+ * Pass an empty array to model a task with no machine gate declared.
+ */
+async function createReadyTaskWithDoD(core: Core, title: string, dodGates: string[]) {
+	const { task } = await core.createTaskFromInput({ title, status: "To Do", dodGates }, false);
 	const withPipeline = { ...task, pipeline_id: "execution", phase: "ready" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
@@ -83,7 +87,7 @@ describe("engine complete CLI", () => {
 	});
 
 	it("merges the worktree branch and sets phase to done when DoD passes", async () => {
-		const task = await createReadyTaskWithDoD(core, "CLI complete pass", "true");
+		const task = await createReadyTaskWithDoD(core, "CLI complete pass", ["true"]);
 		const worktreeDir = await makeTaskBranch(projectRoot, task.id);
 
 		const result = await runCli(["engine", "complete", task.id, "--worktree", worktreeDir], projectRoot);
@@ -99,7 +103,7 @@ describe("engine complete CLI", () => {
 	});
 
 	it("does not merge and sets phase to needs-human when DoD fails", async () => {
-		const task = await createReadyTaskWithDoD(core, "CLI complete fail", "false");
+		const task = await createReadyTaskWithDoD(core, "CLI complete fail", ["false"]);
 		const worktreeDir = await makeTaskBranch(projectRoot, task.id);
 
 		const result = await runCli(["engine", "complete", task.id, "--worktree", worktreeDir], projectRoot);
@@ -110,6 +114,23 @@ describe("engine complete CLI", () => {
 		expect(updated?.phase).toBe("needs-human");
 
 		// The commit made on the task branch must NOT be part of main's history.
+		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
+		expect(log).not.toContain(`work for ${task.id}`);
+	});
+
+	it("does not merge and sets phase to needs-human when NO structured dod gate is declared", async () => {
+		// BACK-613: a task with no machine gate must not be auto-merged (prose-only DoD
+		// is human-facing and never executed). completeTask routes empty gates → needs-human.
+		const task = await createReadyTaskWithDoD(core, "CLI complete ungated", []);
+		const worktreeDir = await makeTaskBranch(projectRoot, task.id);
+
+		const result = await runCli(["engine", "complete", task.id, "--worktree", worktreeDir], projectRoot);
+
+		expect(result.exitCode).toBe(0);
+
+		const updated = await core.getTask(task.id);
+		expect(updated?.phase).toBe("needs-human");
+
 		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
 		expect(log).not.toContain(`work for ${task.id}`);
 	});

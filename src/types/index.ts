@@ -165,6 +165,13 @@ export interface TaskCreateInput {
 	acceptanceCriteria?: AcceptanceCriterionInput[];
 	definitionOfDoneAdd?: string[];
 	disableDefinitionOfDoneDefaults?: boolean;
+	/**
+	 * Structured executable DoD gates (BACK-613): each string is a shell command
+	 * the engine re-runs verbatim (ENG-8) before merging. Distinct from
+	 * `definitionOfDoneAdd`, which is the human-facing prose `## Definition of Done`
+	 * checklist and is NEVER executed.
+	 */
+	dodGates?: string[];
 	rawContent?: string;
 	// Engine pipeline fields — set these when creating engine-managed child tasks
 	pipeline_id?: string;

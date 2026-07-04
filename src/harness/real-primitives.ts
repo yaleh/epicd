@@ -8,7 +8,7 @@
  *
  * The old `realSpawnPrimitive` (a claude-CLI subprocess spawn that "did the
  * work" for a ready task) has been retired — see BACK-605.8 Phase D.
- * The correct mechanism is `engine watch` (emit-only) driving the epicd-run
+ * The correct mechanism is `engine scan` (emit-only) driving the epicd-run
  * skill, which performs the work as an in-session Agent tool call and then
  * calls `engine complete` (wrapping `completeTask`) to adjudicate + merge.
  *
