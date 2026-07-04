@@ -4501,12 +4501,15 @@ engineCmd
 			const { realSpawnPrimitive, gitWorktreeRunner, gitMergeBranch, realMergeLockFs } = await import(
 				"./harness/real-primitives.ts"
 			);
+			const { runDoD } = await import("./harness/dod-runner.ts");
 
 			const core = new Core(cwd);
 			const runner = makeWorkerRunner(realSpawnPrimitive);
 
 			const worktree = {
-				spawn: (task: import("./types/index.ts").Task) => realSpawn(task, cwd, runner, gitWorktreeRunner),
+				// dodRunner injected so the engine re-runs DoD in the worktree (ENG-8) — see BACK-605.4.
+				spawn: (task: import("./types/index.ts").Task) =>
+					realSpawn(task, cwd, runner, gitWorktreeRunner, (t, wt) => runDoD(t, wt)),
 				merge: (taskId: string) => gitMergeBranch(cwd, taskId),
 			};
 
