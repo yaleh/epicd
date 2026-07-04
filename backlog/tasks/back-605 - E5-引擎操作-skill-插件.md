@@ -4,7 +4,7 @@ title: 'E5: 引擎操作 skill 插件（propose/promote/inbox/run/init）'
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 04:27'
+updated_date: '2026-07-04 06:44'
 labels:
   - 'kind:epic'
   - 'epicd:E5'
@@ -111,3 +111,9 @@ E3+E0.4 → child1 → child2 ‖ child3（需 E7） ‖ child4（需 E2） → 
 - driver channel 由 `(pipeline, phase, actor)` 派生，不硬编码 kind×status。
 - **M2a（driver 替换）只需 E2+E3，不需 E4**；勿耦合。
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Sub-task BACK-605.1 completed: 2026-07-04T06:44:35Z
+<!-- SECTION:NOTES:END -->

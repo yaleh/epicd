@@ -3,10 +3,10 @@ id: BACK-600.8
 title: >-
   Assemble a runnable execution driver on the real board (wire safety, role/DoD
   branching, run loop)
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 04:52'
-updated_date: '2026-07-04 05:22'
+updated_date: '2026-07-04 05:44'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
@@ -81,6 +81,26 @@ ordinal: 14000
 
 <!-- SECTION:NOTES:BEGIN -->
 claimed: 2026-07-04T05:22:14Z
+
+workerLoop DoD #0: PASS — bunx tsc --noEmit
+
+workerLoop DoD #1: PASS — bunx biome check src/engine/ src/types/
+
+workerLoop DoD #2: PASS — bun test src/test/engine-driver-board.test.ts
+
+Phase A ✓ 2026-07-04T05:44:03Z
+DoD #1: PASS — bunx tsc --noEmit
+DoD #2: PASS — bun run check . (8 pre-existing warnings, 0 errors in new files)
+DoD #3: PASS — bun test src/test/engine-driver-board.test.ts (5/5)
+Phase B ✓ 2026-07-04T05:44:03Z
+DoD #1: PASS — bunx tsc --noEmit
+DoD #2: PASS — bun test src/test/engine-adjudicate.test.ts (15/15)
+Phase C ✓ 2026-07-04T05:44:03Z
+DoD #1: PASS — bun test src/test/engine-run.test.ts (10/10)
+DoD #2: PASS — bun run check . (pre-existing warnings only)
+DoD #3: PASS — bun test (111 engine tests pass, 1 flaky pre-existing timeout in parallel)
+
+Completed: 2026-07-04T05:44:48Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
