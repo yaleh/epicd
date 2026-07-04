@@ -4545,6 +4545,94 @@ engineCmd
 	});
 
 engineCmd
+	.command("watch")
+	.description(
+		"emit rendered instruction blobs for actionable board tasks (data-derived; never spawns an Agent/subprocess)",
+	)
+	.option("--once", "scan once and exit (default when --interval is not given)")
+	.option("--interval <ms>", "poll interval in milliseconds for repeated scanning")
+	.option("--templates-dir <path>", "directory containing event templates (default: .codex/skills/epicd-run/templates)")
+	.action(async (options) => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { scanForEvents, formatEventOutput } = await import("./engine/watch.ts");
+			const { join } = await import("node:path");
+
+			const core = new Core(cwd);
+			const templatesDir = options.templatesDir ?? join(cwd, ".codex", "skills", "epicd-run", "templates");
+
+			const runOnce = async () => {
+				const tasks = await core.queryTasks({});
+				const events = scanForEvents(tasks, { templatesDir });
+				for (const event of events) {
+					process.stdout.write(formatEventOutput(event));
+				}
+			};
+
+			if (options.interval && !options.once) {
+				const intervalMs = Number.parseInt(options.interval, 10);
+				if (Number.isNaN(intervalMs) || intervalMs < 1) {
+					console.error("--interval must be a positive integer (ms)");
+					process.exitCode = 1;
+					return;
+				}
+				// biome-ignore lint/correctness/noConstantCondition: intentional poll loop
+				while (true) {
+					await runOnce();
+					await new Promise((resolve) => setTimeout(resolve, intervalMs));
+				}
+			} else {
+				await runOnce();
+			}
+		} catch (err) {
+			console.error("engine watch failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
+	.command("complete")
+	.description(
+		"worker→engine completion handshake: re-run DoD in the worktree and merge under lock (ENG-8), or route to needs-human",
+	)
+	.argument("<id>", "task id to complete")
+	.option("--worktree <path>", "path to the task's git worktree (DoD is re-run here; required to merge)")
+	.action(async (id: string, options) => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { makeBoardStore } = await import("./engine/store.ts");
+			const { completeTask } = await import("./engine/complete.ts");
+			const { runDoD } = await import("./harness/dod-runner.ts");
+			const { gitMergeBranch, realMergeLockFs } = await import("./harness/real-primitives.ts");
+
+			const core = new Core(cwd);
+			const store = makeBoardStore(core);
+
+			const task = await store.getTask(id);
+			if (!task) {
+				console.error(`Task ${id} not found`);
+				process.exitCode = 1;
+				return;
+			}
+
+			const dodResults = options.worktree ? await runDoD(task, options.worktree) : undefined;
+
+			await completeTask(id, { success: true, dodResults }, store, {
+				merge: (taskId: string) => gitMergeBranch(cwd, taskId),
+				safety: { backlogDir: core.filesystem.backlogDir, lockFs: realMergeLockFs },
+			});
+
+			const updated = await store.getTask(id);
+			console.log(`engine complete: ${id} → ${updated?.phase ?? "unknown"}`);
+		} catch (err) {
+			console.error("engine complete failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
 	.command("stage2-gate")
 	.description("run the Stage 2 fixpoint gate against a rebuilt repo tree (suite-green AND drive-fixpoint)")
 	.requiredOption("--rebuilt <path>", "absolute path to the rebuilt repo tree")
