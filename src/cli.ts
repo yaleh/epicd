@@ -4576,7 +4576,7 @@ engineCmd
 			const { makeBoardStore } = await import("./engine/store.ts");
 			const { completeTask } = await import("./engine/complete.ts");
 			const { runDoD } = await import("./harness/dod-runner.ts");
-			const { gitMergeBranch, realMergeLockFs } = await import("./harness/real-primitives.ts");
+			const { gitMergeBranch, gitCommitBoardChange, realMergeLockFs } = await import("./harness/real-primitives.ts");
 
 			const core = new Core(cwd);
 			const store = makeBoardStore(core);
@@ -4592,6 +4592,7 @@ engineCmd
 
 			await completeTask(id, { success: true, dodResults }, store, {
 				merge: (taskId: string) => gitMergeBranch(cwd, taskId),
+				commit: (taskId: string, verdict: string) => gitCommitBoardChange(cwd, taskId, verdict),
 				safety: { backlogDir: core.filesystem.backlogDir, lockFs: realMergeLockFs },
 			});
 

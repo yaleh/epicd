@@ -100,6 +100,11 @@ describe("engine complete CLI", () => {
 		// The commit made on the task branch should now be part of main's history.
 		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
 		expect(log).toContain(`work for ${task.id}`);
+
+		// BACK-616: the post-merge phase write to the board file must itself be
+		// committed — no uncommitted changes left under backlog/.
+		const status = await $`git -C ${projectRoot} status --porcelain -- backlog`.text();
+		expect(status.trim()).toBe("");
 	});
 
 	it("does not merge and sets phase to needs-human when DoD fails", async () => {
@@ -116,6 +121,11 @@ describe("engine complete CLI", () => {
 		// The commit made on the task branch must NOT be part of main's history.
 		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
 		expect(log).not.toContain(`work for ${task.id}`);
+
+		// BACK-616: the phase→needs-human write must be committed too, not just
+		// the done path.
+		const status = await $`git -C ${projectRoot} status --porcelain -- backlog`.text();
+		expect(status.trim()).toBe("");
 	});
 
 	it("does not merge and sets phase to needs-human when NO structured dod gate is declared", async () => {
