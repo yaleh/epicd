@@ -83,10 +83,9 @@ export interface Task {
 	source?: "local" | "remote" | "completed" | "local-branch";
 	/** Optional per-task callback command to run on status change (overrides global config) */
 	onStatusChange?: string;
-	// Engine pipeline fields (D-7 minimal subset)
+	// Engine pipeline fields (four-axis model)
 	pipeline_id?: string;
-	state?: string;
-	role?: string;
+	phase?: string; // bare phase name within the pipeline (replaces state)
 	parent_id?: string;
 	dod?: DoDItem[];
 	cap?: CapMarker[];

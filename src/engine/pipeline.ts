@@ -1,8 +1,8 @@
-// A pipeline state is actionable if it maps to an item-ready event.
-// The "needs-human" gate is non-actionable.
+// A pipeline phase has an actor that determines who handles it.
+// "machine" → interpreter emits item-ready; "human" → awaiting human; "none" → terminal/waiting
 export interface PipelineState {
 	name: string;
-	actionable: boolean; // true → interpreter emits item-ready
+	actor: "machine" | "human" | "none"; // machine → interpreter emits item-ready
 }
 
 export interface Pipeline {
@@ -10,13 +10,15 @@ export interface Pipeline {
 	states: PipelineState[];
 }
 
-// The single execution pipeline
+// The single execution pipeline (four-axis model)
 export const executionPipeline: Pipeline = {
 	id: "execution",
 	states: [
-		{ name: "ready", actionable: true },
-		{ name: "in-progress", actionable: false },
-		{ name: "done", actionable: false },
-		{ name: "needs-human", actionable: false },
+		{ name: "ready", actor: "machine" }, // ready/in-progress merged; machine picks up
+		{ name: "decomposing", actor: "machine" },
+		{ name: "awaiting-children", actor: "none" },
+		{ name: "evaluating", actor: "machine" },
+		{ name: "needs-human", actor: "human" },
+		{ name: "done", actor: "none" },
 	],
 };
