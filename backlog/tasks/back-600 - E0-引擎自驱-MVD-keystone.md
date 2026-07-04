@@ -1,10 +1,10 @@
 ---
 id: BACK-600
 title: 'E0: 引擎自驱 MVD（keystone）'
-status: 'Epic: Evaluating'
+status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 04:53'
+updated_date: '2026-07-04 06:17'
 labels:
   - 'kind:epic'
   - 'epicd:E0'
@@ -184,4 +184,10 @@ To finish: set status → Epic: Done.
 To iterate: set status → Epic: Proposal or Epic: Plan and re-run /epic-to-backlog.
 
 2026-07-04 里程碑校正（读引擎代码后）：600.6 的 tracer/cutover 是 in-memory 模拟（sandbox.ts::runToFixpoint 用空 stub spawn）+ config 一行注释，**证明的是循环收敛，不是真板自治**。引擎当前仍 test-only、spawn 为 stub、safety 未接 driver、complete 线性无 role/DoD 分叉。故 **E0 六 children 全 done ≠ M1 自治**。新增装配 children：**600.7**（四轴 reconcile，已建）、**600.8**（真板驱动器：board-backed store + 接 safety + role/DoD 分叉 + run 循环，stub spawn）、**600.9**（真 spawn worker → 自治跑通一条 Basic task = M1 自治最小证明）。**M1 自治 gate 应挂在 600.9 通过，而非 600.6。** Guard 1（跨机制锁）已由 safety.ts 共享 .merge-lock 解。
+
+Sub-task BACK-600.8 completed: 2026-07-04T05:44:48Z
+
+Sub-task BACK-600.9 completed: 2026-07-04T06:06:50Z
+
+2026-07-04 evaluate gate 裁决：**FINISH（engine-core MVD）**。E0 交付引擎 core 全部零件且测过（600.1–600.9）：interpreter/pipeline/driver/safety/adjudicate/统一握手/board-store/run 循环/spawn 接缝。**诚实记明：M1 全自治 = E0-core + 真 worker。** 当前 `engine run` 仍 stub spawn（全仓无 WorkerRunner 实现），“自治跑通一条 Basic task”仅用 test-double 证明。真 WorkerRunner（Monitor 托管 harness spawn）= **BACK-605.1**（E5 worker 切片，已建，待 refine）。真 M1 待 605.1 落地。⚠️ `engine run`（stub）不得对真板跑（会把 task 无实现地标 done）。
 <!-- SECTION:NOTES:END -->

@@ -4,7 +4,7 @@ title: 'E1: field-registry 与 schema 收敛'
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 04:27'
+updated_date: '2026-07-04 06:16'
 labels:
   - 'kind:epic'
   - 'epicd:E1'
@@ -97,4 +97,6 @@ AC#1 单一 FieldDescriptor 表；AC#2 role 树派生；AC#3 ADR-005 调整；AC
 2026-07-04 设计裁决（并入本 epic 范围）：实测确认原生 status（全接线）与引擎 state（惰性、仅 Interpreter.scan 读、无 CRUD 写）平行且断裂——是 fork 意外而非设计轴。裁决：只保留 status 为 canonical，删 state，四轴中的 phase/waiting_on/role 由 parse(status) 派生（config 的 Basic:/Epic: 串本就编码了 role+phase+turn）。这把 E1 原有『state 从 status 映射』的回填纪律收紧为『不保留两个字段』。修订 docs/proposals/2026-07-04-multi-lane-issue-list.md §2.3（waiting_on 由存储改为派生）与四轴 state 图。参考 use-case-model.md 漂移表。
 
 2026-07-04 终版修订（超前一条备注）：之前在“更多字段(独立 waiting_on)+更少 status”与“更少字段(status 唯一 canonical)+更多 status”两极摆摆，二者共犯一错：都把 turn 当成必须持久的 per-task 轴。终版：turn=actor(phase) 归 pipeline-data（非 per-task），role 归树，故 per-task 只存 (pipeline_id, 裸 phase)，字段与 status 词汇两者都更少。status 串=label(role,phase) 派生显示。见 proposal §2.3 终版 + workitem-lifecycle-state.puml。PipelineState.actor 泛化在 E3。
+
+2026-07-04 对齐 E0 成果（不改骨架，一条重叠备注）：600.8 交付了 `src/engine/store.ts::makeBoardStore`（TaskStore over Core）——它是 child1 IssueSource（601.1）的**种子**。E1 的 IssueSource 应**扩展**它（加 list/upsert），不另建平行抽象。其余四轴/迁移不变。E1 仍是 dogfood 目标，**待真 worker（BACK-605.1）就位后再由引擎自驱**。
 <!-- SECTION:NOTES:END -->

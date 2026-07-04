@@ -4,7 +4,7 @@ title: 定义 IssueSource 接口并抽取 LocalIssueSource（仅本地实现）
 status: 'Basic: Proposal'
 assignee: []
 created_date: '2026-07-03 17:08'
-updated_date: '2026-07-03 22:57'
+updated_date: '2026-07-04 06:16'
 labels:
   - 'epicd:E1'
   - 'kind:refactor'
@@ -48,6 +48,8 @@ ordinal: 14000
 
 <!-- SECTION:NOTES:BEGIN -->
 衔接：本 task 的 IssueSource 是 docs/proposals/2026-07-03-driver-supervisor-multi-lane-runtime.md §4.5 的数据面地基——driver 取数由 store.load(tasksDir) 改经 IssueSource.list()，ENG-6 场身份泛化为 (sourceId,pipeline_id)。见该 proposal §7 R5 未决红线（IssueSource 与 supervisor 职责边界）。board 泳道渲染归 E3/E4，不在本 task。
+
+2026-07-04 对齐 E0 成果：600.8 已建 `src/engine/store.ts::makeBoardStore`（TaskStore over Core：get/update，autoCommit=false）。本 task 应**在其上扩展**成 IssueSource（LocalIssueSource = makeBoardStore + list/upsert），**不另建平行 store 抽象**（避免两套数据访问）。
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
