@@ -1,11 +1,12 @@
 /**
- * Phase A — DoD runner tests (ENG-8).
+ * DoD runner tests (ENG-8; BACK-613 — structured gates).
  *
  * Asserts:
- *  1. runDoD runs each definitionOfDoneItems[].text as a shell command in cwd.
+ *  1. runDoD runs each STRUCTURED `task.dod[].text` as a shell command in cwd.
  *  2. Exit 0 → passed: true; non-zero → passed: false.
- *  3. Empty DoD → returns [].
+ *  3. Empty/absent dod → returns [].
  *  4. One failing command does not stop the rest (all are run).
+ *  5. The prose `definitionOfDoneItems` checklist is NEVER executed (BACK-613).
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
@@ -23,8 +24,7 @@ function makeTask(items: { text: string; checked?: boolean }[] = []): Task {
 		pipeline_id: "execution",
 		phase: "ready",
 		body: "",
-		definitionOfDoneItems: items.map((item, i) => ({
-			index: i + 1,
+		dod: items.map((item) => ({
 			text: item.text,
 			checked: item.checked ?? false,
 		})),
@@ -49,8 +49,18 @@ describe("runDoD", () => {
 		expect(results).toEqual([]);
 	});
 
-	it("returns empty array when definitionOfDoneItems is undefined", async () => {
-		const task = { ...makeTask([]), definitionOfDoneItems: undefined } as unknown as Task;
+	it("returns empty array when dod is undefined", async () => {
+		const task = { ...makeTask([]), dod: undefined } as unknown as Task;
+		const results = await runDoD(task, tmpDir);
+		expect(results).toEqual([]);
+	});
+
+	it("never executes the prose definitionOfDoneItems checklist (BACK-613)", async () => {
+		// Prose (would fail if shelled out) present, but NO structured dod → nothing runs.
+		const task = {
+			...makeTask([]),
+			definitionOfDoneItems: [{ index: 1, text: "bunx tsc --noEmit passes when TypeScript touched", checked: false }],
+		} as unknown as Task;
 		const results = await runDoD(task, tmpDir);
 		expect(results).toEqual([]);
 	});

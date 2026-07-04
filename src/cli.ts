@@ -1572,6 +1572,11 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		createMultiValueAccumulator(),
 	)
 	.option("--dod <item>", "add Definition of Done item (can be used multiple times)", createMultiValueAccumulator())
+	.option(
+		"--dod-gate <cmd>",
+		"add a structured executable DoD gate — a shell command the engine re-runs before merge (can be used multiple times)",
+		createMultiValueAccumulator(),
+	)
 	.option("--no-dod-defaults", "disable Definition of Done defaults")
 	.option("--plan <text>", "add implementation plan")
 	.option("--notes <text>", "add implementation notes")
@@ -1686,6 +1691,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 				finalSummary: options.finalSummary ? String(options.finalSummary) : undefined,
 				acceptanceCriteria: criteria.map((text) => ({ text, checked: false })),
 				definitionOfDoneAdd: toStringArray(options.dod),
+				dodGates: toStringArray(options.dodGate),
 				disableDefinitionOfDoneDefaults: options.dodDefaults === false,
 			});
 
@@ -2378,6 +2384,11 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 	.option("--ac <criteria>", "add acceptance criteria (can be used multiple times)", createMultiValueAccumulator())
 	.option("--dod <item>", "add Definition of Done item (can be used multiple times)", createMultiValueAccumulator())
 	.option(
+		"--dod-gate <cmd>",
+		"add a structured executable DoD gate — a shell command the engine re-runs before merge (can be used multiple times)",
+		createMultiValueAccumulator(),
+	)
+	.option(
 		"--remove-ac <index>",
 		"remove acceptance criterion by index (1-based, can be used multiple times)",
 		createMultiValueAccumulator(),
@@ -2727,6 +2738,21 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 			console.error(formatTaskEditError(error, canonicalId));
 			process.exitCode = 1;
 			return;
+		}
+
+		// BACK-613: append structured executable DoD gates (--dod-gate). Kept as a
+		// focused post-step so it composes with the rest of the edit without threading
+		// through the edit-args builder. These are what runDoD re-runs (ENG-8), distinct
+		// from the human-facing prose `--dod` checklist.
+		const dodGateAdds = toStringArray(options.dodGate)
+			.map((v) => String(v).trim())
+			.filter((v) => v.length > 0);
+		if (dodGateAdds.length > 0) {
+			updatedTask = {
+				...updatedTask,
+				dod: [...(updatedTask.dod ?? []), ...dodGateAdds.map((text) => ({ text, checked: false }))],
+			};
+			await core.updateTask(updatedTask);
 		}
 
 		const usePlainOutput = isPlainRequested(options);

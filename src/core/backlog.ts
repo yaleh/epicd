@@ -1064,6 +1064,11 @@ export class Core {
 				...(typeof input.finalSummary === "string" && { finalSummary: input.finalSummary }),
 				...(acceptanceCriteriaItems.length > 0 && { acceptanceCriteriaItems }),
 				...(definitionOfDoneItems && definitionOfDoneItems.length > 0 && { definitionOfDoneItems }),
+				// Structured executable DoD gates (BACK-613) — what runDoD re-runs (ENG-8).
+				...(Array.isArray(input.dodGates) &&
+					input.dodGates.length > 0 && {
+						dod: input.dodGates.map((text) => ({ text: String(text), checked: false })),
+					}),
 				// Engine pipeline fields — written directly into frontmatter so engine can see the task
 				...(typeof input.pipeline_id === "string" && { pipeline_id: input.pipeline_id }),
 				...(typeof input.phase === "string" && { phase: input.phase }),

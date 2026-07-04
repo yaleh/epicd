@@ -8,6 +8,14 @@
  * ENG-8: the engine cannot rely on the worker self-attesting "done" via
  * checkbox ticks; instead the harness re-runs the DoD commands verbatim
  * and the engine adjudicates the results.
+ *
+ * BACK-613: the executed gates are the STRUCTURED `task.dod` field (a list of
+ * shell-command DoDItems), NOT the prose `## Definition of Done` checklist
+ * (`definitionOfDoneItems`). The prose checklist is human-facing and is never
+ * executed — running it as `sh -c` produced false failures and nondeterministic
+ * spurious passes. Tasks declare machine gates in `dod`; a task with no `dod`
+ * gates yields `[]`, which the engine (completeTask) routes to needs-human —
+ * it never auto-merges an ungated task.
  */
 
 import type { Task } from "../types/index.js";
@@ -18,14 +26,14 @@ export interface DodResult {
 }
 
 /**
- * Runs each `definitionOfDoneItems[].text` as a shell command inside `cwd`.
+ * Runs each structured `task.dod[].text` as a shell command inside `cwd`.
  *
- * - Empty DoD → returns `[]`.
+ * - Empty/absent `dod` → returns `[]` (no machine gate declared).
  * - Each command is run with `sh -c <cmd>` in `cwd`; exit 0 = passed.
  * - Errors during spawn are treated as failures (passed: false).
  */
 export async function runDoD(task: Task, cwd: string): Promise<DodResult[]> {
-	const items = task.definitionOfDoneItems ?? [];
+	const items = task.dod ?? [];
 	if (items.length === 0) return [];
 
 	const results: DodResult[] = [];
