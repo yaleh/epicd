@@ -137,6 +137,10 @@ export interface TaskCreateInput {
 	definitionOfDoneAdd?: string[];
 	disableDefinitionOfDoneDefaults?: boolean;
 	rawContent?: string;
+	// Engine pipeline fields — set these when creating engine-managed child tasks
+	pipeline_id?: string;
+	phase?: string;
+	parent_id?: string;
 }
 
 export interface TaskUpdateInput {
