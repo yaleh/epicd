@@ -4,7 +4,7 @@ title: 'E0: 引擎自驱 MVD（keystone）'
 status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 06:17'
+updated_date: '2026-07-04 09:51'
 labels:
   - 'kind:epic'
   - 'epicd:E0'
@@ -190,4 +190,6 @@ Sub-task BACK-600.8 completed: 2026-07-04T05:44:48Z
 Sub-task BACK-600.9 completed: 2026-07-04T06:06:50Z
 
 2026-07-04 evaluate gate 裁决：**FINISH（engine-core MVD）**。E0 交付引擎 core 全部零件且测过（600.1–600.9）：interpreter/pipeline/driver/safety/adjudicate/统一握手/board-store/run 循环/spawn 接缝。**诚实记明：M1 全自治 = E0-core + 真 worker。** 当前 `engine run` 仍 stub spawn（全仓无 WorkerRunner 实现），“自治跑通一条 Basic task”仅用 test-double 证明。真 WorkerRunner（Monitor 托管 harness spawn）= **BACK-605.1**（E5 worker 切片，已建，待 refine）。真 M1 待 605.1 落地。⚠️ `engine run`（stub）不得对真板跑（会把 task 无实现地标 done）。
+
+Sub-task BACK-600.10 completed: 2026-07-04T09:51:05Z
 <!-- SECTION:NOTES:END -->

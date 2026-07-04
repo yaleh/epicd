@@ -3,10 +3,10 @@ id: BACK-605.3
 title: >-
   ENG-8: engine re-runs DoD shell in worktree pre-merge (worker cannot
   self-attest done)
-status: 'Basic: Backlog'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 07:12'
-updated_date: '2026-07-04 07:26'
+updated_date: '2026-07-04 07:44'
 labels:
   - 'kind:basic'
   - 'kind:feature'
@@ -14,7 +14,7 @@ labels:
 dependencies:
   - BACK-605.2
 parent_task_id: BACK-605
-ordinal: 16000
+ordinal: 1000
 ---
 
 ## Description
@@ -100,15 +100,62 @@ feature-to-backlog（orchestrator=main session）：existing task → ProposalLo
 Plan review iter1: NEEDS_REVISION（independent architect，GCL E=5 C=1 H=1）—4 项：① realSpawn 加必需 5th 参破 6+ 个 4-arg 调用；② seam 守卫仅 prose 未执行；③ DoD 源歧义（task.dod frontmatter vs definitionOfDoneItems body；NL defaults verbatim 会挂；空不得降级 done）；④ 与 605.2 的 completeTask/merge 复合序未明。
 Plan review iter2: fixes 已应用——fix1 dodRunner 改**可选**（保留 4-arg 调用）+ 无-runner 测试；fix2 seam 守卫提为 Phase B 可执行 DoD；fix3 runDoD 跑 definitionOfDoneItems 的 shell 命令 + **把 3 条 NL DoD-defaults 改为可执行命令** + 空→needs-human；fix4 明写三路复合序（dod-fail→skip merge；merge conflict→needs-human；else done）、建在 605.2 之上、序在其后。
 未重跑第三次 full review（逐条实现 reviewer fix）。适配：跳 baime-plugin Step D。
+
+claimed: 2026-07-04T07:29:48Z
+
+workerLoop DoD #0: PASS — bun test src/test/engine-dod-runner.test.ts
+
+workerLoop DoD #1: PASS — bun test src/test/engine-spawn-dod.test.ts
+
+workerLoop DoD #2: PASS — ! grep -rqE 'Bun.spawn|child_process' src/engine
+
+workerLoop DoD #3: PASS — bun test src/test/engine-adjudicate-eng8.test.ts
+
+workerLoop pre-merge DoD #4 FAIL: bunx tsc --noEmit
+
+Escalated: workerLoop DoD #4 failed: bunx tsc --noEmit
+src/engine/complete.ts(126,7): error TS2454: Variable 'mergeOutcome' is used before being assigned.
+To continue: answer in Implementation Notes, then set status → Basic: Ready.
+
+Escalation: mergeOutcome uninitialized — TS2454 definite assignment error. Fixed with = undefined initializer. Re-queuing.
+
+claimed: 2026-07-04T07:41:55Z
+
+Escalated: signal file missing
+To continue: answer in Implementation Notes, then set status → Basic: Ready.
+
+workerLoop DoD #0: PASS — bun test src/test/engine-dod-runner.test.ts
+
+workerLoop DoD #1: PASS — bun test src/test/engine-spawn-dod.test.ts
+
+workerLoop DoD #2: PASS — ! grep -rqE 'Bun.spawn|child_process' src/engine
+
+workerLoop DoD #3: PASS — bun test src/test/engine-adjudicate-eng8.test.ts
+
+workerLoop DoD #4: PASS — bunx tsc --noEmit
+
+workerLoop DoD #5: PASS — bunx biome check src/engine/ src/harness/
+
+Phase A ✓ 2026-07-04T07:40:05Z
+DoD #4: PASS — bun test src/test/engine-dod-runner.test.ts (8 pass)
+Phase B ✓ 2026-07-04T07:40:05Z
+DoD #5: PASS — bun test src/test/engine-spawn-dod.test.ts (8 pass)
+DoD #6: PASS — ! grep -rqE 'Bun.spawn|child_process' src/engine
+Phase C ✓ 2026-07-04T07:40:05Z
+DoD #7: PASS — bun test src/test/engine-adjudicate-eng8.test.ts (14 pass)
+DoD #1: PASS — bunx tsc --noEmit
+DoD #2: PASS — bun run check . (0 errors, 8 pre-existing warnings)
+DoD #3: PASS — bun test engine-*.test.ts (192 pass, 0 fail)
+
+Completed: 2026-07-04T07:44:13Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
-- [ ] #4 bun test src/test/engine-dod-runner.test.ts
-- [ ] #5 bun test src/test/engine-spawn-dod.test.ts
-- [ ] #6 ! grep -rqE 'Bun.spawn|child_process' src/engine
-- [ ] #7 bun test src/test/engine-adjudicate-eng8.test.ts
+- [ ] #1 bun test src/test/engine-dod-runner.test.ts
+- [ ] #2 bun test src/test/engine-spawn-dod.test.ts
+- [ ] #3 ! grep -rqE 'Bun.spawn|child_process' src/engine
+- [ ] #4 bun test src/test/engine-adjudicate-eng8.test.ts
+- [ ] #5 bunx tsc --noEmit
+- [ ] #6 bunx biome check src/engine/ src/harness/
 <!-- DOD:END -->

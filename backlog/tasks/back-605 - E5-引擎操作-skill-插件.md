@@ -4,7 +4,7 @@ title: 'E5: 引擎操作 skill 插件（propose/promote/inbox/run/init）'
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 06:44'
+updated_date: '2026-07-04 09:03'
 labels:
   - 'kind:epic'
   - 'epicd:E5'
@@ -116,4 +116,14 @@ E3+E0.4 → child1 → child2 ‖ child3（需 E7） ‖ child4（需 E2） → 
 
 <!-- SECTION:NOTES:BEGIN -->
 Sub-task BACK-605.1 completed: 2026-07-04T06:44:35Z
+
+Sub-task BACK-605.2 completed: 2026-07-04T07:29:29Z
+
+Sub-task BACK-605.3 completed: 2026-07-04T07:44:14Z
+
+Sub-task BACK-605.6 completed: 2026-07-04T08:36:00Z
+
+Sub-task BACK-605.7 completed: 2026-07-04T08:38:52Z
+
+Sub-task BACK-605.5 completed: 2026-07-04T09:03:35Z
 <!-- SECTION:NOTES:END -->

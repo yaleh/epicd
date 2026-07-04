@@ -3,9 +3,10 @@ id: BACK-605.4
 title: >-
   Wire runDoD into cli engine run realSpawn (M1 e2e found: dodRunner not
   injected → needs-human)
-status: 'Basic: Backlog'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 07:51'
+updated_date: '2026-07-04 07:56'
 labels:
   - 'kind:basic'
   - 'kind:feature'
@@ -39,4 +40,14 @@ BACK-605.3（dodRunner 可选 + adjudicate ENG-8）；M1 proof run（/tmp/epicd-
 - [ ] #1 bunx tsc --noEmit passes when TypeScript touched
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
+- [ ] #4 grep -q 'runDoD' src/cli.ts
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+直接执行（main session，用户授权的 1 行修复）：`src/cli.ts` engine run 注入 `runDoD` 作 dodRunner（第 5 参）+ import。tsc/biome 绿，pre-commit 通过（commit fb8519a）。
+回归守卫：`grep -q 'runDoD' src/cli.ts`（轻量；真回归保护=sandbox e2e）。
+**M1 proof 重跑 → phase=done**：真 claude worker 实现+提交 → 引擎独立重跑 DoD（test -f hello.txt）过 → merge 到 main → done。hello.txt on main。全自治环闭合。
+（后续可深化：把 cli 的 worktree/wiring 抽为可测工厂，终结“接线不可测”这类 bug——optional-param 共犯。）
+<!-- SECTION:NOTES:END -->

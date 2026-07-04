@@ -3,11 +3,11 @@ id: BACK-600.10
 title: >-
   E0 Stage 2 self-host fixpoint gate (verifier+self-test instrument; guard#2
   discharged by soak run)
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 09:32'
-updated_date: '2026-07-04 09:37'
+updated_date: '2026-07-04 09:51'
 labels:
   - 'kind:basic'
 dependencies: []
@@ -130,6 +130,16 @@ D: manifest-necessity test (removing any MVD_SOURCE_FILES entry breaks suite).
 E: child bun test cwd isolation (temp rebuiltRepoPath, no parent bunfig/suite); real manifest only via CLI, never in-suite.
 
 claimed: 2026-07-04T09:37:39Z
+
+Phase 0 ✓ 2026-07-04T09:49:43Z
+DoD #1: PASS — bunx tsc --noEmit
+Phase A ✓ 2026-07-04T09:49:43Z
+Phase B ✓ 2026-07-04T09:49:43Z
+Phase C ✓ 2026-07-04T09:49:43Z
+DoD #2: PASS — bunx biome check src/engine/ src/types/ src/harness/ src/test/ (8 warnings, 0 errors)
+DoD #3: PASS — bun test stage2-no-fake/manifest/gate: 11 tests pass
+
+Completed: 2026-07-04T09:51:04Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

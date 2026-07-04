@@ -1,16 +1,19 @@
 ---
 id: BACK-601
 title: 'E1: field-registry 与 schema 收敛'
-status: 'Epic: Proposal'
+status: 'Epic: Ready'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 06:16'
+updated_date: '2026-07-04 10:31'
 labels:
   - 'kind:epic'
   - 'epicd:E1'
 dependencies:
   - BACK-600
 ordinal: 2000
+pipeline_id: execution
+phase: ready
+role: compound
 ---
 
 ## Description
@@ -64,31 +67,89 @@ ordinal: 2000
 ## Implementation Plan
 
 <!-- SECTION:PLAN:BEGIN -->
-## Epic Plan (骨架) — E1 field-registry 与 schema 收敛（数据面）
+# E1: field-registry 与 schema 收敛 — Epic Decomposition (architect-reviewed)
 
-> 骨架只钉 child 边界与时序（设计制品）。**decompose（建 children）留给 M1 后引擎自驱——E1 是 M1 dogfood 的第一个 epic。** 粒度纪律（AGENTS.md）：**每个 child ≈ 一个可评审 PR（≤~2000 行），内部用 Phase→Stage 两层组织，不按字段/文件切**。设计锚点：proposal `docs/proposals/2026-07-04-multi-lane-issue-list.md` §2.3；`docs/uml/workitem-lifecycle-state.puml`。
+> 引擎的 decomposer 读下方 **## Sub-Task Decomposition**，每条 entry 建一个 child Basic task。
+> 颗粒度纪律（CLAUDE.md）：每个 child ≈ 一个可评审 PR（≤~2000 行），一个 worktree+merge+gate 周期；
+> child 内部工作用 Phase→Stage 组织在**其自身 plan 内**，不再拆 task。
+> Plan review：drafter + independent architect（grounding 全部核对通过；8 项 fix 已并入：D1 回归守卫入 A+行为级、D2 presence-gating、B1 拆 C、A1 state 覆盖、A2 backfill 覆盖、C1 601.1 边、C2 D 依赖、F2 D 前置内联）。
 
-### Background
-E1 把字段处理收敛为**单一 FieldDescriptor 表**，并落四轴终版的**数据面**。**引擎内部 slice（`state`→裸 `phase`、`actionable`→`actor`）已在 600.7（E0）**。E1 剩：人面 `status`↔`phase` 全量迁移、field-registry 统一、role 派生、IssueSource（601.1）、就地回填。
+## 当前分散的字段处理点（survey，file:line 已核对）
+D-5 要收敛的重复：今天改一个字段要独立改这些地方：
+1. **Parse** — `src/markdown/parser.ts:176-218`（`parseTask`）逐字段手写；引擎字段 pipeline_id:207 / phase:208 / parent_id:209 / dod:210-212 / cap:213 / role:214-217（内联 compound|primitive 校验）。
+2. **Serialize** — `src/markdown/serializer.ts:49-76`（`serializeTask`）第二套独立映射，presence 用真值门（`...(task.phase && {phase})`）；引擎字段 :70-75。
+3. **Types + role** — `src/types/index.ts`：`Task`(:86-99)、`TaskCreateInput`(:143-168，引擎字段 :165-167)、`TaskUpdateInput`(:170-211，**无**引擎字段)、`roleOf`(:137-141)。
+4. **Create/validate** — `src/core/backlog.ts`：`createTaskFromInput`(:975-1079，引擎字段直写 :1068-1070 = 605.7)、`requireCanonicalStatus`(:297-304)、`updateTaskFromInput`(:1689-1708)。注意：`updateTask`(:1093)→`saveTask`→`serializeTask`；decomposer 经 `core.updateTask({...task, phase})`（decomposer.ts:110/143）走 serialize，不走 updateTaskFromInput。
+5. **MCP schema** — `src/mcp/utils/schema-generators.ts`：`generateTaskCreateSchema`(:40-149)/`generateTaskEditSchema`(:154-411) 逐字段手写 JSON Schema，`additionalProperties:false`；**引擎字段缺席**。status enum 经 `getStatusFieldEnumValues`(:8-35) 半集中派生（唯一已表驱动的字段，其余的样板）。
+6. **搜索过滤** — `src/core/search-service.ts:47-53`（`NormalizedFilters`）仅 statuses/priorities/assignees/labels/modifiedFiles；**无 pipeline_id/phase**。
+7. **status↔role/phase 编码** — `backlog/config.yml:2-3`：statuses 每值 `"<Role>: <Phase>"`；但 `src/` 内**无 `label(role,phase)` 投影函数**（grep 确认）。status（canonical、全链路）与引擎 `phase`（仅 `src/engine/*` 读）是两条独立轴。
 
-### Goals（映射 AC）
-AC#1 单一 FieldDescriptor 表；AC#2 role 树派生；AC#3 ADR-005 调整；AC#4 可上游；AC#5 存 pipeline_id+裸 phase、删 state、status=label(role,phase) 派生；AC#6 turn 派生、search 加 pipeline_id/phase、Task 加 refine_log、旧 status→phase 迁移。
+**Grounding note**：`label()`/`refine_log` 均**不存在**（grep 确认，净新增）。**无持久 `state` 字段**（status 是 canonical，phase 引擎专用）——epic 的"删 state"已由 E0/决策记录消化，E1 不引入第二条持久轴（见 A1）。
 
-### Sub-Task Decomposition（PR 粒度，4 children）
-1. **IssueSource（BACK-601.1，已存）** — `list/get/upsert` + LocalIssueSource。
-2. **Schema 收敛（field-registry）** — 一个 PR：单一 `FieldDescriptor` 表驱动 parse/serialize/validate/MCP schema（AC#1）+ role 树派生（AC#2）+ ADR-005 前提调整（AC#3）+ `search-service` NormalizedFilters 加 `pipeline_id`/`phase`（AC#6 过滤）+ Task 加 `refine_log` 字段（AC#6，供 E7）。取代 ≥5 处分散逻辑；通用可上游（AC#4）。
-3. **status↔phase 人面迁移** — 一个 PR：`label(role, phase)` 投影；web/CLI/board/回调改读派生 status；收敛现有 ~4 处 status 启发式为单一投影；端到端删冗余字段（AC#5）。承 600.7 引擎 slice；与 E4 分工（E1 出投影/数据面，E4 消费）。
-4. **就地回填迁移** — 一个 PR：现有 `backlog/tasks/*.md` 回填 `pipeline_id`/`phase`（role/turn 派生），幂等、就地、不搬目录、不破坏旧 loop；须在**单一活动驱动器**下跑（M1 跨机制锁，见描述"M1 边界纪律"§1）。
+## Sub-Task Decomposition
 
-### Sequencing
-600.7（E0）→ child2（schema 收敛）→ child3（status↔phase 迁移）→ child4（回填，最后、单一驱动器下）。child1（IssueSource）与 child2 可并行。
+四个新 Basic child（A/B/C/D）+ 既有 601.1 = 五。各映射 ≥1 个 E1 goal；合计覆盖 registry 核心、派生 parse/serialize/validate/create/update、MCP schema、role 派生、搜索过滤、refine_log、status↔phase 投影、backfill。
 
-### Constraints
-- 每 child = 一个 PR 量级（≤~2000 行，Phase/Stage 组织）；**不为单个字段/过滤/小改另开 task**。
-- 600.7 已做引擎内部 phase/actor；E1 不重复，只做人面全量迁移 + registry + 回填。
-- 与 E4 分工：E1 出 `label()` 投影 + 数据面过滤；E4 消费之。refine_log 字段 E1 加、E7 用。
-- 回填绝不在旧 loop 与引擎同时活动时跑（M1 跨机制锁）；不搬家、不换目录。
-- decompose（建 children）= M1 后引擎自驱 dogfood；本骨架仅设计。
+### 601.1（既有，勿重建）：定义 IssueSource 接口并抽取 LocalIssueSource
+- 已是 BACK-601 child，保留。与字段轴**正交**（data-access seam：list/get/upsert over Core，扩 `src/engine/store.ts::makeBoardStore`），非 schema seam。
+- **依赖边（C1）**：实现 **∥ A**（601.1 只 transport Task 暴露的字段，不重声明）；但其 AC#3（transport registry-derived schema）**须在 A merge 后验证**。DAG 上 601.1 实现独立、AC#3 收口在 A 后。
+
+### A — field-registry 核心 + 派生 parse/serialize/validate + role 派生 + 引擎字段 reconcile + 搜索过滤 + refine_log 描述符
+- **交付**：单 PR 引入唯一 `FieldDescriptor` 表（`{yamlKey,tsName,type,parse,serialize,validate,mcpSchema,present?}` per ADR-011 D-5），把 `parseTask`/`serializeTask` 改为**由表生成**（非手列字段）。折入 `roleOf` 派生（叶⇒primitive/裸 Task、有子⇒compound/Epic）并注册为 `role` 描述符 derive（AC#2）；ADR-005 前提文本从强制 `kind:` label 调整为 role 派生/声明（AC#3）。**Reconcile 已发布的引擎字段**（pipeline_id/phase/parent_id/dod/cap/role）为表中声明实例——表**拥有**它们且 parse/serialize **字节一致**。**折入**（B1）：`NormalizedFilters` 增 pipeline_id/phase 过滤 + 注册 `refine_log` 描述符（二者只是"多注册描述符 + 一处 filter 列表"，属自然 registry 工作）。
+- **presence-gating（D2）**：表的 serialize **保留每描述符真值 presence 规则**（空串引擎字段仍**省略** key，与今天 `...(task.phase && …)` 一致），否则破坏字节一致 + 旧 loop parse。
+- **Scope**：`src/markdown/parser.ts`、`serializer.ts`、`src/types/index.ts`、新 registry 模块（如 `src/core/field-registry.ts`）、`src/core/search-service.ts`（filter）、ADR-005 文本。Phase→Stage：(1) FieldDescriptor + 注册全字段集（core+引擎+refine_log），逐实例 round-trip 单测；(2) parseTask/serializeTask 改表驱动，语料字节一致；(3) role derive + ADR-005 + 搜索 filter。
+- **依赖**：无（基础）。E0/600.7 已 merge。
+- **Acceptance（含 D1 行为级回归守卫——本 child 落 reconcile，故守卫在此非 B）**：
+  - `bunx tsc --noEmit` && `bun run check .` && `bun run build` 绿。
+  - **语料 golden**：parse→serialize 每个现存 `backlog/tasks/*.md` 为 no-op（`git diff --exit-code` on tasks dir）；golden 语料**含一个空引擎字段的 task**（D2）。
+  - **行为级回归（D1，非仅静态语料）**：(a) `createTaskFromInput({pipeline_id,phase,parent_id})` 产出的 frontmatter 与 A 前**字节一致**（对合成 task diff）；(b) `updateTask({...loadedTask, phase})` 经 serializeTask round-trip phase 不丢（decomposer 真实路径）；(c) **BACK-605.5 decomposer + BACK-600.10 stage2-gate 套件不改而绿**（`bun test` engine/harness）。
+  - 表驱动单测：每声明实例 register+round-trip（role/cap/dod/pipeline_id/phase/parent_id/refine_log）+ roleOf 叶vs复合；`pipeline_id`/`phase` 搜索返回正确子集。
+  - 无硬编码 baime 概念：role/cap/dod 是**注册实例**非 `if(field==='cap')`（可评审）。
+
+### B — MCP/CLI schema 由 registry 派生（+ TaskCreateInput/TaskUpdateInput 对称）
+- **交付**：单 PR 使 `generateTaskCreateSchema`/`generateTaskEditSchema` **由表的 `mcpSchema` 派生**（取代 ~360 行手写），并扩 `TaskCreateInput`/`TaskUpdateInput` + `createTaskFromInput`/`updateTaskFromInput` 使 registry 字段（含引擎字段）在 create **与** update 两侧一致接受（收口 site 4/3 的 create/update 不对称）。status enum 仍 config 源但走同一表。
+- **Scope**：`src/mcp/utils/schema-generators.ts`、`src/mcp/tools/tasks/*`、`src/types/index.ts`（TaskUpdateInput 引擎字段）、`src/core/backlog.ts`（updateTaskFromInput 对称）。
+- **依赖**：**A**（需表 + 每描述符 mcpSchema）。
+- **Acceptance**：MCP task_create/task_edit schema 校验（现 MCP 契约测试绿）；经 MCP/CLI 带引擎字段建的 task 与 A golden 一致 round-trip（不丢字段）；`bunx tsc --noEmit` && `bun run check .` 绿。
+
+### C — status↔phase 人面投影（label(role,phase)）
+- **交付**（B1 拆分后**只此一事**）：单 PR 引入唯一 `label(role, phase)` 投影（config 已在说的 `"<Role>: <Phase>"` 串）作为**status 显示计算的唯一处**，并把 web/CLI/board/status-callback 的显示读指向它——收敛当前隐式的 status-vs-phase 分裂（site 7），使每 task 持久为 `(pipeline_id, 裸 phase)`、status 串**派生**（AC#5）。`turn`/`role` 保持**派生、绝不持久**（turn=pipelineDef[phase].actor，E3 泛化；role 由树）。
+- **A1（AC#5 覆盖澄清）**：AC#5 的"删除惰性 state 字段"是 **no-op**（无持久 state 存在，已由 E0/决策记录消化）；C 只加派生投影，不引入第二条持久轴、无"删除"目标。
+- **Scope**：新投影 helper（与 registry 同处，单函数）、显示消费点（web/CLI/board/status-callback）。Phase→Stage：(1) label() + 接显示消费点；(2) 显示回归。**Scope 纪律**：E1 只**产出**投影；**E4 消费**（lane 渲染不在 E1）。
+- **依赖**：**A**（role derive 供 label）。与 B、D **并行**。
+- **Acceptance**：`label(role,phase)` 是唯一 status 显示计算（无残留 `"Basic: "+phase` 拼串，可评审）；web/CLI/board 显示零回归（现 Playwright e2e + status 测试绿）；`bunx tsc --noEmit` && `bun run check .` 绿。
+
+### D — 现存 task 文件的就地幂等 backfill（M1 roadmap）
+- **交付**：单 PR 的 **backfill**：对每个现存 `backlog/tasks/*.md`，由 registry default/derive 填空引擎字段——**结构字段** `pipeline_id`/`phase`/`parent_id`/`role`（role 由树位置派生；phase 由现 `status` 经 registry `parse(status)`→裸 phase 映射）。**A2 覆盖**：`dod`/`cap` **不 backfill**——它们是声明式内容非结构默认，缺省即 absent（epic M1 roadmap 列了 dod/cap，此处显式裁定只回填结构字段 + role，dod/cap/turn 不回填并说明）。就地、幂等、并行安全；**不移动/改名**文件；不得破坏旧 loop 读同批文件（向后兼容超集）。CLI 子命令或一次性迁移。
+- **F2（前置内联）**：backfill **不得**在旧 loop 与引擎同时持板时跑——经共享板锁（guard#1，已 discharged）验证；这是 D 的操作前置。
+- **Scope**：新 backfill 例程（用 601.1 的 list/upsert + A 的 registry 默认）、迁移入口、幂等测试。Phase→Stage：(1) 由 status+树经 registry 派生 task 的引擎字段；(2) 语料幂等 upsert 循环；(3) round-trip + 双跑幂等 + 旧 loop parse 兼容测试。
+- **依赖（C2 修正）**：**A**（registry parse + 默认）、**601.1**（list/upsert）。**不依赖 C**（D 只需 A 的 `parse(status)→phase`，非 C 的显示投影）。最后跑。
+- **Acceptance（多为 shell 可查）**：backfill 跑两遍产生同一树（第二遍后 `git diff --exit-code`——幂等）；回填后每引擎管理 task 有 `(pipeline_id, phase)` 使引擎 scan（`run.ts` filter `pipeline_id==='execution'`）识别，且旧 parser 仍解析全部（BACK-600..606 + 子任务无损）；单一活动驱动器下运行（F2）；`bunx tsc --noEmit` && `bun run check .` && `bun test` 绿。
+
+## Ordering & dependencies（C2 修正后）
+```
+        (E0 / 600.7 — merged)
+                 │
+                 ▼
+               [ A ] registry 核心 + parse/serialize + role + reconcile 引擎字段 + 搜索 filter + refine_log
+              /  |  \
+             ▼   ▼   ▼
+          [ B ] [ C ] [ D ]
+        MCP/CLI  label   backfill(需 A + 601.1；不需 C)
+        schema  投影
+                         ▲
+                         │
+          [ 601.1 ] IssueSource（实现 ∥ A；AC#3 在 A 后验证）→ 供 D 的 list/upsert
+```
+- **A first**。**B ∥ C ∥ D-start** 均在 A 后；D 收口需 601.1。**601.1 实现 ∥ A**。
+- 关键路径缩短为 **A → D**（C2：去掉 D→C 边，C 显示收敛全程并行）。
+
+## Constraints / invariants
+- **勿破已发布引擎字段写路径**：605.7 扩了 TaskCreateInput+createTaskFromInput(1068-1070)；605.5 decomposer + 600.10 stage2-gate **依赖**之。A 须让 registry **拥有** pipeline_id/phase/parent_id 且 create/parse/serialize **字节一致**（reconcile，非重写）；回归守卫在 **A** 的 acceptance（D1）。
+- **向后兼容超集**：旧 loop 与引擎读**同批** `backlog/tasks/*.md`；不删旧 loop 依赖的字段；backfill 只加不重构。
+- **就地/幂等/并行安全 backfill**：不移动/改名；双跑 no-op；不与双活动驱动器同跑（guard#1）。
+- **无硬编码 baime 概念**：role/cap/dod/refine_log 为声明式 FieldDescriptor 实例，引擎核无 `if(field==='cap')`（ADR-011 D-5）。
+- **presence-gating 保真**（D2）：registry serialize 保留每描述符真值门；空引擎字段仍省 key。
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
@@ -99,4 +160,15 @@ AC#1 单一 FieldDescriptor 表；AC#2 role 树派生；AC#3 ADR-005 调整；AC
 2026-07-04 终版修订（超前一条备注）：之前在“更多字段(独立 waiting_on)+更少 status”与“更少字段(status 唯一 canonical)+更多 status”两极摆摆，二者共犯一错：都把 turn 当成必须持久的 per-task 轴。终版：turn=actor(phase) 归 pipeline-data（非 per-task），role 归树，故 per-task 只存 (pipeline_id, 裸 phase)，字段与 status 词汇两者都更少。status 串=label(role,phase) 派生显示。见 proposal §2.3 终版 + workitem-lifecycle-state.puml。PipelineState.actor 泛化在 E3。
 
 2026-07-04 对齐 E0 成果（不改骨架，一条重叠备注）：600.8 交付了 `src/engine/store.ts::makeBoardStore`（TaskStore over Core）——它是 child1 IssueSource（601.1）的**种子**。E1 的 IssueSource 应**扩展**它（加 list/upsert），不另建平行抽象。其余四轴/迁移不变。E1 仍是 dogfood 目标，**待真 worker（BACK-605.1）就位后再由引擎自驱**。
+
+guard#2 (Stage 2 self-host fixpoint) discharge path clarified after BACK-600.10 architect review:
+- BACK-600.10 delivers the Stage 2 VERIFIER + self-test (instrument only) — it does NOT by itself clear guard#2.
+- guard#2 is discharged ONLY by a recorded 'stage2 passed:true' event from a REAL engine-produced rebuild (soak): engine drives a worker to rebuild the MVD from contracts, then runStage2Fixpoint proves (a) rebuilt tree passes MVD_TEST_FILES AND (b) the rebuilt driver drives a tracer to fixpoint (self-application, not just unit-green — else it's Stage 1 relabeled).
+- Therefore E1 dogfood stays blocked on: 600.10 done (instrument) → a passing Stage 2 soak run (evidence). Do NOT treat 600.10-done as guard#2 cleared.
+
+guard#2 (Stage 2 self-host fixpoint) — DISCHARGED 2026-07-04.
+A genuine Stage 2 run passed: the MVD (14 engine/harness files) was reconstructed from its contracts (10 MVD_TEST_FILES + tracer + src/types) ALONE, in an isolated cp-proof tree (originals deleted, no git history), by an independent worker. The rebuild is byte-different from the originals (driver 158 / pipeline 49 / decomposer 155 diff lines — genuine reconstruction, not cp). The BACK-600.10 gate (engine stage2-gate CLI) returned PASSED: suite-green (97 tests / 10 files) AND drive-fixpoint (rebuilt driver self-drives engine-tracer-fixpoint). Negative control confirmed the gate is meaningful (sabotaging rebuilt adjudicate() → gate FAILED suite-failed). Recorded to docs/research/gcl-events.jsonl at engine HEAD 6e361dc.
+→ E1 hard trust-root gates now all satisfied (guard#1 shared-lock ✅, guard#2 Stage 2 ✅). Remaining before E1 dogfood: E1 needs its own refined epic plan (Sub-Task Decomposition skeleton the decomposer reads) + engine fields (role:compound, pipeline_id:execution, phase:ready).
+
+Sub-Task Decomposition refined via feature-to-backlog (drafter + independent architect). Grounding all verified (file:line accurate). 8 architect fixes applied: D1 regression guard→A behavioral; D2 presence-gating; B1 split C (label-only) folding filters+refine_log into A; A1 state-delete coverage clarified (no persisted state exists); A2 backfill scope (structural fields+role only, dod/cap not backfilled); C1 601.1↔A edge; C2 D deps A+601.1 not C; F2 D single-driver precondition inlined. Children: A(registry core) → B(MCP schema) ∥ C(label projection) ∥ D(backfill, needs A+601.1); 601.1(IssueSource) ∥ A. Ready for engine decompose.
 <!-- SECTION:NOTES:END -->

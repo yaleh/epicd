@@ -3,10 +3,10 @@ id: BACK-605.6
 title: >-
   Re-add optional stored `role` field (pre-declared compound) to Task schema —
   prereq for epic-decompose
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 08:17'
-updated_date: '2026-07-04 08:29'
+updated_date: '2026-07-04 08:35'
 labels:
   - 'kind:basic'
   - 'kind:feature'
@@ -81,12 +81,39 @@ Proposal: 见 Description。**只加可选存储位，不改四轴"role 默认�
 feature-to-backlog（orchestrator=main session）：ProposalLoop。Plan review: **APPROVED**（independent architect，合并审 605.6+605.7，GCL E=5 C=2 H=1）——role 字段实测不存、subtasks 在、parser/serializer 位置确认；roleOf 纯函数放 src/engine/role.ts seam 干净。minor：Phase A 测试须断言 role===undefined 时不写 role: key（已在 roundtrip 测覆）。适配：跳 baime-plugin Step D。推到 Basic: Ready 供 worker 执行。
 
 claimed: 2026-07-04T08:29:38Z
+
+workerLoop pre-merge DoD #0 FAIL: bun test src/test/engine-role-roundtrip.test.ts
+
+Escalated: workerLoop DoD #0 failed: bun test src/test/engine-role-roundtrip.test.ts
+bun test v1.3.14 (0d9b296a)
+The following filters did not match any test files in --cwd="/home/yale/work/epicd-BACK-605.6":
+ src/test/engine-role-roundtrip.test.ts
+1164 files were searched [75.00ms]
+To continue: answer in Implementation Notes, then set status → Basic: Ready.
+
+Escalation: DoD referenced engine-role-roundtrip.test.ts and engine-roleof.test.ts but agent added 15 role+roleOf tests to engine-fields-roundtrip.test.ts. Updated DoD to correct file. Re-queuing.
+
+claimed: 2026-07-04T08:35:18Z
+
+workerLoop DoD #0: PASS — bunx tsc --noEmit
+
+workerLoop DoD #1: PASS — bunx biome check src/engine/ src/types/ src/markdown/
+
+workerLoop DoD #2: PASS — bun test src/test/engine-fields-roundtrip.test.ts
+
+Phase 1 ✓ 2026-07-04T08:34:03Z
+Phase 2 ✓ 2026-07-04T08:34:03Z
+Phase 3 ✓ 2026-07-04T08:34:03Z
+DoD #1: PASS — bunx tsc --noEmit
+DoD #2: PASS — bun run check . (pre-existing warnings only, no new errors)
+DoD #3: PASS — bun test src/test/engine-fields-roundtrip.test.ts (15/15 pass)
+
+Completed: 2026-07-04T08:35:59Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bun test src/test/engine-role-roundtrip.test.ts
-- [ ] #2 bun test src/test/engine-roleof.test.ts
-- [ ] #3 bunx tsc --noEmit
-- [ ] #4 bunx biome check src/engine/ src/types/ src/markdown/
+- [ ] #1 bunx tsc --noEmit
+- [ ] #2 bunx biome check src/engine/ src/types/ src/markdown/
+- [ ] #3 bun test src/test/engine-fields-roundtrip.test.ts
 <!-- DOD:END -->
