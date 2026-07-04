@@ -148,3 +148,87 @@ describe("completeTask — merge runs under withMergeLock (ENG-3)", () => {
 		expect(savedPhase2()).toBe("done");
 	});
 });
+
+describe("completeTask — commit hook (BACK-616)", () => {
+	it("calls options.commit(taskId, verdict) after the final adjudicated updateTask", async () => {
+		const task = makeTask("TASK-C1", [{ text: "step", checked: true }]);
+		const { store, savedPhase } = makeStore(task);
+		const calls: Array<[string, string]> = [];
+
+		await completeTask("TASK-C1", { success: true }, store, {
+			merge: async () => ({ merged: true }),
+			commit: async (id, verdict) => {
+				calls.push([id, verdict]);
+			},
+		});
+
+		expect(savedPhase()).toBe("done");
+		expect(calls).toEqual([["TASK-C1", "done"]]);
+	});
+
+	it("calls options.commit(taskId, 'needs-human') on merge conflict (before adjudication)", async () => {
+		const task = makeTask("TASK-C2");
+		const { store, savedPhase } = makeStore(task);
+		const calls: Array<[string, string]> = [];
+
+		await completeTask("TASK-C2", { success: true }, store, {
+			merge: async () => ({ conflict: true }),
+			commit: async (id, verdict) => {
+				calls.push([id, verdict]);
+			},
+		});
+
+		expect(savedPhase()).toBe("needs-human");
+		expect(calls).toEqual([["TASK-C2", "needs-human"]]);
+	});
+
+	it("calls options.commit(taskId, 'needs-human') when dodResults fail (pre-merge early return)", async () => {
+		const task = makeTask("TASK-C3");
+		const { store, savedPhase } = makeStore(task);
+		const calls: Array<[string, string]> = [];
+
+		await completeTask("TASK-C3", { success: true, dodResults: [{ cmd: "false", passed: false }] }, store, {
+			merge: async () => ({ merged: true }),
+			commit: async (id, verdict) => {
+				calls.push([id, verdict]);
+			},
+		});
+
+		expect(savedPhase()).toBe("needs-human");
+		expect(calls).toEqual([["TASK-C3", "needs-human"]]);
+	});
+
+	it("does not throw and behaves as before when options.commit is omitted", async () => {
+		const task = makeTask("TASK-C4", [{ text: "step", checked: true }]);
+		const { store, savedPhase } = makeStore(task);
+
+		await completeTask("TASK-C4", { success: true }, store, {
+			merge: async () => ({ merged: true }),
+		});
+
+		expect(savedPhase()).toBe("done");
+	});
+
+	it("commit runs while the .merge-lock is still held (single lock scope covers merge+commit)", async () => {
+		const backlogDir = createUniqueTestDir("merge-wire-commit-lock");
+		await mkdir(backlogDir, { recursive: true });
+		try {
+			const task = makeTask("TASK-C5", [{ text: "step", checked: true }]);
+			const { store } = makeStore(task);
+			const lockPath = join(backlogDir, MERGE_LOCK_FILENAME);
+			let lockExistedDuringCommit = false;
+
+			await completeTask("TASK-C5", { success: true }, store, {
+				merge: async () => ({ merged: true }),
+				commit: async () => {
+					lockExistedDuringCommit = existsSync(lockPath);
+				},
+				safety: { backlogDir, lockFs: realFs },
+			});
+
+			expect(lockExistedDuringCommit).toBe(true);
+		} finally {
+			await rm(backlogDir, { recursive: true, force: true });
+		}
+	});
+});

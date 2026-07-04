@@ -73,6 +73,13 @@ export interface CompleteTaskOptions {
 	merge?: (taskId: string, result: CompletionResult) => Promise<{ conflict?: boolean; merged?: boolean } | void>;
 	/** Safety config for merge-lock serialisation. */
 	safety?: { backlogDir: string; lockFs: MergeLockFs };
+	/**
+	 * Called after the phase-updating `store.updateTask` write, with the final
+	 * verdict ("done" | "needs-human"). Commits that write to git — otherwise
+	 * the board file's phase change is left uncommitted on disk after merge
+	 * (BACK-616). Optional: omitted for in-memory TaskStore test doubles.
+	 */
+	commit?: (taskId: string, verdict: string) => Promise<void>;
 }
 
 /**
@@ -81,14 +88,16 @@ export interface CompleteTaskOptions {
  * Replaces the driver's previously-inlined adjudicate+merge+update logic so
  * there is exactly one adjudication path (ENG-8 / advisory B).
  *
- * Flow (ENG-8 composite sequence):
+ * Flow (ENG-8 composite sequence), all under a single merge-lock scope when
+ * `options.safety` is provided:
  *   1. Load task from store.
  *   2. Pre-adjudicate dodResults — if present and any fail (or empty) →
  *      phase → needs-human immediately, skip merge.
- *   3. Merge worktree branch (under merge lock when safety is provided).
+ *   3. Merge worktree branch.
  *      - If merge signals conflict → phase → needs-human (skip adjudication).
  *   4. Adjudicate remaining result (success + legacy DoD items) → done | needs-human.
  *   5. Update task phase — engine decides; worker never self-declares done.
+ *   6. Commit the phase write (options.commit), if provided.
  */
 export async function completeTask(
 	taskId: string,
@@ -99,31 +108,38 @@ export async function completeTask(
 	const task = await store.getTask(taskId);
 	if (!task) throw new Error(`Task ${taskId} not found`);
 
-	// ENG-8: pre-adjudicate dodResults before merge — dod fail skips merge entirely.
-	if (result.dodResults !== undefined) {
-		const dodFailed = result.dodResults.length === 0 || result.dodResults.some((r) => !r.passed);
-		if (dodFailed) {
-			await store.updateTask({ ...task, phase: "needs-human" });
-			return;
+	const run = async (): Promise<void> => {
+		// ENG-8: pre-adjudicate dodResults before merge — dod fail skips merge entirely.
+		if (result.dodResults !== undefined) {
+			const dodFailed = result.dodResults.length === 0 || result.dodResults.some((r) => !r.passed);
+			if (dodFailed) {
+				await store.updateTask({ ...task, phase: "needs-human" });
+				await options?.commit?.(taskId, "needs-human");
+				return;
+			}
 		}
-	}
 
-	// Merge worktree branch (serialised if safety is provided)
-	if (options?.merge) {
-		const mergeFn = options.merge;
-		const doMerge = () => mergeFn(taskId, result);
-		const mergeOutcome = options.safety
-			? await withMergeLock(options.safety.backlogDir, doMerge, options.safety.lockFs)
-			: await doMerge();
+		// Merge worktree branch
+		if (options?.merge) {
+			const mergeOutcome = await options.merge(taskId, result);
 
-		// Conflict → needs-human immediately, bypass adjudication
-		if (mergeOutcome != null && (mergeOutcome as { conflict?: boolean }).conflict) {
-			await store.updateTask({ ...task, phase: "needs-human" });
-			return;
+			// Conflict → needs-human immediately, bypass adjudication
+			if (mergeOutcome != null && (mergeOutcome as { conflict?: boolean }).conflict) {
+				await store.updateTask({ ...task, phase: "needs-human" });
+				await options?.commit?.(taskId, "needs-human");
+				return;
+			}
 		}
-	}
 
-	// Adjudicate and persist — engine is sole authority over done/needs-human
-	const verdict = adjudicate(task, result);
-	await store.updateTask({ ...task, phase: verdict });
+		// Adjudicate and persist — engine is sole authority over done/needs-human
+		const verdict = adjudicate(task, result);
+		await store.updateTask({ ...task, phase: verdict });
+		await options?.commit?.(taskId, verdict);
+	};
+
+	if (options?.safety) {
+		await withMergeLock(options.safety.backlogDir, run, options.safety.lockFs);
+	} else {
+		await run();
+	}
 }

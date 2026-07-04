@@ -15,6 +15,7 @@
  * Exports:
  *   - gitWorktreeRunner: WorktreeRunner   — runs git worktree shell commands
  *   - gitMergeBranch                      — merges task/<id> branch into HEAD under cwd
+ *   - gitCommitBoardChange                — commits completeTask's post-merge board phase write
  *   - realMergeLockFs: MergeLockFs        — fs adapter for merge-lock
  */
 
@@ -106,6 +107,35 @@ export async function gitMergeBranch(
 	});
 	await abort.exited; // best-effort
 	return { merged: false, conflict: true };
+}
+
+/**
+ * Commits the board-file phase write that `completeTask` makes after a merge
+ * (BACK-616) — without this, `store.updateTask`'s write lands on disk but is
+ * never part of git history, leaving the repo dirty after every `engine
+ * complete` run. Scoped to `backlog/` so it never stages unrelated
+ * working-tree changes. No-ops (does not commit) when nothing is staged —
+ * safe to call even if the phase write happened to match what was already
+ * committed.
+ */
+export async function gitCommitBoardChange(repoPath: string, taskId: string, verdict: string): Promise<void> {
+	const add = Bun.spawn(["git", "add", "-A", "--", "backlog"], {
+		cwd: repoPath,
+		stdout: "pipe",
+		stderr: "inherit",
+	});
+	await add.exited;
+
+	const diff = Bun.spawn(["git", "diff", "--cached", "--quiet"], { cwd: repoPath });
+	const diffCode = await diff.exited;
+	if (diffCode === 0) return; // nothing staged — nothing to commit
+
+	const commit = Bun.spawn(["git", "commit", "-m", `board: ${taskId} -> ${verdict}`], {
+		cwd: repoPath,
+		stdout: "inherit",
+		stderr: "inherit",
+	});
+	await commit.exited;
 }
 
 /**
