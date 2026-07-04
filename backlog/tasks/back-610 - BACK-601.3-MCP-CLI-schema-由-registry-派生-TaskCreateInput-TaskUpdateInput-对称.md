@@ -4,11 +4,19 @@ title: BACK-601.3 - MCP/CLI schema 由 registry 派生 + TaskCreateInput/TaskUpd
 status: 'Basic: Needs Human'
 assignee: []
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 17:25'
+updated_date: '2026-07-04 17:26'
 labels: []
 dependencies: []
 ordinal: 21000
 phase: needs-human
+dod:
+  - text: >-
+      bun test src/test/field-registry.test.ts
+      src/test/mcp-schema-generators.test.ts src/test/mcp-tasks.test.ts
+      src/test/cli-task-view-edit.test.ts src/test/engine-child-create.test.ts
+    checked: false
+  - text: bunx tsc --noEmit
+    checked: false
 ---
 
 ## Description
