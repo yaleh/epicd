@@ -58,9 +58,12 @@ export async function complete(
 export interface CompleteTaskOptions {
 	/**
 	 * Called to git-merge the task worktree branch.
+	 * Returns `{conflict: true}` when the merge fails due to conflicts;
+	 * the engine routes to `needs-human` without adjudicating DoD.
 	 * When combined with `safety`, the call is wrapped in withMergeLock.
 	 */
-	merge?: (taskId: string, result: CompletionResult) => Promise<void>;
+	// biome-ignore lint/suspicious/noConfusingVoidType: void allows existing `async () => {}` callers unchanged
+	merge?: (taskId: string, result: CompletionResult) => Promise<{ conflict?: boolean; merged?: boolean } | void>;
 	/** Safety config for merge-lock serialisation. */
 	safety?: { backlogDir: string; lockFs: MergeLockFs };
 }
@@ -74,6 +77,7 @@ export interface CompleteTaskOptions {
  * Flow:
  *   1. Load task from store.
  *   2. Merge worktree branch (under merge lock when safety is provided).
+ *      - If merge signals conflict → phase → needs-human (skip adjudication).
  *   3. Adjudicate result (success + DoD items) → done | needs-human.
  *   4. Update task phase — engine decides; worker never self-declares done.
  */
@@ -89,11 +93,21 @@ export async function completeTask(
 	// Merge worktree branch (serialised if safety is provided)
 	if (options?.merge) {
 		const mergeFn = options.merge;
-		const doMerge = () => mergeFn(taskId, result);
+		// biome-ignore lint/suspicious/noConfusingVoidType: void allows existing `async () => {}` callers
+		let mergeOutcome: { conflict?: boolean; merged?: boolean } | void = undefined;
+		const doMerge = async () => {
+			mergeOutcome = await mergeFn(taskId, result);
+		};
 		if (options.safety) {
 			await withMergeLock(options.safety.backlogDir, doMerge, options.safety.lockFs);
 		} else {
 			await doMerge();
+		}
+
+		// Conflict → needs-human immediately, bypass adjudication
+		if (mergeOutcome != null && (mergeOutcome as { conflict?: boolean }).conflict) {
+			await store.updateTask({ ...task, phase: "needs-human" });
+			return;
 		}
 	}
 

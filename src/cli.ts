@@ -4498,14 +4498,23 @@ engineCmd
 			const { runEngine } = await import("./engine/run.ts");
 			const { realSpawn } = await import("./engine/spawn.ts");
 			const { makeWorkerRunner } = await import("./harness/worker-runner.ts");
-			const { realSpawnPrimitive, gitWorktreeRunner } = await import("./harness/real-primitives.ts");
+			const { realSpawnPrimitive, gitWorktreeRunner, gitMergeBranch, realMergeLockFs } = await import(
+				"./harness/real-primitives.ts"
+			);
 
 			const core = new Core(cwd);
 			const runner = makeWorkerRunner(realSpawnPrimitive);
 
 			const worktree = {
 				spawn: (task: import("./types/index.ts").Task) => realSpawn(task, cwd, runner, gitWorktreeRunner),
-				merge: async (_taskId: string, _result: import("./engine/complete.ts").CompletionResult) => {},
+				merge: (taskId: string) => gitMergeBranch(cwd, taskId),
+			};
+
+			const safety: import("./engine/driver.ts").SafetyConfig = {
+				backlogDir: core.filesystem.backlogDir,
+				repoPath: cwd,
+				lockFs: realMergeLockFs,
+				worktreeRunner: gitWorktreeRunner,
 			};
 
 			const maxTicks = Number.parseInt(options.maxTicks, 10);
@@ -4517,6 +4526,7 @@ engineCmd
 
 			const result = await runEngine(core, worktree, {
 				maxTicks,
+				safety,
 				onTick: options.verbose ? (t: number) => console.log(`tick ${t}`) : undefined,
 			});
 
