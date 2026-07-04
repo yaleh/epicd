@@ -1,11 +1,16 @@
-import type { Task } from "../types/index.js";
+import { roleOf, type Task } from "../types/index.js";
 import type { CompletionResult } from "./complete.js";
 
 export type Verdict = "done" | "needs-human";
 
-/** Returns true when the task is a primitive (leaf) — it has no subtask children. */
+/** Returns true when the task is compound (has role=compound, or has subtask children). */
+export function isCompound(task: Task): boolean {
+	return roleOf(task) === "compound";
+}
+
+/** Returns true when the task is a primitive (leaf) — not compound. */
 export function isPrimitive(task: Task): boolean {
-	return !task.subtasks || task.subtasks.length === 0;
+	return !isCompound(task);
 }
 
 /**

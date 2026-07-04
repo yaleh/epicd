@@ -1,10 +1,16 @@
 import type { Task } from "../types/index.js";
-import { isPrimitive } from "./adjudicate.js";
+import { isCompound } from "./adjudicate.js";
 import type { CompletionResult, TaskStore } from "./complete.js";
 import { completeTask } from "./complete.js";
 import { Interpreter } from "./interpreter.js";
 import type { Pipeline } from "./pipeline.js";
 import { type MergeLockFs, type WorktreeRunner, withCapGuard } from "./safety.js";
+
+/**
+ * Handler called by the driver when a compound (epic) task is in a machine-actor phase.
+ * Lives in harness, injected here; engine core never spawns directly.
+ */
+export type DecomposeHandler = (task: Task, repoPath?: string) => Promise<void>;
 
 /** Worktree operations interface; primitives are stubbed here and hardened in child 5. */
 export interface WorktreeOps {
@@ -30,7 +36,7 @@ export interface SafetyConfig {
  *
  * Role branching (per AC #3):
  *   - primitive (leaf, no subtasks): spawn → adjudicate DoD → done | needs-human
- *   - compound/epic: stub → needs-human (decompose out of scope for BACK-600.8)
+ *   - compound/epic: calls injected decompose handler (if provided); else → needs-human stub
  *
  * Safety (per AC #2, when SafetyConfig is provided):
  *   - merge wrapped in withMergeLock
@@ -39,7 +45,13 @@ export interface SafetyConfig {
 export class Driver {
 	private interpreter: Interpreter;
 
-	constructor(pipelines: Pipeline[], store: TaskStore, worktree: WorktreeOps, safety?: SafetyConfig) {
+	constructor(
+		pipelines: Pipeline[],
+		store: TaskStore,
+		worktree: WorktreeOps,
+		safety?: SafetyConfig,
+		decompose?: DecomposeHandler,
+	) {
 		this.interpreter = new Interpreter();
 
 		for (const pipeline of pipelines) {
@@ -49,9 +61,14 @@ export class Driver {
 				const phase = state.name;
 				this.interpreter.register(pipeline, phase, async (_event, task) => {
 					const doWork = async () => {
-						if (!isPrimitive(task)) {
-							// compound/epic — decompose out of scope, route to human
-							await store.updateTask({ ...task, phase: "needs-human" });
+						if (isCompound(task)) {
+							if (decompose) {
+								// Delegate to injected decompose handler (harness seam)
+								await decompose(task, safety?.repoPath);
+							} else {
+								// No handler injected — route to human
+								await store.updateTask({ ...task, phase: "needs-human" });
+							}
 							return;
 						}
 
