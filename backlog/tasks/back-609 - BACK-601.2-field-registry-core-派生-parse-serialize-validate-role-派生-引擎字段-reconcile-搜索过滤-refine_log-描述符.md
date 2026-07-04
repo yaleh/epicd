@@ -3,16 +3,16 @@ id: BACK-609
 title: >-
   BACK-601.2 - field-registry core + 派生 parse/serialize/validate + role 派生 +
   引擎字段 reconcile + 搜索过滤 + refine_log 描述符
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 11:04'
+updated_date: '2026-07-04 11:23'
 labels: []
 dependencies: []
 ordinal: 20000
 pipeline_id: execution
-phase: ready
+phase: done
 parent_id: BACK-601
 ---
 
@@ -33,4 +33,6 @@ parent_id: BACK-601
 
 <!-- SECTION:NOTES:BEGIN -->
 Driven via correct monitor+Agent pattern (in-session Claude Code Agent in worktree, NOT claude subprocess). Worktree task/BACK-609; engine.completeTask owns DoD-reverify+merge (ENG-8).
+
+Merged to main via engine.completeTask under merge-lock (ENG-8: DoD independently re-verified green in worktree before merge — tsc/biome/full suite 1615 tests 0 fail). Delivered via the CORRECT pattern: in-session monitor → background Claude Code Agent in worktree → sentinel → engine complete tail. NOT a claude subprocess. Merge commit 190478d.
 <!-- SECTION:NOTES:END -->
