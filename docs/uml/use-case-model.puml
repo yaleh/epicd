@@ -1,0 +1,213 @@
+@startuml epicd-uc-interactive
+' epicd — RUP Use-Case Model — VIEW 1 of 2: Interactive surfaces (Human · AI Agent)
+' Implementation-first: canonical names = shipped code; aliases in companion use-case-model.md.
+' Status: <<impl>> green shipped ; <<planned>> orange designed/absent ; <<deprecated>> red weakened (code kept)
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+left to right direction
+skinparam usecase {
+  BorderColor #555555
+  BackgroundColor<<impl>> #C8E6C9
+  BackgroundColor<<planned>> #FFE0B2
+  BackgroundColor<<deprecated>> #EF9A9A
+}
+skinparam actor {
+  BorderColor #333333
+  BackgroundColor #FFFFFF
+}
+
+title epicd Use Cases — View 1/2: Interactive surfaces (Human · AI Agent)
+
+actor "Human (gate owner)\n= 人 · human · Deciders" as Human
+actor "AI Agent\n= MCP client · worker/Handler" as Agent
+
+rectangle "epicd" {
+
+  package "Issue List & Oversight  (Human · PLANNED — the new primary surface)" {
+    usecase "**Multi-lane issue list**\n(swimlane by pipeline_id;\nhuman + agent driving visible)" as UC_list <<planned>>
+    usecase "Gate-review inline\n(approve / reject / escalate)" as UC_gate <<planned>>
+    usecase "Capture / intake\n(one-line intent → Draft)" as UC_intake <<planned>>
+    usecase "Promote to execution (gate)" as UC_promote <<planned>>
+    usecase "Ratchet trust\n(shadow→sampled→auto)" as UC_ratchet <<planned>>
+  }
+  UC_list ..> UC_gate : «include»
+  note bottom of UC_list
+    Base = existing All Tasks page (TaskList.tsx). Extends it with:
+    (1) swimlanes by **pipeline_id** (structured, config-driven fixed set;
+        add a lane = add a pipeline). lane is NOT a label, NOT a saved filter.
+    (2) **label filter stays orthogonal + OR** — narrows WITHIN a lane, never defines it;
+    (3) **status = intra-lane** column (pipeline states, ordered) / sort (priority) / visibility;
+    (4) per-row DRIVER indicator: 👤 awaiting your gate  vs  🤖 being worked by
+        Claude Code (monitor-driven worker) — reads Coordinator runtime state (live via WS);
+    (5) gate-inbox is FOLDED IN here (needs-human rows), not a separate page.
+    Behaviour defined by: workitem-lifecycle-state / issue-list-activity / issue-list-sequence.
+    Backend gap: search-service NormalizedFilters must add **pipeline_id** (status/labels already filterable).
+    See proposal docs/proposals/2026-07-04-multi-lane-issue-list.md.
+  end note
+
+  package "Backlog Management  (Human · IMPLEMENTED — CLI/Web/TUI/MCP)" {
+    usecase "Manage tasks\n(create/list/edit/view/archive/complete/demote)" as UC_task <<impl>>
+    usecase "Search backlog" as UC_search <<impl>>
+    usecase "Manage docs & decisions" as UC_doc <<impl>>
+    usecase "Config / Init / Overview / Cleanup" as UC_admin <<impl>>
+  }
+
+  package "Weakened — deprecated (code kept, hidden from nav)" {
+    usecase "Kanban board\n(→ secondary; issue-list is primary)" as UC_board <<deprecated>>
+    usecase "Milestones\n(≡ Epic grouping — redundant)" as UC_ms <<deprecated>>
+    usecase "Folder-based drafts\n(drafts/ dir; retired for status-draft)" as UC_draftdir <<deprecated>>
+  }
+  note bottom of UC_draftdir
+    RETIRED in favor of loop-draft STATUS-draft (see View 2 authoring lane):
+    draft becomes a pipeline STATE (Basic/Epic: Draft→Refining), not a drafts/ folder.
+    DRIFT "promote" collapses: folder promote (drafts→tasks) is dropped;
+    remaining = human Backlog→Ready and authoring.done→execution.
+  end note
+
+  package "Agent API  (AI Agent · IMPLEMENTED via MCP — subset of CLI)" {
+    usecase "task_* tools" as UC_mcp_task <<impl>>
+    usecase "document_* tools" as UC_mcp_doc <<impl>>
+    usecase "milestone_* tools\n(deprecated concept)" as UC_mcp_ms <<deprecated>>
+    usecase "definition_of_done_defaults_*" as UC_mcp_dod <<impl>>
+    usecase "get_backlog_instructions" as UC_mcp_instr <<impl>>
+  }
+}
+
+Human --> UC_list
+Human --> UC_gate
+Human --> UC_intake
+Human --> UC_promote
+Human --> UC_ratchet
+Human --> UC_task
+Human --> UC_search
+Human --> UC_doc
+Human --> UC_admin
+Human --> UC_board
+Human --> UC_ms
+Human --> UC_draftdir
+
+Agent --> UC_mcp_task
+Agent --> UC_mcp_doc
+Agent --> UC_mcp_dod
+Agent --> UC_mcp_instr
+Agent --> UC_mcp_ms
+
+legend bottom
+  |= Status |= Meaning |
+  |<#C8E6C9> impl | shipped & wired (CLI/Web/TUI/MCP) |
+  |<#FFE0B2> planned | designed (ADR/proposal); code test-only or absent |
+  |<#EF9A9A> deprecated | weakened; code kept but hidden / to retire |
+  Canonical = code. lane ≡ pipeline_id ONLY (type axis = role, not lane). Full drift table in use-case-model.md
+endlegend
+@enduml
+
+
+@startuml epicd-uc-lifecycle
+' epicd — RUP Use-Case Model — VIEW 2 of 2: Work-item lifecycle across LANES (lane = pipeline_id)
+' Shows the full baime-derived lifecycle the earlier diagram lacked:
+'   capture → authoring(draft/refine, routed by kind) → [human promote] → execution → epic decompose/eval.
+' <<planned>> designed; Interpreter.scan/dispatch exist but test-only; driver/complete/safety/supervisor ABSENT.
+' <<baime>> today this loop is actually run by the baime loop-backlog / loop-draft prototype.
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam usecase {
+  BorderColor #555555
+  BackgroundColor<<planned>> #FFE0B2
+  BackgroundColor<<baime>> #E0E0E0
+}
+skinparam actor {
+  BorderColor #333333
+  BackgroundColor #FFFFFF
+}
+
+title epicd Use Cases — View 2/2: Work-item lifecycle across lanes (lane = pipeline_id; PLANNED, today baime-run)
+
+actor "Human (gate owner)" as Human
+actor "Architect Reviewer\n= 独立 Agent · architect 评审" as Reviewer
+actor "Claude Code Monitor host\n= Monitor(persistent) · today powers the loop" as Monitor
+actor "IssueSource\n= sourceId (was tasksDir)" as Source
+actor "baime\n= GCL/methodology · soak fallback" as Baime
+
+rectangle "epicd — one board, multiple lanes (field = (sourceId, pipeline_id))" {
+
+  package "Authoring lane   (pipeline_id = authoring · PLANNED)" {
+    usecase "Capture idea\n(kind:feature / kind:chore / kind:epic\n→ status Draft)" as UC_capture <<planned>>
+    usecase "Refine **feature** (coding)\n→ Proposal + Plan (2 review cycles, tests)" as UC_ref_f <<planned>>
+    usecase "Refine **chore** (non-coding)\n→ single critique → checklist" as UC_ref_c <<planned>>
+    usecase "Refine **epic**\n→ plan only (no children yet)" as UC_ref_e <<planned>>
+  }
+  note bottom of UC_capture
+    DRAFT = pipeline STATE (Basic/Epic: Draft→Refining→Backlog), status-based (loop-draft),
+    NOT the deprecated drafts/ folder. `kind` label ROUTES which refine handler runs.
+    kind rename: baime kind:task → **kind:chore** (avoids clash with entity Task). *(name provisional)*
+  end note
+
+  package "Execution lane   (pipeline_id = execution · PLANNED; today baime loop-backlog)" {
+    usecase "Scan for actionable\n(emit item-ready)" as UC_scan <<planned>>
+    usecase "Execute **feature**\n(implement in git worktree + DoD tests)" as UC_exec_f <<planned>>
+    usecase "Execute **chore**\n(run checklist; non-coding)" as UC_exec_c <<planned>>
+    usecase "Decompose epic\n(creates children ⇒ role flips\nprimitive→compound)" as UC_decomp <<planned>>
+    usecase "Evaluate epic\n(all children terminal)" as UC_eval <<planned>>
+    usecase "Complete item\nengine.complete()" as UC_complete <<planned>>
+    usecase "Merge / advance\n(under merge lock)" as UC_advance <<planned>>
+    usecase "Adjudicate terminal\n(re-run DoD; ENG-8)" as UC_verdict <<planned>>
+    usecase "Reap same-field peers" as UC_reap <<planned>>
+    usecase "Flag stale in-progress\n(informational; human decides)" as UC_stale <<planned>>
+  }
+}
+
+' --- authoring lane flow ---
+Human --> UC_capture
+Reviewer --> UC_ref_f
+Reviewer --> UC_ref_c
+Reviewer --> UC_ref_e
+UC_capture ..> UC_ref_f : kind:feature
+UC_capture ..> UC_ref_c : kind:chore
+UC_capture ..> UC_ref_e : kind:epic
+
+' --- human promote gate: authoring.backlog → execution.ready ---
+usecase "Promote gate\n(Backlog → Ready)" as UC_promote_gate <<planned>>
+Human --> UC_promote_gate
+UC_ref_f ..> UC_promote_gate : →Backlog
+UC_ref_c ..> UC_promote_gate : →Backlog
+UC_ref_e ..> UC_promote_gate : →Backlog
+UC_promote_gate ..> UC_scan : enqueues execution.ready
+
+' --- execution lane loop ---
+Monitor --> UC_scan
+UC_scan ..> UC_reap : «include»
+UC_scan ..> UC_stale : «include»
+UC_scan ..> UC_exec_f : «dispatch» basic-ready(feature)
+UC_scan ..> UC_exec_c : «dispatch» basic-ready(chore)
+UC_scan ..> UC_decomp : «dispatch» epic-ready
+UC_scan ..> UC_eval : «dispatch» epic-eval-due
+UC_exec_f ..> UC_complete : «include»
+UC_exec_c ..> UC_complete : «include»
+UC_complete ..> UC_advance : «include»
+UC_advance ..> UC_verdict : «include»
+UC_verdict ..> Human : DoD fail → needs-human (gate-review)
+UC_eval ..> Human : escalate → needs-human
+UC_decomp ..> UC_scan : children become actionable
+
+' --- data plane + instrumentation ---
+UC_scan ..> Source : reads (planned IssueSource.list; today store.load(tasksDir))
+UC_complete ..> Baime : gate-event payload (E/C/H, GCL)
+
+note top of UC_scan
+  IMPLEMENTED but UNWIRED: Interpreter.scan/dispatch (src/engine/interpreter.ts) — test-only.
+  ABSENT: driver.ts · complete.ts · safety.ts · supervisor.
+  Runtime layers ("engine" fans out — NOT synonyms):
+   supervisor=监督器/受管 Bun 服务 · driver=驱动器/scanner/scan-loop · interpreter=解释器 · worker=执行体/Handler
+  LANE terminology: lane ≡ pipeline_id (this axis). Type axis = **role** (compound=Epic / primitive=Basic),
+  derived from tree position — baime's kind:basic/kind:epic "lane label" is that role axis, renamed here.
+end note
+note bottom of UC_complete
+  ENG-8: worker must NOT self-write `done`; engine re-runs DoD then decides.
+  Replaces baime `.agent-done-*` sentinel. Merge lock: engine proper-lockfile
+  vs old loop `.merge-lock` — two names = corruption risk (BACK-600.5 AC#1).
+end note
+@enduml

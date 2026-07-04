@@ -1,0 +1,79 @@
+@startuml epicd-issue-list-activity
+' epicd — Activity diagram: end-to-end human+engine collaboration seen through the multi-lane list.
+' Swimlane partitions = who acts. User-visible behaviour only (no internal impl).
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam activity {
+  BorderColor #555555
+  BackgroundColor #E8F0FE
+  DiamondBackgroundColor #FFE0B2
+}
+
+title epicd — Human + engine flow across lanes (Activity diagram)
+
+|#C8E6C9|Human|
+start
+:Capture idea (one-line intent)\nchoose kind: feature / chore / epic;
+note right: appears as **Draft** in the\nAuthoring lane (👤 then 🤖)
+
+|#FFF3E0|Authoring engine (auto, monitor-driven)|
+:Claim Draft → Refining;
+if (kind?) then (feature)
+  :feature-to-backlog\nProposal + Plan (2 review cycles);
+elseif (chore) then
+  :task-to-backlog\nsingle critique → checklist;
+else (epic)
+  :epic-to-backlog\nplan only (no children);
+endif
+:Park at **Backlog**;
+
+|#C8E6C9|Human|
+:Review item in issue-list\n(Authoring lane, 👤);
+if (Promote gate?) then (approve)
+  :Promote → **Ready** (execution lane);
+else (hold / reject)
+  :keep in Backlog / archive;
+  stop
+endif
+
+|#E1F5FE|Execution engine (auto, monitor-driven)|
+:Scan actionable → spawn worker in worktree;
+note right: row now shows **🤖 In Progress**
+if (role?) then (primitive: feature/chore)
+  :Execute (implement / run checklist);
+  :engine.complete() → merge/advance;
+  :**Adjudicate DoD (ENG-8)**\nengine re-runs DoD;
+  if (DoD?) then (pass)
+    :→ **Done**;
+  else (fail / conflict)
+    :→ **Needs Human**;
+  endif
+else (compound: epic)
+  :Decompose → create children\n(role flips primitive→compound);
+  :→ **Awaiting Children**;
+  :when all children terminal → **Evaluating**;
+  if (epic satisfied?) then (yes)
+    :→ **Done**;
+  else (no)
+    :→ **Needs Human**;
+  endif
+endif
+
+|#C8E6C9|Human|
+if (row = Needs Human?) then (yes)
+  :Inline **gate-review**\n(approve / reject / escalate);
+  note right: gate-inbox is folded\ninto the issue-list row
+  if (decision?) then (approve / re-open)
+    :→ back to Ready;
+    detach
+  else (reject)
+    :archive;
+    stop
+  endif
+else (Done)
+  :done — visible in terminal state\n(hidden by default filter);
+  stop
+endif
+
+@enduml

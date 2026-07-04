@@ -1,0 +1,81 @@
+@startuml epicd-workitem-state
+' epicd — State diagram: a Task's lifecycle across the authoring & execution pipelines.
+' User-visible behaviour: what states a user watches a Task move through in the multi-lane list.
+' lane = pipeline_id ; role (Basic/primitive vs Epic/compound) = orthogonal type axis ;
+' status shown as "Role: State" (config) — bare state = engine pipeline state.
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam state {
+  BorderColor #555555
+  BackgroundColor #E8F0FE
+  BackgroundColor<<gate>> #FFE0B2
+  BackgroundColor<<human>> #C8E6C9
+  BackgroundColor<<terminal>> #E0E0E0
+}
+
+title epicd — Work-item lifecycle (State diagram; lane = pipeline_id, role orthogonal)
+
+[*] --> Draft : Human captures\n(kind:feature/chore/epic)
+
+state "Authoring lane  (pipeline_id = authoring)" as Authoring {
+  state Draft
+  state Refining
+  state Backlog <<gate>>
+  Draft --> Refining : scanner claims\n(basic-draft / epic-draft)
+  Refining --> Backlog : refine done\n(feature→Proposal+Plan /\nchore→checklist / epic→plan)
+  note right of Refining
+    Routed by **kind** label:
+    feature-to-backlog / task-to-backlog / epic-to-backlog.
+    DRAFT is a STATE here (loop-draft), not a drafts/ folder.
+  end note
+}
+
+Backlog --> Ready : **Human promote gate**\n(authoring → execution)
+
+state "Execution lane  (pipeline_id = execution)" as Execution {
+  state Ready
+  state "In Progress" as InProgress
+  state Decomposing
+  state "Awaiting Children" as Awaiting
+  state Evaluating
+
+  state chooseRole <<choice>>
+  Ready --> chooseRole : scanner\n(basic-ready / epic-ready)
+  chooseRole --> InProgress : role = primitive (Basic)\nfeature→implement / chore→checklist
+  chooseRole --> Decomposing : role = compound (Epic)
+
+  Decomposing --> Awaiting : creates children\n(role stays compound)
+  Awaiting --> Evaluating : all children terminal\n(epic-eval-due)
+
+  note bottom of InProgress
+    engine.complete() → merge/advance →
+    **adjudicate DoD (ENG-8)**: engine re-runs DoD,
+    worker may NOT self-write `done`.
+  end note
+}
+
+state "Done" as Done <<terminal>>
+state "Needs Human" as NeedsHuman <<human>>
+
+InProgress --> Done : DoD pass
+InProgress --> NeedsHuman : DoD fail / conflict
+Evaluating --> Done : epic satisfied
+Evaluating --> NeedsHuman : epic escalate
+
+NeedsHuman --> Ready : Human gate-review\n(approve / re-open)
+NeedsHuman --> [*] : Human gate-review (reject / archive)
+Done --> [*]
+
+note as N_role
+  **role** is DERIVED from tree position (ADR-011 D-1.1):
+  leaf ⇒ primitive (Basic) · has children ⇒ compound (Epic).
+  Decomposing FLIPS a task primitive→compound.
+  role is the TYPE axis — orthogonal to lane(=pipeline_id).
+end note
+note as N_stale
+  **stale-in-progress**: In Progress > 30 min without update →
+  informational flag only; no auto state change; human decides.
+end note
+
+@enduml

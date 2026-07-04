@@ -1,0 +1,107 @@
+@startuml epicd-seq-load
+' epicd — Sequence 1/3: load the multi-lane issue list (user-visible boundary only).
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #777777
+  ParticipantBackgroundColor #E8F0FE
+  ActorBackgroundColor #C8E6C9
+}
+title Sequence 1/3 — Load multi-lane issue list
+
+actor Human
+participant "Web UI\n(issue-list)" as UI
+participant "epicd server\n(REST + WS)" as Srv
+participant "IssueSource\n(Local today)" as Src
+participant "Coordinator\n(runtime state)" as Coord
+
+Human -> UI : open issue list
+activate UI
+UI -> Srv : GET /api/config (pipelines[] → lanes)
+Srv --> UI : lane set (execution / authoring / …)\n+ per-lane display config
+UI -> Srv : GET /api/search (tasks)\n[filter: pipeline_id, status, labels(OR)]
+Srv -> Src : list(filter)
+Src --> Srv : tasks
+Srv -> Coord : active drivers / claims\n(who is 🤖 working what)
+Coord --> Srv : claim state per task
+Srv --> UI : tasks grouped by pipeline_id\n+ driver indicator (👤 / 🤖)
+UI -> UI : render swimlane sections\n(columns = states, sort = priority)\ntasks without pipeline_id → "no pipeline" lane
+UI --> Human : multi-lane board\n(collapsible + lane-switcher)
+deactivate UI
+
+note over UI, Coord
+  lane = pipeline_id (structured, config-driven) ·
+  label filter is orthogonal (OR) · status = intra-lane column/sort
+end note
+@enduml
+
+
+@startuml epicd-seq-live
+' epicd — Sequence 2/3: live agent-driving update (the human WATCHES the engine act).
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #777777
+  ParticipantBackgroundColor #E8F0FE
+  ActorBackgroundColor #C8E6C9
+}
+title Sequence 2/3 — Live agent-driving update (👤 watches 🤖)
+
+actor Human
+participant "Web UI" as UI
+participant "epicd server\n(WS)" as Srv
+participant "Supervisor / driver\n(monitor-driven)" as Eng
+participant "IssueSource" as Src
+
+Eng -> Src : claim task → state In Progress\n(spawn worker in worktree)
+Eng -> Src : engine.complete() → advance state
+Src -> Srv : change detected
+Srv -->> UI : WebSocket "tasks-updated"
+activate UI
+UI -> Srv : GET /api/search (refetch)
+Srv --> UI : updated tasks + claims
+UI -> UI : row driver indicator flips\n👤 → 🤖, moves column/lane
+UI --> Human : sees engine progress live
+deactivate UI
+
+note over Eng, Src
+  Human takes NO action here — the multi-lane list reflects
+  Claude Code (monitor-driven) work in near-real-time.
+end note
+@enduml
+
+
+@startuml epicd-seq-gate
+' epicd — Sequence 3/3: human inline gate-review on a Needs-Human row.
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #555555
+  LifeLineBorderColor #777777
+  ParticipantBackgroundColor #E8F0FE
+  ActorBackgroundColor #C8E6C9
+}
+title Sequence 3/3 — Inline gate-review (approve / reject / escalate)
+
+actor Human
+participant "Web UI\n(issue-list row)" as UI
+participant "epicd server" as Srv
+participant "IssueSource" as Src
+
+Human -> UI : row = Needs Human →\nclick Approve / Reject / Escalate
+activate UI
+UI -> Srv : POST gate decision (task, verdict)
+Srv -> Src : upsert (advance state)\napprove→Ready · reject→archive · escalate→stays, notes
+Src --> Srv : ok
+Srv -->> UI : WebSocket "tasks-updated" (broadcast)
+UI -> UI : row moves lane/state\n(gate-inbox folded into list)
+UI --> Human : updated board
+deactivate UI
+
+note over UI, Src
+  gate-inbox is NOT a separate page — it is the
+  Needs-Human rows of the same multi-lane issue list.
+end note
+@enduml
