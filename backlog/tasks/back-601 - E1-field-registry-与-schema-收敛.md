@@ -4,7 +4,7 @@ title: 'E1: field-registry 与 schema 收敛'
 status: 'Epic: Ready'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 10:31'
+updated_date: '2026-07-04 10:44'
 labels:
   - 'kind:epic'
   - 'epicd:E1'
@@ -12,7 +12,7 @@ dependencies:
   - BACK-600
 ordinal: 2000
 pipeline_id: execution
-phase: ready
+phase: awaiting-children
 role: compound
 ---
 
