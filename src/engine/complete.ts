@@ -3,10 +3,17 @@ import { adjudicate } from "./adjudicate.js";
 import type { Pipeline } from "./pipeline.js";
 import { type MergeLockFs, withMergeLock } from "./safety.js";
 
+export interface DodResult {
+	cmd: string;
+	passed: boolean;
+}
+
 export interface CompletionResult {
 	success: boolean;
 	output?: string;
 	error?: string;
+	/** Per-command results from the harness DoD runner (ENG-8). */
+	dodResults?: DodResult[];
 }
 
 /** Minimal interface the completion API needs from the task store. */
@@ -74,12 +81,14 @@ export interface CompleteTaskOptions {
  * Replaces the driver's previously-inlined adjudicate+merge+update logic so
  * there is exactly one adjudication path (ENG-8 / advisory B).
  *
- * Flow:
+ * Flow (ENG-8 composite sequence):
  *   1. Load task from store.
- *   2. Merge worktree branch (under merge lock when safety is provided).
+ *   2. Pre-adjudicate dodResults — if present and any fail (or empty) →
+ *      phase → needs-human immediately, skip merge.
+ *   3. Merge worktree branch (under merge lock when safety is provided).
  *      - If merge signals conflict → phase → needs-human (skip adjudication).
- *   3. Adjudicate result (success + DoD items) → done | needs-human.
- *   4. Update task phase — engine decides; worker never self-declares done.
+ *   4. Adjudicate remaining result (success + legacy DoD items) → done | needs-human.
+ *   5. Update task phase — engine decides; worker never self-declares done.
  */
 export async function completeTask(
 	taskId: string,
@@ -90,11 +99,20 @@ export async function completeTask(
 	const task = await store.getTask(taskId);
 	if (!task) throw new Error(`Task ${taskId} not found`);
 
+	// ENG-8: pre-adjudicate dodResults before merge — dod fail skips merge entirely.
+	if (result.dodResults !== undefined) {
+		const dodFailed = result.dodResults.length === 0 || result.dodResults.some((r) => !r.passed);
+		if (dodFailed) {
+			await store.updateTask({ ...task, phase: "needs-human" });
+			return;
+		}
+	}
+
 	// Merge worktree branch (serialised if safety is provided)
 	if (options?.merge) {
 		const mergeFn = options.merge;
 		// biome-ignore lint/suspicious/noConfusingVoidType: void allows existing `async () => {}` callers
-		let mergeOutcome: { conflict?: boolean; merged?: boolean } | void = undefined;
+		let mergeOutcome: { conflict?: boolean; merged?: boolean } | void;
 		const doMerge = async () => {
 			mergeOutcome = await mergeFn(taskId, result);
 		};

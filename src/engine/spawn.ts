@@ -12,7 +12,7 @@
  */
 
 import type { Task } from "../types/index.js";
-import type { CompletionResult } from "./complete.js";
+import type { CompletionResult, DodResult } from "./complete.js";
 import { type WorktreeRunner, withWorktree } from "./safety.js";
 
 /**
@@ -29,17 +29,43 @@ export interface WorkerRunner {
 }
 
 /**
+ * Harness-injected DoD runner (ENG-8).  Called inside the worktree *after*
+ * the worker finishes but *before* the worktree is torn down so every command
+ * executes against the worker's actual output.
+ *
+ * Lives in src/harness/ (shells out); injected here so engine core stays
+ * free of subprocess calls.
+ */
+export type DodRunner = (task: Task, worktreePath: string) => Promise<DodResult[]>;
+
+/**
  * Creates an isolated git worktree for `task`, calls `runner.run()` inside it,
- * and removes the worktree unconditionally (try/finally).
+ * optionally runs `dodRunner` in the same worktree before teardown, then
+ * removes the worktree unconditionally (try/finally).
  *
  * Engine core has no knowledge of *how* the runner works — it only receives
  * the CompletionResult back for adjudication.
+ *
+ * @param dodRunner  Optional harness-injected DoD runner (ENG-8).  When
+ *                   omitted the call behaves identically to the pre-ENG-8
+ *                   4-argument form — existing callers are unaffected.
  */
 export async function realSpawn(
 	task: Task,
 	repoPath: string,
 	runner: WorkerRunner,
 	worktreeRunner: WorktreeRunner,
+	dodRunner?: DodRunner,
 ): Promise<CompletionResult> {
-	return withWorktree(repoPath, task.id, (worktreePath) => runner.run(task, worktreePath), worktreeRunner);
+	return withWorktree(
+		repoPath,
+		task.id,
+		async (worktreePath) => {
+			const workerResult = await runner.run(task, worktreePath);
+			if (!dodRunner) return workerResult;
+			const dodResults = await dodRunner(task, worktreePath);
+			return { ...workerResult, dodResults };
+		},
+		worktreeRunner,
+	);
 }
