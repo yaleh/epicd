@@ -211,6 +211,10 @@ export function parseTask(content: string): Task {
 			? (frontmatter.dod as DoDItem[]).map((item) => ({ text: String(item.text), checked: Boolean(item.checked) }))
 			: undefined,
 		cap: Array.isArray(frontmatter.cap) ? (frontmatter.cap as CapMarker[]) : undefined,
+		role:
+			frontmatter.role === "compound" || frontmatter.role === "primitive"
+				? (frontmatter.role as "compound" | "primitive")
+				: undefined,
 	};
 }
 
