@@ -3,9 +3,10 @@ id: BACK-605.5
 title: >-
   Engine epic-decompose: compound handler spawns a decomposer that creates
   children (unlocks E1 dogfood)
-status: 'Basic: Proposal'
+status: 'Basic: Needs Human'
 assignee: []
 created_date: '2026-07-04 08:04'
+updated_date: '2026-07-04 08:14'
 labels:
   - 'kind:basic'
   - 'kind:feature'
@@ -45,6 +46,70 @@ BACK-605.4（M1 worker 链就位）。decomposer 复用 605.1 的 spawn seam + 6
 ## 参考
 ADR-011 D-1.1（role 派生/预声明）；execution-class.puml（Decompose/Evaluate）；`src/engine/driver.ts`（compound→needs-human stub）、`adjudicate.ts`（isPrimitive）；baime `handle`/`epic-ready` 决composer（参照）；E1（BACK-601）plan 骨架（被 decompose 的对象）。
 <!-- SECTION:DESCRIPTION:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+# Plan: engine epic-decompose
+
+Proposal: 见本任务 Description。**依赖 BACK-605.4。**
+
+> 设计裁决：**compound 检测靠存储 `role`**（未 decompose 的 epic 无子，不能靠子数判）。**decomposer = 真 worker（spawn seam），但不走 worktree**——children 是主板 artifact，直接在 repo root 建（区别于 primitive execute 的 worktree+merge）。引擎 core 不 spawn（`! grep -rq 'Agent(' src/engine`）。
+
+## Phase A: compound 检测 + driver 分支到 decompose handler
+### Tests (write first)
+- `src/test/engine-compound.test.ts`：`isCompound(task)` = `task.role==='compound' || (task.subtasks?.length>0)`；`isPrimitive` = `!isCompound`；driver 遇 compound machine-phase → 调**注入的 decompose handler**（fake）而非 `phase:needs-human` stub；primitive 仍走 execute。
+### Implementation
+- `src/engine/adjudicate.ts`（或新 `role.ts`）：`isCompound`；`isPrimitive` 改为 `!isCompound`。`src/engine/driver.ts`：compound 分支从 needs-human stub 改为调注入的 `decompose(task)`。
+### DoD
+- [ ] `bun test src/test/engine-compound.test.ts`
+- [ ] `bunx tsc --noEmit`
+
+## Phase B: decomposer worker（建 children）+ 推进 awaiting-children
+### Tests (write first)
+- `src/test/engine-decompose.test.ts`：注入 fake decompose primitive → 引擎调它（brief 含 epic id/plan、目标 repo root）→ 断言其后 epic phase → `awaiting-children`；primitive 报无子/失败 → `needs-human`。
+### Implementation
+- `src/harness/decomposer.ts`：`makeDecomposer(spawnPrimitive)` → `decompose(task, repoPath)`：cwd=repoPath（**无 worktree**），spawn primitive 带 brief（"读 epic 的 Sub-Task Decomposition，用 `backlog task create --parent <id> --status 'Basic: Ready'` 建 children，并写 `pipeline_id: execution` / `phase: ready`"）；建完引擎置 epic `phase=awaiting-children`。`src/cli.ts` 注入真 primitive（复用 `realSpawnPrimitive`，cwd=repo）。
+### DoD
+- [ ] `bun test src/test/engine-decompose.test.ts`
+- [ ] `! grep -rq 'Agent(' src/engine`
+- [ ] `bunx tsc --noEmit`
+
+## Phase C: 幂等 + role=compound 数据
+### Tests (write first)
+- `src/test/engine-decompose-idempotent.test.ts`：epic 已有 children 或 `cap:decompose=done` → 重跑不重复建（skip）；无守卫时会重复（红→绿证明守卫生效）。
+### Implementation
+- decompose 前查已存 children / `cap` 标记；已 decompose → skip + 保持 awaiting-children。为 E1–E7 epic 加 `role: compound`（一次性设置脚本或 `backlog task edit`）——使引擎认得它们是 compound。
+### DoD
+- [ ] `bun test src/test/engine-decompose-idempotent.test.ts`
+- [ ] `bunx tsc --noEmit`
+- [ ] `bun run check .`
+
+## Constraints
+- decomposer = 真 worker（spawn seam），引擎 core 不 spawn；**decompose 不走 worktree**（主板建子）。
+- 依赖 605.4；**epic evaluate（all-children-terminal → done/needs-human）= 单独件（605.6），不在本 task**。
+- 幂等：重跑不重复建 children（已存子 / cap 守卫）。
+- E1–E7 epic 须带 `role: compound`，引擎才认得（本 task 设值或 E1 回填协调）。
+- 真 decompose 的 e2e（真 decomposer 建出真 children）由 sandbox/soak 证明，非 bun-test。
+
+## Acceptance Gate
+- [ ] `bun test`
+- [ ] `bunx tsc --noEmit`
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Plan review iter1: NEEDS_REVISION（independent architect，GCL E=4 C=2 H=2）——**结构性，非机械修复**。发现隐藏前置依赖（当前不存在）：
+① `role` 字段不存在（type/parser/serializer 都无）→ isCompound 永读 undefined。
+② `backlog task create` 不设 pipeline_id/phase → decomposer 建的 children **引擎 scan 看不见**（run.ts 按 pipeline_id===execution 过滤）。
+③ spawn 措辞：复用 realSpawnPrimitive（非 realSpawn/withWorktree）+ 自己的 brief builder（buildBrief 硬编码 worktree）。
+④ phase 转移：complete() 线性推进（ready→decomposing→awaiting-children），直设 awaiting-children 会跳过 decomposing。
+⑤ 幂等：driver 已 withCapGuard 包，别另造 cap:decompose；用“已有 children”检。
+⑥ 主板写 children 的 commit 语义（autoCommit=false、无 worktree merge）未定。
+⑦ role:compound 回填 E1–E7 作可执行 DoD。
+**根因：①② 是 E1 field-registry 内容。bootstrap 环：引擎驱 E1 需 decompose，decompose 需 E1 schema，E1 schema 不能被引擎驱→E1 schema slice 是手动前置。** 待人定 re-scope（拆前置 schema task / 前移 E1 schema slice / fold）后再继续 605.5。
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
