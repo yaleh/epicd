@@ -15,3 +15,6 @@ bypass_git_hooks: false
 check_active_branches: true
 active_branch_days: 10
 task_prefix: "back"
+# Engine self-drive (BACK-600 E0 cutover — sandbox fixpoint verified 2026-07-04)
+engine_self_drive: true
+engine_fallback_skill: "loop-backlog"
