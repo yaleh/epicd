@@ -8,7 +8,9 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dir, "..", "..");
@@ -44,8 +46,26 @@ function assertNoLiteralStringInDir(dir: string, needle: string) {
 }
 
 describe("epicd-run assets (BACK-605.8 Phase A)", () => {
-	it("scan-loop.js exists and is non-empty at plugin/scripts/scan-loop.js", () => {
-		expectNonEmptyFile("plugin/scripts/scan-loop.js");
+	it("scan-loop.cjs exists and is non-empty at plugin/scripts/scan-loop.cjs", () => {
+		expectNonEmptyFile("plugin/scripts/scan-loop.cjs");
+	});
+
+	it("plugin/scripts/scan-loop.js no longer exists (renamed to .cjs)", () => {
+		expect(existsSync(join(repoRoot, "plugin", "scripts", "scan-loop.js"))).toBe(false);
+	});
+
+	it("scan-loop.cjs actually executes under node without a require/ESM error (BACK-618)", () => {
+		const tasksDir = mkdtempSync(join(tmpdir(), "epicd-run-assets-"));
+		try {
+			const out = execFileSync(
+				"node",
+				[join(repoRoot, "plugin", "scripts", "scan-loop.cjs"), "--scan-once", "--tasks-dir", tasksDir],
+				{ encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+			);
+			expect(out).toBe("");
+		} finally {
+			rmSync(tasksDir, { recursive: true, force: true });
+		}
 	});
 
 	it("epicd-run SKILL.md exists and is non-empty", () => {

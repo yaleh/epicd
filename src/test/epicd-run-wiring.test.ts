@@ -28,8 +28,8 @@ function read(relPath: string): string {
 }
 
 describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
-	describe("plugin/scripts/scan-loop.js", () => {
-		const contents = read("plugin/scripts/scan-loop.js");
+	describe("plugin/scripts/scan-loop.cjs", () => {
+		const contents = read("plugin/scripts/scan-loop.cjs");
 
 		it("shells out to `engine scan` as its scan source", () => {
 			expect(contents).toContain("engine scan");
@@ -74,8 +74,8 @@ describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
 			expect(body).toContain("Monitor(persistent=true");
 		});
 
-		it("calls scan-loop.js as a single script (not inline bash)", () => {
-			expect(body).toContain("scan-loop.js --loop");
+		it("calls scan-loop.cjs as a single script (not inline bash)", () => {
+			expect(body).toContain("scan-loop.cjs --loop");
 		});
 
 		it("does NOT wrap the Monitor in an inline bash loop (crystallization norm)", () => {
