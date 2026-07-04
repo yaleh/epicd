@@ -1,11 +1,11 @@
 ---
 id: BACK-616
 title: 'engine complete: commit board-file phase write after merge'
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 16:10'
-updated_date: '2026-07-04 16:19'
+updated_date: '2026-07-04 23:42'
 labels:
   - 'kind:basic'
 dependencies: []
