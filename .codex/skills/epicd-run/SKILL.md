@@ -1,11 +1,11 @@
 ---
 name: epicd-run
-description: Start the epicd engine run loop as a persistent Monitor-hosted driver. Runs the execution pipeline against the real board until fixpoint or max-ticks. Invoke once per session; stop by touching backlog/.loop-stop.
+description: Start the epicd engine as a persistent Monitor-hosted driver. Runs the execution pipeline against the real board until fixpoint or max-ticks. Invoke once per session; stop by touching backlog/.loop-stop.
 ---
 
 # epicd-run skill
 
-Hosts `engine run` inside a persistent Monitor so the execution pipeline drives
+Hosts the engine inside a persistent Monitor so the execution pipeline drives
 itself autonomously.  Each tick picks up any `Basic: Ready` task, spawns a real
 Claude Code worker, and adjudicates the result — advancing the task to `done` or
 `needs-human`.
@@ -21,7 +21,7 @@ duplicate runs.
 
 ```
 # Arm the engine driver (Monitor-hosted)
-bun run cli engine run --verbose
+bun run cli engine watch --verbose
 
 # Stop cleanly
 touch backlog/.loop-stop
