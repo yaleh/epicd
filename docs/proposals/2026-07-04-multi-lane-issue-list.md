@@ -65,6 +65,32 @@ Claude Code）处理"这一运行时事实。本提案把它升级为**多车道
 
 **总原则**：状态机是唯一权威词汇；另两平面**从它投影**，永不反向定义它。可变性被推到投影函数与注册表里，核心 closed（开闭）；两平面各设一道**只读防腐契约**——数据面 = `IssueSource`，运行时面 = `Coordinator`。UI 只消费投影，禁止显示/config 字符串反喂引擎逻辑。
 
+### 2.3 四轴分解（2026-07-04 裁决：把 turn 从 phase 抽出）
+
+今天单一 `state` 把两个正交轴焊在一起：**phase**（进度）与 **turn**（该谁动）。`ready/in-progress/needs-human`
+其实是 `phase × turn × active` 的乘积。经裁决拆成四轴（这是 §2.2 axis-factoring 的第三次、也是收口的一次：
+lane 从 label 抽出 → claim 从 state 抽出 → turn 从 phase 抽出）：
+
+| 轴 | 载体 | 性质 | 谁写 |
+|---|---|---|---|
+| **lane** | `pipeline_id` | 结构、近乎不可变 | config/创建 |
+| **phase** | `state`（纯进度）| 持久、单调 | 引擎推进 |
+| **turn** | **新字段 `waiting_on ∈ {machine,human,none}`** | 持久、每次交接翻转 | 引擎或人 |
+| **claim** | Coordinator（运行时）| 短暂、"此刻在动" | driver |
+
+裁决要点：
+- **turn 用结构化字段 `waiting_on`，非 label**（与 E1「结构轴不当 label」一致；label 继续只做正交 OR）。
+- **`needs-human` 不再是 state** → 统一为 `waiting_on=human`（promote-gate / gate-review / DoD-fail /
+  epic-escalate 四种「等人」收敛成一个谓词，monitor 天然跳过）。
+- **`ready` 与 `in-progress` 合并**为单一可动作 phase；「排队待取 vs 正在跑」靠 Coordinator **claim** 区分；
+  **stale = claim 超时**（claim 须持久 + 带时间戳，`.active-agents` 加时间戳即可）。
+- **monitor pick-up 谓词**：`phase 可动作 ∧ waiting_on==machine ∧ 无有效 claim`。
+- **turn 一律显式持久**（含结构点冗余），用统一换 monitor/UI 单谓词；理由：DoD-fail 等**动态结局**无法从
+  phase 派生（同 phase 可能 `waiting_on=machine` 重试或 `=human` 放弃），故 turn 必须被引擎写下。
+- 影响（均 pre-M1）：`Interpreter.scan` 判据、item-ready keying `(pipeline,phase)+turn guard`、config
+  `statuses[]` 变 phase-only、R3 投影升为 `label(phase, turn, role, plane)`、历史 `status`→(phase,turn) 映射（R2 类）。
+- 与 R3 一致：不统一词汇、边界处投影；只是 canonical 从「单一 state」细化为「phase + waiting_on + claim」。
+
 ## 3. 用户可见行为（RUP 行为图索引）
 
 本提案的行为由 `docs/uml/` 下四张图定义（渲染：`PLANTUML_LIMIT_SIZE=16384 plantuml -tpng docs/uml/<f>.puml`）：
@@ -98,14 +124,15 @@ Claude Code）处理"这一运行时事实。本提案把它升级为**多车道
 
 ### 4.2 人机双驱动可视（核心差异点）
 
-每行显示**谁在驱动这条 task**，由 domain state（IssueSource）与 live claim（Coordinator）**join** 得出：
+每行显示**谁在驱动这条 task**，由 `waiting_on`（IssueSource，持久 turn 轴）与 live claim（Coordinator）**join** 得出：
 
-| domain state | 有 active claim? | 指示 | 含义 |
+| waiting_on | 有 active claim? | 指示 | 含义 |
 |---|---|---|---|
-| needs-human | — | 👤 | 待你 gate（claim 无关）|
-| in-progress | 有 | 🤖 | 引擎正在动 |
-| **in-progress** | **无** | **⚠️ stale/orphaned** | 崩溃/孤儿——stale-in-progress 免费掉出 |
-| ready | 无 | ○ | 待 scan |
+| human | — | 👤 | 待你 gate（promote / gate-review / DoD-fail / escalate）|
+| machine | 有 | 🤖 | Claude Code 正在跑 |
+| machine | 无 · claim 超时/有 checkout 痕迹 | ⚠️ stale | 崩溃/孤儿 |
+| machine | 无 | ⏳ | 排队待取 |
+| none | — | ✓ | 终态（默认隐藏）|
 
 claim 信息来自**运行时协调面**（`Coordinator.claims()`，见 R1），经 WebSocket 实时刷新（复用现有
 `tasks-updated` 通道）。人看着 issue-list 就能看到引擎在动，也能一眼看出孤儿行。
@@ -136,7 +163,8 @@ claim 信息来自**运行时协调面**（`Coordinator.claims()`，见 R1），
   前端 `tasks(IssueSource) ⟗ claims(Coordinator)` 做 join。**契约形状 soak↔引擎不变**：soak 期由 baime
   `.active-agents`/`.caps` 投影，M1 后由引擎 claim registry 投影，UI 不变（driver-supervisor §7 R5 边界内）。
   推论：`state=in-progress ∧ ¬claim` = **stale/orphaned**，stale-in-progress 免机制免费掉出（见 4.2 指示表）。
-- **R2 兜底车道与回填时序 — 未决**：回填前大量旧 task 挤在 "no pipeline"；是否给它一个临时默认 pipeline_id？
+- **R2 兜底车道与回填时序 — 降级为 best-effort**：纯历史数据处理。无 `pipeline_id` 的旧 task 归 "no pipeline"
+  车道，能展示最好；若麻烦可直接忽略（不阻塞主设计）。历史 `status`→(phase,waiting_on) 映射同属此类。
 - **R3 status↔state 词汇 — 已裁决**：**不统一词汇，统一来源**。canonical = 引擎 pipeline state；config
   `Basic: Ready`、UI `To Do/In Progress/Done` 都是显示投影，由**单向纯函数** `label(state, role, plane)` 产出，
   **只存在于渲染边界**。禁止 UI/config 字符串反喂引擎逻辑。R3 由此从"大重构"降级为"边界处一张 pure lookup +

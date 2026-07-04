@@ -21,6 +21,7 @@
 3. **draft 退役目录式、采状态式**：退役 Backlog.md 的 `drafts/` 目录 draft；draft 成为 authoring pipeline 的一个 **state**（`Basic/Epic: Draft→Refining`，loop-draft 式）。
 4. **Kanban/milestone 弱化**：标 `deprecated`、导航隐藏、代码保留；**多车道 issue-list 升为主视图**。milestone 与 Epic(compound) 语义重叠故退役。
 5. **多车道 issue-list = 核心用例**：以现有 All Tasks 页（`TaskList.tsx`）为基座，加泳道（按 `pipeline_id`，数据驱动）+ 每行**驱动者指示**（👤 待你 gate / 🤖 正被 monitor 驱动的 Claude Code 处理）+ 内联 gate-review（gate-inbox 融入本页）。
+6. **四轴分解**（proposal §2.3）：把今天单一 `state` 拆成 **lane**(`pipeline_id`) · **phase**(`state` 纯进度) · **turn**(新字段 `waiting_on∈{machine,human,none}`) · **claim**(Coordinator 运行时)。`needs-human` 不再是 state（= `waiting_on=human`）；`ready`/`in-progress` 合并（claim 区分排队 vs 在跑，stale=claim 超时）。monitor pick-up = `phase 可动作 ∧ waiting_on=machine ∧ 无有效 claim`。
 
 ## 实现现状速览
 
@@ -85,6 +86,7 @@ Done ；DoD fail/epic 评估异常 → needs-human（gate-review 在 issue-list 
 | 驱动器身份/场 | field=(tasksDir,pipeline_id) → (sourceId,pipeline_id) / 场 | ADR-012 ENG-6；driver-supervisor §4.5 | **field=(sourceId, pipeline_id)** |
 | ready 事件 | `item-ready:<pipeline_id>:<state>:<task_id>` · (baime) `basic-ready:TASK-N` | interpreter.ts；scan-loop.js | **item-ready** |
 | 状态词汇 | 引擎 ready/in-progress/done ↔ UI To Do/... ↔ baime Basic:Ready/Epic:Awaiting Children | pipeline.ts/constants/scan-loop.js | 三套并存，按语境限定 |
+| **状态分解（四轴）** | 旧：单一 `state`（ready/in-progress/needs-human 混装 phase+turn+active）→ 新：phase(`state`) · turn(`waiting_on`) · claim(runtime) | proposal §2.3；workitem-lifecycle-state.puml | **phase + waiting_on + claim**；`needs-human` 收敛为 `waiting_on=human`，ready/in-progress 合并 |
 | 完成握手 | engine.complete(taskId,result) · (旧) `.agent-done-*` sentinel | ADR-012 ENG-8 | **engine.complete()** |
 | **promote（收敛）** | (a)目录 draft→task[退役] (b)人 Backlog→Ready (c)authoring.done→execution (d)自治 gate 名 | server;authoring;ADR-011;BACK-606 | 退役(a)后剩 (b)(c)(d) |
 | 分组 | milestone ↔ Epic(compound) — 语义重叠 | App.tsx/api ; ADR-011 | **Epic**；milestone deprecated |

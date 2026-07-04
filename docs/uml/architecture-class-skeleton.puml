@@ -28,8 +28,9 @@ package "Plane 1 · core state machine  (pure, canonical, slowest-changing)" {
 
   class Task <<pure>> {
     +id : string
-    +pipeline_id : string
-    +state : string
+    +pipeline_id : string             '' LANE axis (structural, ~immutable)
+    +state : string                    '' PHASE axis only (pure progress; ready/in-progress MERGED)
+    +waiting_on : "machine"|"human"|"none"  '' TURN axis (persisted; needs-human ⇒ waiting_on=human)
     +role : "compound" | "primitive"  '' derived from tree (ADR-011 D-1.1)
     +parent_id? : string
     +labels : string[]                 '' kind:feature / kind:chore / kind:epic live here
@@ -67,6 +68,11 @@ note right of Interpreter
   CANONICAL vocabulary lives ONLY here.
   scan/dispatch exist today but are TEST-ONLY (src/engine/*).
   Handlers are the extension point (Plane-2 wiring + authoring strategies).
+  FOUR-AXIS (2026-07-04): today's single `state` splits into
+  lane(pipeline_id) · phase(state) · turn(waiting_on) · claim(runtime).
+  pick-up predicate = phase actionable ∧ waiting_on==machine ∧ no live claim.
+  `ready`/`in-progress` merged (claim distinguishes queued vs active);
+  `needs-human` is NOT a state → it is waiting_on==human.
 end note
 
 ' ============================================================
@@ -152,7 +158,9 @@ package "Plane 2 · execution-driver  (impure, external, fastest-changing)" {
 note bottom of Coordinator
   ANTI-CORRUPTION SEAM. Contract SHAPE is stable across soak↔engine;
   only the adapter behind it swaps. Claim is a RUNTIME FACT, never a
-  persisted Task.state. `state=in-progress ∧ ¬claim` ⇒ stale/orphaned.
+  persisted Task.state. Claim (durable + timestamped) IS the checkout record:
+  waiting_on=machine ∧ live claim ⇒ 🤖 active ; ∧ no claim ⇒ ⏳ queued ;
+  ∧ claim timed out ⇒ ⚠️ stale/orphaned. (no persisted in-progress needed)
   ONE runtime-fact channel for BOTH planes: execution claims AND authoring
   refine progress (e.g. "Refining · review cycle 2") ride here as projection.
 end note
