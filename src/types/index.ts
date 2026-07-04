@@ -220,6 +220,16 @@ export interface TaskUpdateInput {
 	checkDefinitionOfDone?: number[];
 	uncheckDefinitionOfDone?: number[];
 	rawContent?: string;
+	// Engine pipeline fields (BACK-610) — symmetric with TaskCreateInput so
+	// engine-managed fields are settable through the update path too.
+	pipeline_id?: string;
+	phase?: string;
+	parent_id?: string;
+	/**
+	 * Structured executable DoD gates (BACK-613), full-replace semantics
+	 * (mirrors `TaskCreateInput.dodGates`; no add/remove variants).
+	 */
+	dodGates?: string[];
 }
 
 export interface TaskListFilter {

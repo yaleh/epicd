@@ -1,6 +1,23 @@
 import { DEFAULT_STATUSES } from "../../constants/index.ts";
+import { FIELD_DESCRIPTORS } from "../../core/field-registry.ts";
 import type { BacklogConfig } from "../../types/index.ts";
 import type { JsonSchema } from "../validation/validators.ts";
+
+/**
+ * Derives the MCP schema properties shared by task_create and task_edit from
+ * FIELD_DESCRIPTORS (ADR-011 D-5), keyed by `mcpKey ?? tsName`. Descriptors
+ * without an `mcpSchema` (internal-only/derived fields, or fields with
+ * genuinely different create/edit semantics handled by hand below) are
+ * skipped.
+ */
+function propertiesFromRegistry(): Record<string, JsonSchema> {
+	const properties: Record<string, JsonSchema> = {};
+	for (const descriptor of FIELD_DESCRIPTORS) {
+		if (!descriptor.mcpSchema) continue;
+		properties[descriptor.mcpKey ?? descriptor.tsName] = descriptor.mcpSchema;
+	}
+	return properties;
+}
 
 /**
  * Builds the accepted task status values used by MCP schemas and public CLI help.
@@ -67,51 +84,7 @@ export function generateTaskCreateSchema(config: BacklogConfig): JsonSchema {
 				maxLength: 100,
 				description: "Optional milestone label (trimmed).",
 			},
-			labels: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 50,
-				},
-			},
-			assignee: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 100,
-				},
-			},
-			dependencies: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 50,
-				},
-			},
-			references: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
-				description: "Reference URLs or file paths related to this task",
-			},
-			documentation: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
-				description: "Documentation URLs or file paths for understanding this task",
-			},
-			modifiedFiles: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
-				description: "Project-root-relative file paths modified by this task",
-			},
+			...propertiesFromRegistry(),
 			finalSummary: {
 				type: "string",
 				maxLength: 20000,
@@ -152,6 +125,10 @@ export function generateTaskCreateSchema(config: BacklogConfig): JsonSchema {
  * Generates the task_edit input schema with dynamic status enum and MCP-specific operations.
  */
 export function generateTaskEditSchema(config: BacklogConfig): JsonSchema {
+	const registryProperties = propertiesFromRegistry();
+	const referenceItems = registryProperties.references?.items;
+	const documentationItems = registryProperties.documentation?.items;
+
 	return {
 		type: "object",
 		properties: {
@@ -185,82 +162,26 @@ export function generateTaskEditSchema(config: BacklogConfig): JsonSchema {
 				maxLength: 100,
 				description: "Set milestone label (string) or clear it (null).",
 			},
-			labels: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 50,
-				},
-			},
-			assignee: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 100,
-				},
-			},
-			dependencies: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 50,
-				},
-			},
-			references: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
-				description: "Set reference URLs or file paths (replaces existing)",
-			},
+			...registryProperties,
 			addReferences: {
 				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
+				items: referenceItems,
 				description: "Add reference URLs or file paths",
 			},
 			removeReferences: {
 				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
+				items: referenceItems,
 				description: "Remove reference URLs or file paths",
-			},
-			documentation: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
-				description: "Set documentation URLs or file paths (replaces existing)",
 			},
 			addDocumentation: {
 				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
+				items: documentationItems,
 				description: "Add documentation URLs or file paths",
 			},
 			removeDocumentation: {
 				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
+				items: documentationItems,
 				description: "Remove documentation URLs or file paths",
-			},
-			modifiedFiles: {
-				type: "array",
-				items: {
-					type: "string",
-					maxLength: 500,
-				},
-				description: "Set project-root-relative modified file paths (replaces existing)",
 			},
 			implementationNotes: {
 				type: "string",

@@ -217,5 +217,21 @@ export function buildTaskUpdateInput(args: TaskEditArgs): TaskUpdateInput {
 		updateInput.uncheckDefinitionOfDone = [...args.definitionOfDoneUncheck];
 	}
 
+	if (typeof args.pipeline_id === "string") {
+		updateInput.pipeline_id = args.pipeline_id;
+	}
+
+	if (typeof args.phase === "string") {
+		updateInput.phase = args.phase;
+	}
+
+	if (typeof args.parent_id === "string") {
+		updateInput.parent_id = args.parent_id;
+	}
+
+	if (Array.isArray(args.dodGates)) {
+		updateInput.dodGates = [...args.dodGates];
+	}
+
 	return updateInput;
 }

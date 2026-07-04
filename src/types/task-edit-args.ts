@@ -39,6 +39,11 @@ export interface TaskEditArgs {
 	definitionOfDoneRemove?: number[];
 	definitionOfDoneCheck?: number[];
 	definitionOfDoneUncheck?: number[];
+	// Engine pipeline fields (BACK-610) — symmetric with task_create.
+	pipeline_id?: string;
+	phase?: string;
+	parent_id?: string;
+	dodGates?: string[];
 }
 
 export type TaskEditRequest = TaskEditArgs & { id: string };

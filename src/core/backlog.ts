@@ -1208,6 +1208,29 @@ export class Core {
 			}
 		}
 
+		applyStringField(input.pipeline_id, task.pipeline_id, (next) => {
+			task.pipeline_id = next;
+		});
+
+		applyStringField(input.phase, task.phase, (next) => {
+			task.phase = next;
+		});
+
+		applyStringField(input.parent_id, task.parent_id, (next) => {
+			task.parent_id = next;
+		});
+
+		if (input.dodGates !== undefined) {
+			const nextDod = input.dodGates.map((text) => ({ text: String(text), checked: false }));
+			const currentDod = task.dod ?? [];
+			const changed =
+				nextDod.length !== currentDod.length || nextDod.some((item, index) => item.text !== currentDod[index]?.text);
+			if (changed) {
+				task.dod = nextDod;
+				mutated = true;
+			}
+		}
+
 		if (input.assignee !== undefined) {
 			const sanitizedAssignee = normalizeStringList(input.assignee) ?? [];
 			if (!stringArraysEqual(sanitizedAssignee, task.assignee ?? [])) {

@@ -133,6 +133,37 @@ describe("FieldDescriptor registry", () => {
 		expect(reparsed.refine_log).toEqual(["step-1", "step-2"]);
 	});
 
+	describe("mcpSchema exposure (ADR-011 D-5)", () => {
+		const invisibleFields = ["id", "created_date", "updated_date", "subtasks", "role", "cap", "refine_log", "reporter"];
+
+		it.each(invisibleFields)("%s has mcpSchema === undefined (MCP-invisible)", (yamlKey) => {
+			const descriptor = FIELD_DESCRIPTORS.find((d) => d.yamlKey === yamlKey);
+			expect(descriptor?.mcpSchema).toBeUndefined();
+		});
+
+		it("labels/assignee/dependencies/references/documentation/modified_files expose JSON-Schema fragments", () => {
+			for (const yamlKey of ["labels", "assignee", "dependencies", "references", "documentation", "modified_files"]) {
+				const descriptor = FIELD_DESCRIPTORS.find((d) => d.yamlKey === yamlKey);
+				expect(descriptor?.mcpSchema).toBeDefined();
+				expect(descriptor?.mcpSchema?.type).toBe("array");
+			}
+		});
+
+		it("pipeline_id/phase/parent_id expose string mcpSchema fragments", () => {
+			for (const yamlKey of ["pipeline_id", "phase", "parent_id"]) {
+				const descriptor = FIELD_DESCRIPTORS.find((d) => d.yamlKey === yamlKey);
+				expect(descriptor?.mcpSchema).toEqual({ type: "string" });
+			}
+		});
+
+		it("dod exposes mcpKey 'dodGates' with an array-of-string mcpSchema", () => {
+			const descriptor = FIELD_DESCRIPTORS.find((d) => d.yamlKey === "dod");
+			expect(descriptor?.mcpKey).toBe("dodGates");
+			expect(descriptor?.mcpSchema?.type).toBe("array");
+			expect(descriptor?.mcpSchema?.items?.type).toBe("string");
+		});
+	});
+
 	describe("roleOf derivation (leaf vs compound)", () => {
 		it("derives primitive for a leaf (no children, no stored role)", () => {
 			expect(roleOf(baseTask())).toBe("primitive");
