@@ -2,12 +2,12 @@
 // daemon-version: v14
 /**
  * scan-loop.js — UNIFIED B″ poller. Self-sufficient: at --loop startup it reaps any
- * prior same-field scanner (reapSameFieldScanners), then polls backlog/tasks and emits
+ * prior same-field scanner (reapSameFieldScanners), then polls the epicd board and emits
  * event channels to stdout:
  *
  *
- *   basic-ready:TASK-N       kind:basic AND status "Basic: Ready"   → worker executes task
- *   epic-ready:TASK-N        kind:epic  AND status "Epic: Ready"    → worker auto-decomposes
+ *   basic-ready:TASK-N       actionable (pipeline_id/phase-derived, via `bun run cli engine
+ *                            watch --once`, BACK-605.8) → worker executes task
  *   epic-eval-due:TASK-N     kind:epic at "Epic: Awaiting Children" AND ALL children in a
  *                            terminal state (Basic: Done or Basic: Needs Human).
  *                            Single whole-dir scan replaces per-file isChildDone; suppresses
@@ -21,6 +21,14 @@
  *                            task-to-backlog per label routing (see loop-draft skill).
  *   epic-draft:TASK-N        status "Epic: Draft"   (draft mode only) → worker claims
  *                            (→ "Epic: Refining") then inline-calls epic-to-backlog.
+ *
+ * NOTE (BACK-605.8 Phase C): the `basic-ready` channel's board-scanning predicate no
+ * longer hardcodes a status-string literal. It shells out to the epicd engine's own
+ * data-derived scanner (`bun run cli engine watch --once`, which reuses
+ * Interpreter.scan over (pipeline_id, phase) — see src/engine/watch.ts) and parses the
+ * emitted task ids out of its rendered `---EVENT---`-delimited blobs (engineWatchOnce
+ * below). `epic-ready`/draft/eval channels are unaffected by this task (out of scope;
+ * still baime's file-predicate scan, retained for reference/back-compat).
  *
  * CLI flag --mode <ready|draft> selects which channel GROUP this scanner instance polls
  * (MODE_CHANNELS below). Default 'ready' — identical channel set/behavior to the pre-mode
@@ -43,7 +51,6 @@ const fs          = require('fs');
 const path        = require('path');
 const { execSync } = require('child_process');
 
-const BASIC_READY_STATUS = 'basic: ready';
 const EPIC_READY_STATUS  = 'epic: ready';
 const BASIC_DRAFT_STATUS = 'basic: draft';
 const EPIC_DRAFT_STATUS  = 'epic: draft';
@@ -365,10 +372,29 @@ function readTaskMeta(filepath) {
   return null;
 }
 
-function isBasicReady(filepath) {
-  const meta = readTaskMeta(filepath);
-  if (!meta) return false;
-  return meta.status === BASIC_READY_STATUS;
+// engineWatchOnce: BACK-605.8 Phase C board-scan source for the basic-ready channel.
+// Shells out to the epicd engine's own data-derived scanner (`bun run cli engine watch
+// --once`, which reuses Interpreter.scan over (pipeline_id, phase) — src/engine/watch.ts)
+// instead of matching a hardcoded status-string literal against each task file. The
+// engine renders one `---EVENT---`-delimited blob per actionable task, each blob
+// containing the task's id (from renderEvent's __TASK_ID__ substitution); this parses
+// those ids back out. Best-effort: any spawn/parse failure degrades to an empty Set so
+// a transient CLI/engine hiccup never crashes the scanner tick.
+function engineWatchOnce(repoRoot) {
+  const out = new Set();
+  let stdout;
+  try {
+    stdout = execSync('bun run cli engine watch --once', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString();
+  } catch (_) {
+    return out;
+  }
+  const blobs = stdout.split('---EVENT---');
+  for (const blob of blobs) {
+    const m = blob.match(/\b([A-Za-z][A-Za-z0-9]*-\d+(?:\.\d+)*)\b/);
+    if (m) out.add(m[1].toUpperCase());
+  }
+  return out;
 }
 
 function isEpicReady(filepath) {
@@ -535,13 +561,19 @@ function computePulseLines(tasksDir, opts) {
   const channelAllowed = prefix => allowed.has(prefix);
 
   const channels = [
-    { prefix: 'basic-ready',       predicate: f => isBasicReady(f) },
     { prefix: 'epic-ready',        predicate: f => isEpicReady(f) },
     { prefix: 'basic-draft',       predicate: f => isBasicDraft(f) },
     { prefix: 'epic-draft',        predicate: f => isEpicDraft(f) },
     { prefix: 'stale-in-progress', predicate: f => isInProgress(f) && isReapDue(readClaimedAt(f), Date.now()) },
   ];
   const lines = [];
+  // basic-ready: data-derived via `engine watch --once` (BACK-605.8 Phase C), not a
+  // per-file status-string predicate — see engineWatchOnce.
+  if (channelAllowed('basic-ready')) {
+    for (const id of [...engineWatchOnce(repoRoot)].sort()) {
+      lines.push(`basic-ready:${id}`);
+    }
+  }
   for (const ch of channels) {
     if (!channelAllowed(ch.prefix)) continue;
     for (const id of [...scanIds(tasksDir, ch.predicate)].sort()) {
@@ -585,7 +617,7 @@ function computePulseLines(tasksDir, opts) {
 // Export all public functions for use in tests (side-effect-free require)
 module.exports = {
   parseArgs,
-  isBasicReady,
+  engineWatchOnce,
   isEpicReady,
   isBasicDraft,
   isEpicDraft,

@@ -1,41 +1,63 @@
 ---
 name: epicd-run
-description: Start the epicd engine as a persistent Monitor-hosted driver. Runs the execution pipeline against the real board until fixpoint or max-ticks. Invoke once per session; stop by touching backlog/.loop-stop.
+description: Host a persistent Monitor that polls `engine watch` for basic-ready tasks on the epicd board, and drive each one through claim + worktree + background Agent + engine complete (per templates/basic-ready.md). Invoke once per session; stop by touching backlog/.loop-stop.
 ---
 
 # epicd-run skill
 
-Hosts the engine inside a persistent Monitor so the execution pipeline drives
-itself autonomously.  Each tick picks up any `Basic: Ready` task, spawns a real
-Claude Code worker, and adjudicates the result — advancing the task to `done` or
-`needs-human`.
+This session hosts a **Monitor** that repeatedly runs `bun run cli engine watch --once`
+against the real epicd board. `engine watch` is a thin, non-spawning emitter — it reuses
+`Interpreter.scan` to find actionable (pipeline_id/phase-derived) tasks and prints a
+rendered instruction blob per task, delimited by `---EVENT---`. It never spawns an Agent
+or subprocess itself; all spawning happens in this session, driven by the Monitor's
+output.
 
-## Cross-mechanism safety
-
-The engine's merge lock and the legacy loop-backlog use the same
-`<backlogDir>/.merge-lock` path for mutual exclusion.  Start only one driver at
-a time.  The single-active-driver guard (`.active-agents` file) prevents
-duplicate runs.
+**Scope: basic-ready only.** Epic-ready / epic-eval flows exist in `engine watch`'s
+phase→template mapping only as a reference for future work — they are explicitly out
+of scope here and this skill does not implement them.
 
 ## Usage
 
 ```
-# Arm the engine driver (Monitor-hosted)
-bun run cli engine watch --verbose
-
-# Stop cleanly
-touch backlog/.loop-stop
+# harness-primitive: Monitor
+Monitor(persistent=true, description="epicd-run: poll engine watch for basic-ready events",
+  command="while true; do bun run cli engine watch --once; sleep 5; done")
 ```
+
+For each blob emitted between `---EVENT---` delimiters, follow
+`templates/basic-ready.md`, in order, for that task:
+
+1. Claim the task and create its worktree (`handle-basic-ready.sh`).
+2. Spawn ONE background in-session **Agent** (`Agent(run_in_background=true)`, cwd =
+   the worktree) to do the implementation work, per the task's own Description/Phases.
+3. Wait (via a **persistent** Monitor) for the `.agent-done-<id>` sentinel file the
+   Agent writes as its last action.
+4. Run `bun run cli engine complete <id> --worktree <path>` — this independently
+   re-verifies DoD in the worktree (ENG-8: the worker never self-attests done) and is
+   the **only** merge implementation the skill uses; it either merges and advances the
+   task to done, or routes it to needs-human.
+
+Do not re-claim or re-drive a task once `engine complete` has returned — the task is
+terminal.
+
+## Cross-mechanism safety
+
+`engine complete`'s merge lock and the legacy loop-backlog scanner (if still running
+against the same board) share the same `<backlogDir>/.merge-lock` path for mutual
+exclusion. Start only one driver at a time against a given board.
 
 ## When to use
 
 - Primary: after BACK-605 M1 milestone is declared and the engine soak period begins.
-- Fallback: loop-backlog skill remains for emergency rollback.
+- Fallback: `loop-backlog` skill remains available for emergency rollback to baime's
+  original scanner/handler scripts.
 
-## Wiring (implementation reference)
+## Implementation notes
 
-1. `makeWorkerRunner(realSpawnPrimitive)` — wraps the Claude Code CLI spawn.
-2. `realSpawn(task, repoPath, runner, gitWorktreeRunner)` — creates an isolated
-   git worktree, delegates to the runner, cleans up in finally.
-3. `runEngine(core, worktreeOps)` — drives the execution pipeline to fixpoint.
-4. Engine core (src/engine) contains no `Agent()` or subprocess call.
+- `engine watch` (src/engine/watch.ts) contains no `Agent()` call and never spawns a
+  subprocess — it only reads board state and renders text.
+- `plugin/scripts/scan-loop.js`'s runtime hardening (`---EVENT---` protocol,
+  `renderEvent` templating, edge-triggered dedup, EPIPE self-reap, singleton
+  convergence) has been adapted to shell out to `bun run cli engine watch --once` for
+  its basic-ready channel, and is available as an alternative host for the same
+  Monitor command shown above; either invocation path emits the same event protocol.
