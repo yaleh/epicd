@@ -84,6 +84,9 @@ backlog/.last-review-commit
 backlog/.loop-checkpoint
 backlog/.monitor-task-id
 backlog/tasks/.scanner-*.lock
+backlog/.merge-lock
+backlog/.merge-lock-sentinel
+backlog/.agent-done-*
 
 # gate-event log runtime output
 docs/research/gcl-events.jsonl
