@@ -29,8 +29,7 @@ package "Persisted data  (in Task.refine_log)" {
   class Task <<pure>> {
     +id : string
     +pipeline_id : string          '' = "authoring"
-    +state : string                 '' phase: Draft | Refining | Backlog
-    +waiting_on : machine|human|none
+    +phase : string                 '' bare phase: Draft | Refining | Backlog (turn = actor(phase))
     +labels : string[]              '' kind:feature|chore|epic
     +refine_log : RefineArtifact[]  '' APPEND-ONLY log (the artifacts)
   }
@@ -110,10 +109,10 @@ package "RefineStep  (uniform intent — driver executes)" {
     +round : int
   }
   class Promote_S <<pure>> {
-    +kind = "promote"    '' → phase:=Backlog, waiting_on:=human
+    +kind = "promote"    '' → phase:=Backlog (actor=human via pipeline-data)
   }
   class Escalate_S <<pure>> {
-    +kind = "escalate"   '' → waiting_on:=human (stays Refining)
+    +kind = "escalate"   '' → phase:=needs-human (actor=human)
     +reason : string
   }
   RefineStep <|-- Produce_S
@@ -162,7 +161,7 @@ package "Workers  (spawned by driver — Plane 2)" {
 
 interface IssueSource <<contract>> {
   +get(id) : Task
-  +upsert(task) : void        '' persists refine_log + phase + waiting_on
+  +upsert(task) : void        '' persists refine_log + phase (+ pipeline_id)
 }
 interface Coordinator <<contract>> {
   +claims() : Map<taskId, Claim>   '' same runtime-fact channel as execution
@@ -177,7 +176,7 @@ RefiningHandler ..> Coordinator : claim during a step
 note as N_boundary
   **BOUNDARY = intent vs mechanism.**
   Strategy (green, PURE) sees only DATA (task + refine_log) → returns a RefineStep.
-  Driver (orange) spawns workers, appends artifacts, writes waiting_on/phase, claims.
+  Driver (orange) spawns workers, appends artifacts, writes the next phase, claims.
   Strategy never holds a session handle / path → unit-tests with a fabricated log.
 end note
 
@@ -187,7 +186,7 @@ note as N_verdict
   next scan: step reads the new Reviewed entry ⇒ branch:
     approved         → next artifact or promote
     changes_requested→ produce(vN+1, basedOn=vN, feedback)   (round = #Reviewed)
-    round>cap        → escalate (waiting_on:=human)
+    round>cap        → escalate (phase:=needs-human)
   No cycle counter stored — everything is read off the append-only log.
 end note
 

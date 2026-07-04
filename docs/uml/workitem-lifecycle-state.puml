@@ -1,103 +1,86 @@
 @startuml epicd-workitem-state
-' epicd — State diagram: a Task's lifecycle across the authoring & execution pipelines.
-' FOUR-AXIS model (2026-07-04 FINAL): per-task stores only pipeline_id + bare `phase`.
-'   lane   = pipeline_id (field)                    — which board lane
-'   phase  = bare phase name (this main diagram)     — the ONLY persisted progress axis
-'   turn   = actor(phase) = pipelineDef[phase].actor ∈ {machine,human,none} — DERIVED from pipeline-data, NOT a field
-'   role   = derived from tree (ADR-011 D-1.1)
-'   claim  = Coordinator runtime fact               — legend (queued vs active vs stale)
-' `needs-human` IS a phase (actor=human), not a stored turn. `ready`/`in-progress` distinguished
-' by CLAIM. status string "Basic: Ready" = label(role, phase) is DERIVED display only. Inert `state` DELETED.
+' epicd — State diagram: a Task's lifecycle as PHASES across the authoring & execution pipelines.
+' FOUR-AXIS FINAL (2026-07-04): per-task stores ONLY pipeline_id + a bare `phase`.
+'   lane  = pipeline_id (field)         phase = THIS diagram (stored, bare name)
+'   turn  = actor(phase) in pipeline-data (machine|human|none) — NOT a field
+'   claim = Coordinator runtime fact (queued|active|stale)
+' There is NO waiting_on field. `needs-human` IS a phase (actor=human).
+' status shown to humans = label(role, phase) — display only. Inert engine `state` DELETED.
 
 skinparam backgroundColor #FFFFFF
 skinparam shadowing false
 skinparam state {
   BorderColor #555555
   BackgroundColor #E8F0FE
-  BackgroundColor<<gate>> #FFE0B2
+  BackgroundColor<<human>> #C8E6C9
   BackgroundColor<<terminal>> #E0E0E0
 }
 
-title epicd — Work-item lifecycle (four-axis: phase = state; turn/claim orthogonal)
+title epicd — Work-item lifecycle (phases; turn = actor(phase); lane = pipeline_id)
 
-' ============ PHASE axis (the persisted progress state machine) ============
-[*] --> Draft : Human captures\n(kind:feature/chore/epic ; waiting_on=machine)
+[*] --> Draft : Human captures\n(kind:feature / chore / epic)
 
 state "Authoring lane  (pipeline_id = authoring)" as Authoring {
-  state Draft
-  state Refining
-  state Backlog <<gate>>
-  Draft --> Refining : scanner claims\n(basic-draft / epic-draft)
-  Refining --> Backlog : refine done → **waiting_on:=human**\n(feature→Proposal+Plan / chore→checklist / epic→plan)
+  state "Draft\n(actor=machine)" as Draft
+  state "Refining\n(actor=machine)" as Refining
+  state "Backlog\n(actor=human · promote gate)" as Backlog <<human>>
+  Draft --> Refining : scanner claims (basic-draft / epic-draft)
+  Refining --> Backlog : refine done\n(feature→Proposal+Plan / chore→checklist / epic→plan)
   note right of Refining
     Routed by **kind** → RefineStrategy (pure step fn).
-    Fine cycle progress (review round N) is strategy-internal,
-    surfaced via Coordinator runtime-fact, NOT a phase.
+    Review cycle N is strategy-internal (Task.refine_log),
+    surfaced via Coordinator runtime-fact — NOT a phase.
   end note
 }
 
-Backlog --> Executing : **Human promote gate**\n(waiting_on:=machine ; authoring→execution)
+Backlog --> Ready : **Human promote gate**\n(authoring → execution)
 
 state "Execution lane  (pipeline_id = execution)" as Execution {
   state chooseRole <<choice>>
-  state "Executing\n(ready+in-progress MERGED)" as Executing
-  state Decomposing
-  state "Awaiting Children" as Awaiting
-  state Evaluating
-
-  Executing --> chooseRole : scanner\n(waiting_on=machine ∧ no live claim)
-  chooseRole --> Working : role = primitive (Basic)\nfeature→implement / chore→checklist
+  state "Ready\n(actor=machine · claim = queued|active)" as Ready
+  state "Decomposing\n(actor=machine)" as Decomposing
+  state "Awaiting Children\n(actor=none · blocked on children)" as Awaiting
+  state "Evaluating\n(actor=machine)" as Evaluating
+  Ready --> chooseRole : scanner\n(actor=machine ∧ no live claim)
   chooseRole --> Decomposing : role = compound (Epic)
-  state Working
-  Decomposing --> Awaiting : creates children\n(role stays compound)
-  Awaiting --> Evaluating : all children terminal\n(epic-eval-due)
-  note bottom of Working
-    claim = live checkout (Coordinator).
-    engine.complete() → merge/advance → adjudicate DoD (ENG-8);
-    worker may NOT self-write `done`.
+  Decomposing --> Awaiting : creates children (role stays compound)
+  Awaiting --> Evaluating : all children terminal (epic-eval-due)
+  note bottom of Ready
+    **ready & in-progress are the SAME phase** — claim distinguishes
+    queued vs active. Primitive: worker implements → engine.complete()
+    → adjudicate DoD (ENG-8); worker may NOT self-write done.
   end note
 }
 
-state "Done" as Done <<terminal>>
+state "Needs Human\n(actor=human)" as NeedsHuman <<human>>
+state "Done\n(actor=none)" as Done <<terminal>>
 
-Working --> Done : DoD pass\n(waiting_on:=none)
-Working --> Executing : DoD fail → **waiting_on:=human**\n(stays this phase; human decides — see turn fragment)
-Evaluating --> Done : epic satisfied\n(waiting_on:=none)
-Evaluating --> Executing : epic escalate → **waiting_on:=human**
+' primitive completion (from the actionable Ready phase, via adjudicate):
+chooseRole --> Done : role=primitive · DoD pass
+chooseRole --> NeedsHuman : role=primitive · DoD fail
+' compound evaluation outcome:
+Evaluating --> Done : epic satisfied
+Evaluating --> NeedsHuman : epic escalate
+
+NeedsHuman --> Ready : Human gate-review (approve / re-open)
+NeedsHuman --> [*] : Human gate-review (reject / archive)
 Done --> [*]
 
-' ============ TURN axis (orthogonal — the ball's court; persisted waiting_on) ============
-state "actor(phase) — from pipeline-data (turn is NOT stored; determined by phase)" as Turn {
-  state "machine" as T_m
-  state "human" as T_h
-  state "none" as T_n <<terminal>>
-  [*] -> T_m
-  T_m --> T_h : gate reached / DoD fail / epic escalate
-  T_h --> T_m : Human approves / re-opens (promote or gate-review)
-  T_m --> T_n : reaches Done
-  T_h --> T_n : Human rejects → archive
-}
-
-note bottom of Turn
-  **needs-human IS a phase (actor=human)** — not a stored turn. The 4 "human" cases
-  (promote-gate / gate-review / DoD-fail / epic-escalate) are human-actor phases.
-  monitor picks up ONLY phases whose actor==machine.
+note as N_axes
+  **FOUR AXES** — only (pipeline_id, phase) are STORED per task:
+  lane = pipeline_id (field) · phase = this diagram (bare name) ·
+  **turn = actor(phase)** from pipeline-data (NOT a field) · claim = runtime.
+  Colour: blue = actor:machine · green = actor:human (your turn) · grey = actor:none.
 end note
-
 note as N_claim
-  **CLAIM (runtime, Coordinator) — the 4th axis, not drawn as states:**
-  waiting_on=machine ∧ live claim  ⇒ 🤖 active
-  waiting_on=machine ∧ no claim     ⇒ ⏳ queued (scanner will pick up)
-  waiting_on=machine ∧ claim stale  ⇒ ⚠️ orphaned (was crashed)
-  waiting_on=human                   ⇒ 👤 your turn
-  Claim (durable+timestamped) IS the checkout record — that is why
-  `ready` and `in-progress` need not be separate phases.
+  **CLAIM (runtime, Coordinator)** — for actor=machine phases:
+  live claim ⇒ 🤖 active · no claim ⇒ ⏳ queued · stale claim ⇒ ⚠️ orphaned.
+  actor=human ⇒ 👤 your turn. monitor picks up ONLY actor=machine phases.
 end note
-
 note as N_role
-  **role** DERIVED from tree (ADR-011 D-1.1): leaf ⇒ primitive (Basic) ·
-  has children ⇒ compound (Epic). Decomposing FLIPS primitive→compound.
-  role is the TYPE axis — orthogonal to lane(pipeline_id), phase, and turn.
+  **role** derived from tree (ADR-011 D-1.1): leaf ⇒ primitive (Basic),
+  has children ⇒ compound (Epic). Decomposing flips primitive→compound.
+  role / turn / status all DERIVED; status = label(role, phase) for display.
 end note
 
 @enduml

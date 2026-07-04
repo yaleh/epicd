@@ -160,8 +160,8 @@ package "Plane 2 · execution-driver  (impure, external, fastest-changing)" {
 note bottom of Coordinator
   ANTI-CORRUPTION SEAM. Contract SHAPE is stable across soak↔engine;
   only the adapter behind it swaps. Claim is a RUNTIME FACT, never a
-  persisted Task.state. Claim (durable + timestamped) IS the checkout record:
-  waiting_on=machine ∧ live claim ⇒ 🤖 active ; ∧ no claim ⇒ ⏳ queued ;
+  persisted phase. Claim (durable + timestamped) IS the checkout record:
+  actor(phase)=machine ∧ live claim ⇒ 🤖 active ; ∧ no claim ⇒ ⏳ queued ;
   ∧ claim timed out ⇒ ⚠️ stale/orphaned. (no persisted in-progress needed)
   ONE runtime-fact channel for BOTH planes: execution claims AND authoring
   refine progress (e.g. "Refining · review cycle 2") ride here as projection.

@@ -101,7 +101,7 @@ package "Completion tail  (ENGINE-OWNED invariants — ADR-010/012)" {
     +reapSameFieldPeers(field) : void
   }
   class SafetyMonitor <<invariant>> {
-    '' stale-in-progress = waiting_on=machine ∧ claim timed out
+    '' stale-in-progress = actor(phase)=machine ∧ claim timed out
     +flagStale() : void   '' informational only; human decides
   }
   CompleteHandshake ..> Adjudicator : re-run DoD
@@ -119,7 +119,7 @@ interface Coordinator <<contract>> {
 }
 
 ExecutionDriver ..> Coordinator : claim during work
-ExecutionDriver ..> IssueSource : advance phase / waiting_on
+ExecutionDriver ..> IssueSource : advance phase
 FeatureWorker ..> CompleteHandshake : engine.complete(result)
 ChoreWorker ..> CompleteHandshake : engine.complete(result)
 Adjudicator ..> IssueSource : pass → phase:=done

@@ -61,13 +61,13 @@ package "Issue-list view  (extends TaskList.tsx base)" {
     +compute(actor, claim) : Icon    '' actor = pipelineDef[phase].actor
   }
   class InlineGateReview <<new>> {
-    '' approve / reject / escalate on waiting_on=human rows (gate-inbox folded in)
+    '' approve / reject / escalate on actor(phase)=human rows (gate-inbox folded in)
   }
   IssueListView o-- LaneSwitcher
   IssueListView o-- Swimlane
   Swimlane o-- TaskRow
   TaskRow o-- DriverIndicator
-  TaskRow ..> InlineGateReview : when waiting_on=human
+  TaskRow ..> InlineGateReview : when actor(phase)=human
   IssueListView ..> LaneFns : group by pipeline lane
 }
 
@@ -94,7 +94,7 @@ package "Data layer  (apiClient + WS)" {
     +claims : Map<taskId, Claim>
   }
   class ApiClient <<new>> {
-    +search(filter) : Task[]   '' EXTEND filter: + pipeline_id / state / waiting_on
+    +search(filter) : Task[]   '' EXTEND filter: + pipeline_id / phase
     +postGateDecision(task, verdict)   '' NEW endpoint for inline gate-review
     +getClaims() : Map<taskId, Claim>  '' NEW: read Coordinator runtime state
   }
@@ -109,7 +109,7 @@ package "Data layer  (apiClient + WS)" {
 ' ===================== BACKEND CONTRACTS (what presentation needs) =====================
 package "Backend (needed)" {
   interface SearchService <<contract>> {
-    '' NormalizedFilters MUST add pipeline_id / state / waiting_on
+    '' NormalizedFilters MUST add pipeline_id / phase
     '' (status/labels already filterable) — src/core/search-service.ts
     +search(opts) : Task[]
   }
@@ -138,8 +138,8 @@ note as N_join
 end note
 note as N_gap
   **Backend gaps (blue):** (1) SearchService.NormalizedFilters + pipeline_id/
-  waiting_on ; (2) Coordinator.claims() endpoint (none today) ; (3) config
-  pipelines[] as lane source. WS stays the coarse "tasks-updated" refetch.
+  phase ; (2) Coordinator.claims() endpoint (none today) ; (3) config
+  pipelines[] (with per-phase actor) as lane source. WS stays the coarse "tasks-updated" refetch.
 end note
 
 @enduml
