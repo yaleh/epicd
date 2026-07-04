@@ -7,7 +7,7 @@
  * "<prefix>:<task_id>" (e.g. "basic-ready:BACK-610").
  *
  * It does NOT render instruction templates — rendering + the `---EVENT---`
- * transport protocol are the scan-loop.js daemon's single responsibility
+ * transport protocol are the scan-loop.cjs daemon's single responsibility
  * (BACK-614: one renderer, not two). This module only reads board state and
  * prints machine lines; it never spawns a subprocess, never invokes an
  * in-session agent tool call, never imports a harness spawn primitive.

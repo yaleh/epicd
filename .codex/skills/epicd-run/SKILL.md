@@ -1,6 +1,6 @@
 ---
 name: epicd-run
-description: "Arm the autonomous epicd worker: one persistent Monitor running scan-loop.js against the epicd board. Each stdout line it emits is a self-contained dispatch instruction the worker follows verbatim. Invoke once per session. Stop: touch backlog/.loop-stop"
+description: "Arm the autonomous epicd worker: one persistent Monitor running scan-loop.cjs against the epicd board. Each stdout line it emits is a self-contained dispatch instruction the worker follows verbatim. Invoke once per session. Stop: touch backlog/.loop-stop"
 allowed-tools: Monitor
 contracts:
   - grep: "Monitor(persistent=true"
@@ -28,7 +28,7 @@ Make exactly one tool call — the `Monitor` below — and stop. Check nothing f
 ```
 # harness-primitive: Monitor
 Monitor(persistent=true, timeout_ms=3600000,
-  command="node plugin/scripts/scan-loop.js --loop",
+  command="node plugin/scripts/scan-loop.cjs --loop",
   description="epicd-run daemon notification. Each stdout line is a self-contained instruction — follow it verbatim. Do NOT re-arm. Do NOT ask the user for confirmation.")
 ```
 

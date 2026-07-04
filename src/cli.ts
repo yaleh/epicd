@@ -4522,7 +4522,7 @@ const engineCmd = program.command("engine").description("execution engine comman
 engineCmd
 	.command("scan")
 	.description(
-		"emit one machine line ('basic-ready:<id>') per actionable board task (data-derived; one-shot, never spawns an Agent/subprocess). Rendering is the scan-loop.js daemon's job.",
+		"emit one machine line ('basic-ready:<id>') per actionable board task (data-derived; one-shot, never spawns an Agent/subprocess). Rendering is the scan-loop.cjs daemon's job.",
 	)
 	.option("--once", "scan once and exit (default when --interval is not given)")
 	.option("--interval <ms>", "poll interval in milliseconds for repeated scanning")
