@@ -7,7 +7,9 @@
 > **RUP 行为图（用户可见行为）**：
 > [State](workitem-lifecycle-state.puml) · [Activity](issue-list-activity.puml) · [Sequence×3](issue-list-sequence.puml)。
 > 多车道 issue-list 模型见 proposal [`2026-07-04-multi-lane-issue-list.md`](../proposals/2026-07-04-multi-lane-issue-list.md)。
-> class diagram / 内部实现架构留待后续。
+> **内部架构骨架（class 图输入）**：[`architecture-class-skeleton.puml`](architecture-class-skeleton.puml) —
+> 三平面（核心状态机 / 执行-驱动 / 展示）+ 两只读契约（IssueSource · Coordinator）+ RefineStrategy 注册表。
+> 完整 class diagram / 内部实现设计仍待后续细化。
 
 **方法**：典型 RUP 用例建模，**canonical 名以现有代码为准**（implementation-first）；文档/原型别名见漂移表。
 状态：`impl`=已落地接线；`planned`=ADR/proposal 有设计但代码仅测试态或缺失；`deprecated`=弱化（代码保留但从导航隐藏/待退役）；`baime`=当前只存在于 loop-backlog/loop-draft 原型。

@@ -53,6 +53,18 @@ Claude Code）处理"这一运行时事实。本提案把它升级为**多车道
 - N3 **不做** class diagram / 内部实现架构（组件拆分、状态管理、缓存等留待后续）。
 - N4 **不设计** auth（见 BACK-604）、不设计 gate-event 富语义（E/C/H 归 payload）。
 
+### 2.2 三平面原则（治理约束，2026-07-04 裁决）
+
+三个平面**词汇不同、变更速率不同、外部约束不同**，只能经**显式单向投影/契约**耦合：
+
+| 平面 | canonical | 代码锚点 | 变更速率 | 约束源 |
+|---|---|---|---|---|
+| **核心状态机** | domain state machine | `Pipeline`/`PipelineState` + `Interpreter`（纯数据+纯函数）| 最慢，受 ADR 保护 | 我们（ADR-010/011/012）|
+| **执行/驱动** | execution-driver plane | monitor + `scan-loop.js` + claim(`.active-agents`/`.caps`) + worktree/lock | 最快，soak=baime→M1=引擎 | **外界**：Claude Code session、spawn 成本、worktree 隔离 |
+| **人类展示** | presentation plane | `TaskList.tsx` 多车道 | 产品/UX 速率 | 人的注意力 |
+
+**总原则**：状态机是唯一权威词汇；另两平面**从它投影**，永不反向定义它。可变性被推到投影函数与注册表里，核心 closed（开闭）；两平面各设一道**只读防腐契约**——数据面 = `IssueSource`，运行时面 = `Coordinator`。UI 只消费投影，禁止显示/config 字符串反喂引擎逻辑。
+
 ## 3. 用户可见行为（RUP 行为图索引）
 
 本提案的行为由 `docs/uml/` 下四张图定义（渲染：`PLANTUML_LIMIT_SIZE=16384 plantuml -tpng docs/uml/<f>.puml`）：
@@ -86,12 +98,17 @@ Claude Code）处理"这一运行时事实。本提案把它升级为**多车道
 
 ### 4.2 人机双驱动可视（核心差异点）
 
-每行显示**谁在驱动这条 task**：
-- 👤 **待你处理**：`needs-human` 或需人 gate（promote / gate-review）。
-- 🤖 **正被处理**：已被引擎（monitor 驱动的 Claude Code worker）claim / in-progress。
+每行显示**谁在驱动这条 task**，由 domain state（IssueSource）与 live claim（Coordinator）**join** 得出：
 
-该信息来自**运行时协调面**（driver-supervisor proposal 的 supervisor/Coordinator 暴露的"活动驱动器 + claim"
-状态），经 WebSocket 实时刷新（复用现有 `tasks-updated` 通道）。人看着 issue-list 就能看到引擎在动。
+| domain state | 有 active claim? | 指示 | 含义 |
+|---|---|---|---|
+| needs-human | — | 👤 | 待你 gate（claim 无关）|
+| in-progress | 有 | 🤖 | 引擎正在动 |
+| **in-progress** | **无** | **⚠️ stale/orphaned** | 崩溃/孤儿——stale-in-progress 免费掉出 |
+| ready | 无 | ○ | 待 scan |
+
+claim 信息来自**运行时协调面**（`Coordinator.claims()`，见 R1），经 WebSocket 实时刷新（复用现有
+`tasks-updated` 通道）。人看着 issue-list 就能看到引擎在动，也能一眼看出孤儿行。
 
 ### 4.3 内联 gate-review
 
@@ -112,13 +129,21 @@ Claude Code）处理"这一运行时事实。本提案把它升级为**多车道
 
 ## 6. 风险与未决问题
 
-- **R1 驱动者状态来源**：4.2 的 🤖 指示需读运行时 claim 状态。soak 期该状态可能来自 baime `.active-agents`
-  / `.caps`，M1 后来自 epicd 引擎——读取契约需与 Coordinator 对齐（driver-supervisor §7 R5 边界内）。
-- **R2 兜底车道与回填时序**：回填前大量旧 task 挤在 "no pipeline"；是否给它一个临时默认 pipeline_id？
-- **R3 status↔state 词汇**：config 的 `Basic: Ready` 与引擎 `ready` 的映射须在渲染层统一（use-case-model.md
-  漂移表已记）；本视图按 pipeline `states[]` 展示，须确认映射无歧义。
-- **R4 车道显示配置放 pipeline 定义**是否污染 pipeline 的"纯数据/结构逻辑分离"（ADR-011 D-2.1）——
-  显示提示 vs 执行语义是否该同处，待定。
+> R1/R3/R4 已于 2026-07-04 依 §2.2 三平面原则裁决方向；R2 仍未决。
+
+- **R1 驱动者状态来源 — 已裁决**：🤖 指示是**正交运行时事实**，不是 pipeline state，永不折进 task 持久
+  状态。走独立只读契约 `Coordinator.claims(): Map<taskId, {driverId, field:(sourceId,pipeline_id), since}>`，
+  前端 `tasks(IssueSource) ⟗ claims(Coordinator)` 做 join。**契约形状 soak↔引擎不变**：soak 期由 baime
+  `.active-agents`/`.caps` 投影，M1 后由引擎 claim registry 投影，UI 不变（driver-supervisor §7 R5 边界内）。
+  推论：`state=in-progress ∧ ¬claim` = **stale/orphaned**，stale-in-progress 免机制免费掉出（见 4.2 指示表）。
+- **R2 兜底车道与回填时序 — 未决**：回填前大量旧 task 挤在 "no pipeline"；是否给它一个临时默认 pipeline_id？
+- **R3 status↔state 词汇 — 已裁决**：**不统一词汇，统一来源**。canonical = 引擎 pipeline state；config
+  `Basic: Ready`、UI `To Do/In Progress/Done` 都是显示投影，由**单向纯函数** `label(state, role, plane)` 产出，
+  **只存在于渲染边界**。禁止 UI/config 字符串反喂引擎逻辑。R3 由此从"大重构"降级为"边界处一张 pure lookup +
+  一条单向规则"（与 ADR-011 D-2.1 同向）。
+- **R4 车道显示配置 — 已裁决**：**结构留 pipeline，显示提示分层**。`states[]` 顺序是结构真值，留在 pipeline；
+  纯显示提示（默认折叠 / 隐藏终态 / 图标 / 车道标题）挂一层薄 presentation config `{pipeline_id → displayHints}`，
+  **引用** pipeline_id 而不写进 pipeline 定义——守住 ADR-011 D-2.1，且不必另设重量级 `lanes[]`。
 
 ## 7. 收敛判据（proposal 级）
 

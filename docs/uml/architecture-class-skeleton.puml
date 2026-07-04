@@ -1,0 +1,209 @@
+@startuml epicd-arch-class-skeleton
+' epicd — Class-diagram SKELETON (input for the deferred internal-architecture pass).
+' Encodes the 2026-07-04 three-plane principle: one canonical state machine +
+' two read-only anti-corruption contracts (IssueSource / Coordinator) + kind-keyed
+' RefineStrategy registry. This is a BACKBONE, not the final class model:
+' method bodies, error handling, caching, state-management are intentionally omitted.
+'
+' Stereotypes: <<pure>> pure data/function ; <<contract>> anti-corruption seam ;
+'              <<impl>> shipped ; <<planned>> designed/absent ; <<projection>> view-only.
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam class {
+  BorderColor #555555
+  BackgroundColor #E8F0FE
+  BackgroundColor<<pure>> #C8E6C9
+  BackgroundColor<<contract>> #FFE0B2
+  BackgroundColor<<projection>> #E1BEE7
+  BackgroundColor<<planned>> #FFF3E0
+}
+
+title epicd — architecture class skeleton (3 planes + 2 contracts + RefineStrategy registry)
+
+' ============================================================
+' PLANE 1 — CORE STATE MACHINE (canonical, pure, ADR-protected)
+' ============================================================
+package "Plane 1 · core state machine  (pure, canonical, slowest-changing)" {
+
+  class Task <<pure>> {
+    +id : string
+    +pipeline_id : string
+    +state : string
+    +role : "compound" | "primitive"  '' derived from tree (ADR-011 D-1.1)
+    +parent_id? : string
+    +labels : string[]                 '' kind:feature / kind:chore / kind:epic live here
+    +dod? : ...
+    +cap? : ...
+  }
+
+  class PipelineState <<pure>> {
+    +name : string
+    +actionable : boolean
+  }
+  class Pipeline <<pure>> {
+    +id : string
+    +states : PipelineState[]
+  }
+
+  class Interpreter <<pure>> {
+    -pipelines : Map<string, Pipeline>
+    -registry : Map<"pid:state", Handler>
+    +register(p : Pipeline, state, h : Handler)
+    +scan(tasks : Task[]) : ItemReadyEvent[]
+    +dispatch(events, tasks) : Promise<void>
+  }
+
+  interface Handler <<pure>> {
+    +(event : ItemReadyEvent, task : Task) : void | Promise
+  }
+
+  Pipeline "1" *-- "many" PipelineState
+  Interpreter o-- Pipeline
+  Interpreter o-- Handler : keyed by (pipeline_id, state)
+}
+
+note right of Interpreter
+  CANONICAL vocabulary lives ONLY here.
+  scan/dispatch exist today but are TEST-ONLY (src/engine/*).
+  Handlers are the extension point (Plane-2 wiring + authoring strategies).
+end note
+
+' ============================================================
+' AUTHORING — RefineStrategy registry (behind the authoring:Refining handler)
+' ============================================================
+package "Authoring extension · RefineStrategy registry  (kind selects strategy)" {
+
+  interface RefineStrategy <<pure>> {
+    +kind : "feature" | "chore" | "epic"
+    +step(task : Task, artifacts, cursor) : RefineStep   '' PURE, re-entrant, no in-memory state
+  }
+  class RefineStep <<pure>> {
+    '' produce(artifact) | review(round,target) | revise(feedback)
+    '' | promote (→Backlog) | escalate (→needs-human)
+  }
+  class FeatureRefine <<planned>> {
+    '' produce(proposal)→review(1)→[revise→review(2)]→produce(plan)→review→promote
+  }
+  class ChoreRefine <<planned>> {
+    '' produce(checklist)→review(1)→promote
+  }
+  class EpicRefine <<planned>> {
+    '' produce(plan)→promote (plan only, no children)
+  }
+  class RefineRegistry <<planned>> {
+    -byKind : Map<kind, RefineStrategy>
+    +register(s : RefineStrategy)
+    +get(kind) : RefineStrategy
+  }
+  class RefiningHandler <<planned>> {
+    '' the authoring:Refining Handler — thin dispatcher (Plane-2 driver)
+    +(event, task) : s = registry.get(task.kind);
+    ''   loop: step = s.step(task,artifacts,cursor);
+    ''         PERFORM side effect (spawn reviewer/worker, write artifact, persist cursor);
+    ''         on promote → advance Refining→Backlog
+  }
+
+  RefineStrategy <|.. FeatureRefine
+  RefineStrategy <|.. ChoreRefine
+  RefineStrategy <|.. EpicRefine
+  RefineStrategy ..> RefineStep : returns
+  RefineRegistry o-- RefineStrategy
+  RefiningHandler ..> RefineRegistry : dispatch by kind
+}
+RefiningHandler ..|> Handler : registered at (authoring, "Refining")
+
+note bottom of RefineRegistry
+  BOUNDARY = intent vs mechanism. Strategy decides WHAT (RefineStep);
+  RefiningHandler/driver decides HOW (which Claude Code invocation, worktree,
+  retry) and PERFORMS all side effects. Strategy sees only DATA (task+artifacts
+  +cursor) — no session handles/paths — so it unit-tests without a harness.
+  Authoring pipeline stays MINIMAL: Draft→Refining→Backlog. Fine cycle progress
+  is strategy-internal (cursor), surfaced to UI as a Coordinator runtime-fact
+  (projection), NOT a pipeline state. Adding kind:inquiry = register a strategy;
+  state machine & driver unchanged (pipeline-as-data / ADR-011 D-2 kept clean).
+end note
+
+' ============================================================
+' PLANE 2 — EXECUTION / DRIVER (impure, externally constrained, fastest-changing)
+' ============================================================
+package "Plane 2 · execution-driver  (impure, external, fastest-changing)" {
+
+  interface Coordinator <<contract>> {
+    +claims() : Map<taskId, Claim>
+  }
+  class Claim <<pure>> {
+    +driverId : string
+    +field : (sourceId, pipeline_id)
+    +since : timestamp
+  }
+  class BaimeClaimsAdapter <<planned>> {
+    '' soak: projects .active-agents / .caps → claims()
+  }
+  class EngineClaimRegistry <<planned>> {
+    '' M1+: driver/supervisor own claim state → claims()
+  }
+
+  Coordinator ..> Claim
+  Coordinator <|.. BaimeClaimsAdapter
+  Coordinator <|.. EngineClaimRegistry
+}
+
+note bottom of Coordinator
+  ANTI-CORRUPTION SEAM. Contract SHAPE is stable across soak↔engine;
+  only the adapter behind it swaps. Claim is a RUNTIME FACT, never a
+  persisted Task.state. `state=in-progress ∧ ¬claim` ⇒ stale/orphaned.
+  ONE runtime-fact channel for BOTH planes: execution claims AND authoring
+  refine progress (e.g. "Refining · review cycle 2") ride here as projection.
+end note
+
+' ============================================================
+' DATA PLANE — IssueSource (storage-agnostic, the write path for state)
+' ============================================================
+package "Data plane · IssueSource  (storage-agnostic; BACK-601.1)" {
+  interface IssueSource <<contract>> {
+    +list(filter) : Task[]
+    +get(id) : Task
+    +upsert(task) : void
+  }
+  class LocalIssueSource <<impl>> {
+    '' markdown-file backed (today's Backlog.md store)
+  }
+  IssueSource <|.. LocalIssueSource
+}
+IssueSource ..> Task
+
+' ============================================================
+' PLANE 3 — PRESENTATION (human-facing, view-only projections)
+' ============================================================
+package "Plane 3 · presentation  (view-only, product/UX-speed)" {
+
+  class IssueListView <<projection>> {
+    +render() : swimlanes grouped by pipeline_id
+    '' joins tasks ⟗ claims, applies label(...) + displayHints
+  }
+  class LabelProjection <<projection>> {
+    +label(state, role, plane) : string   '' PURE, one-way, boundary-only
+  }
+  class DisplayHints <<projection>> {
+    +byPipeline : Map<pipeline_id, {columns, sort, collapsed, icon, title}>
+    '' references pipeline_id; does NOT live on Pipeline (ADR-011 D-2.1)
+  }
+
+  IssueListView ..> LabelProjection
+  IssueListView ..> DisplayHints
+}
+
+' ---- cross-plane wiring: presentation consumes the two contracts (read-only) ----
+IssueListView ..> IssueSource : list() tasks
+IssueListView ..> Coordinator : claims() (live via WS)
+
+note as N_principle
+  **Three-plane principle (2026-07-04):**
+  Plane 1 owns the ONLY canonical vocabulary.
+  Planes 2 & 3 PROJECT from it; never define states.
+  Coupling only via the two <<contract>> seams (read-only, one-way).
+  UI/config strings must NEVER feed back into engine logic.
+end note
+
+@enduml
