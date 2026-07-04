@@ -62,9 +62,13 @@ export function buildBrief(task: Task, worktreePath: string): string {
 /**
  * Create a WorkerRunner backed by the given SpawnPrimitive.
  *
- * Usage (harness / CLI):
- *   const runner = makeWorkerRunner(realSpawnPrimitive);
+ * Usage (harness / tests):
+ *   const runner = makeWorkerRunner(someSpawnPrimitive);
  *   // inject into realSpawn or WorktreeOps.spawn
+ *
+ * Note: there is no "real" (production) SpawnPrimitive anymore — the engine
+ * never spawns an agent itself. See BACK-605.8 Phase D: work is driven by the
+ * epicd-run skill as an in-session Agent tool call, not by engine core.
  */
 export function makeWorkerRunner(spawnPrimitive: SpawnPrimitive): WorkerRunner {
 	return {

@@ -4484,65 +4484,12 @@ program
 	});
 
 // Engine command group
+// Note: the old `engine run` command (which spawned a `claude` CLI subprocess as its
+// WorkerRunner/decompose primitive) has been retired — see BACK-605.8 Phase D. The engine
+// no longer spawns agents itself: `engine watch` (data-derived emit) drives the epicd-run
+// skill, which performs the actual work as an in-session Agent tool call and then calls
+// `engine complete` to adjudicate + merge.
 const engineCmd = program.command("engine").description("execution engine commands");
-
-engineCmd
-	.command("run")
-	.description("run the execution pipeline on the real board until fixpoint")
-	.option("--max-ticks <n>", "maximum tick count before stopping", "100")
-	.option("--verbose", "print tick progress to stdout")
-	.action(async (options) => {
-		try {
-			const cwd = await requireProjectRoot();
-			const { Core } = await import("./core/backlog.ts");
-			const { runEngine } = await import("./engine/run.ts");
-			const { realSpawn } = await import("./engine/spawn.ts");
-			const { makeWorkerRunner } = await import("./harness/worker-runner.ts");
-			const { realSpawnPrimitive, gitWorktreeRunner, gitMergeBranch, realMergeLockFs } = await import(
-				"./harness/real-primitives.ts"
-			);
-			const { runDoD } = await import("./harness/dod-runner.ts");
-			const { makeDecomposer } = await import("./harness/decomposer.ts");
-
-			const core = new Core(cwd);
-			const runner = makeWorkerRunner(realSpawnPrimitive);
-			// Compound/epic tasks: worker proposes children as JSON, engine creates them (BACK-605.5).
-			const decompose = makeDecomposer(realSpawnPrimitive, core);
-
-			const worktree = {
-				// dodRunner injected so the engine re-runs DoD in the worktree (ENG-8) — see BACK-605.4.
-				spawn: (task: import("./types/index.ts").Task) =>
-					realSpawn(task, cwd, runner, gitWorktreeRunner, (t, wt) => runDoD(t, wt)),
-				merge: (taskId: string) => gitMergeBranch(cwd, taskId),
-			};
-
-			const safety: import("./engine/driver.ts").SafetyConfig = {
-				backlogDir: core.filesystem.backlogDir,
-				repoPath: cwd,
-				lockFs: realMergeLockFs,
-				worktreeRunner: gitWorktreeRunner,
-			};
-
-			const maxTicks = Number.parseInt(options.maxTicks, 10);
-			if (Number.isNaN(maxTicks) || maxTicks < 1) {
-				console.error("--max-ticks must be a positive integer");
-				process.exitCode = 1;
-				return;
-			}
-
-			const result = await runEngine(core, worktree, {
-				maxTicks,
-				safety,
-				decompose,
-				onTick: options.verbose ? (t: number) => console.log(`tick ${t}`) : undefined,
-			});
-
-			console.log(`Engine run complete: ${result.ticks} tick(s).`);
-		} catch (err) {
-			console.error("engine run failed:", err instanceof Error ? err.message : String(err));
-			process.exitCode = 1;
-		}
-	});
 
 engineCmd
 	.command("watch")

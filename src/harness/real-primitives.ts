@@ -1,12 +1,18 @@
 /**
- * Real harness primitives — injected into makeWorkerRunner and the CLI.
+ * Real harness primitives — used by the CLI's `engine complete` command and by
+ * anything needing real git worktree/merge behavior.
  *
  * These live outside engine core and are the only place that touches
  * child processes or git shell commands.  Engine core (src/engine)
  * never imports this module.
  *
+ * The old `realSpawnPrimitive` (a claude-CLI subprocess spawn that "did the
+ * work" for a ready task) has been retired — see BACK-605.8 Phase D.
+ * The correct mechanism is `engine watch` (emit-only) driving the epicd-run
+ * skill, which performs the work as an in-session Agent tool call and then
+ * calls `engine complete` (wrapping `completeTask`) to adjudicate + merge.
+ *
  * Exports:
- *   - realSpawnPrimitive: SpawnPrimitive  — launches a Claude Code agent CLI
  *   - gitWorktreeRunner: WorktreeRunner   — runs git worktree shell commands
  *   - gitMergeBranch                      — merges task/<id> branch into HEAD under cwd
  *   - realMergeLockFs: MergeLockFs        — fs adapter for merge-lock
@@ -15,61 +21,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import type { CompletionResult } from "../engine/complete.js";
 import type { MergeLockFs, WorktreeRunner } from "../engine/safety.js";
-import type { SpawnPrimitive } from "./worker-runner.js";
-
-/**
- * Real SpawnPrimitive: runs the `claude` CLI as a subprocess inside the
- * given worktreePath, passing the brief via CLAUDE_TASK_BRIEF env var and
- * a --print flag for non-interactive single-shot execution.
- *
- * Exit code 0 → success; non-zero → failure (error captured from stderr).
- * The worker's stdout is captured into `output` (and echoed live) so the
- * decompose path can parse worker-proposed children (BACK-605.5).
- *
- * Note: true Claude Code Agent spawn cannot be verified with `bun test`;
- * this is validated by soak/manual e2e (see BACK-605.1 Constraints).
- */
-export const realSpawnPrimitive: SpawnPrimitive = async (
-	brief: string,
-	worktreePath: string,
-): Promise<CompletionResult> => {
-	const proc = Bun.spawn(["claude", "--dangerously-skip-permissions", "--print", brief], {
-		cwd: worktreePath,
-		env: { ...process.env, CLAUDE_TASK_BRIEF: brief },
-		stdout: "pipe",
-		stderr: "pipe",
-	});
-
-	// Capture stdout while echoing it live so observability is preserved.
-	let output = "";
-	const decoder = new TextDecoder();
-	const reader = proc.stdout.getReader();
-	try {
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			const text = decoder.decode(value, { stream: true });
-			output += text;
-			process.stdout.write(text);
-		}
-	} finally {
-		reader.releaseLock();
-	}
-
-	const exitCode = await proc.exited;
-	if (exitCode === 0) {
-		return { success: true, output };
-	}
-
-	const errText = await new Response(proc.stderr).text().catch(() => "");
-	return {
-		success: false,
-		output,
-		error: `claude exited ${exitCode}${errText ? `: ${errText.slice(0, 500)}` : ""}`,
-	};
-};
 
 /**
  * Real WorktreeRunner: delegates to git shell commands via Bun.spawn.
