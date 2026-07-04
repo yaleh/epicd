@@ -112,7 +112,7 @@ export async function completeTask(
 	if (options?.merge) {
 		const mergeFn = options.merge;
 		// biome-ignore lint/suspicious/noConfusingVoidType: void allows existing `async () => {}` callers
-		let mergeOutcome: { conflict?: boolean; merged?: boolean } | void;
+		let mergeOutcome: { conflict?: boolean; merged?: boolean } | void = undefined;
 		const doMerge = async () => {
 			mergeOutcome = await mergeFn(taskId, result);
 		};
