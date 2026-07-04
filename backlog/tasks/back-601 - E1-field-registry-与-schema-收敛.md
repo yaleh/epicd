@@ -4,7 +4,7 @@ title: 'E1: field-registry 与 schema 收敛'
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-06-26 09:12'
+updated_date: '2026-07-04 02:17'
 labels:
   - 'kind:epic'
   - 'epicd:E1'
@@ -52,8 +52,19 @@ ordinal: 2000
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [ ] #1 单一 FieldDescriptor 表驱动 parse/serialize/validate/MCP schema
+- [ ] #2 role 由树位置派生；仅在需预声明意图时存储
+- [ ] #3 ADR-005 前提调整为 role 派生/声明
+- [ ] #4 通用部分可作为 PR 回馈上游
+- [ ] #5 per-task 只存结构量 pipeline_id + 裸 phase 名；删除惰性 state 字段；status 显示串 = label(role, phase) 派生；phase/turn/role 不再摩平进持久串
+- [ ] #6 turn 不 per-task 持久——由 pipelineDef[phase].actor 派生（actor 字段在 E3/BACK-603）；role 由树派生；search-service NormalizedFilters 增按 pipeline_id / phase 过滤；Task 增 refine_log（内嵌，供 E7）；旧 status 串迁移为 parse→phase（role/turn 不迁，派生）
+<!-- AC:END -->
 
-- [ ] 单一 `FieldDescriptor` 表驱动 parse/serialize/validate/MCP schema
-- [ ] role 由树位置派生；仅在需预声明意图时存储
-- [ ] ADR-005 前提调整为 role 派生/声明
-- [ ] 通用部分可作为 PR 回馈上游
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-07-04 设计裁决（并入本 epic 范围）：实测确认原生 status（全接线）与引擎 state（惰性、仅 Interpreter.scan 读、无 CRUD 写）平行且断裂——是 fork 意外而非设计轴。裁决：只保留 status 为 canonical，删 state，四轴中的 phase/waiting_on/role 由 parse(status) 派生（config 的 Basic:/Epic: 串本就编码了 role+phase+turn）。这把 E1 原有『state 从 status 映射』的回填纪律收紧为『不保留两个字段』。修订 docs/proposals/2026-07-04-multi-lane-issue-list.md §2.3（waiting_on 由存储改为派生）与四轴 state 图。参考 use-case-model.md 漂移表。
+
+2026-07-04 终版修订（超前一条备注）：之前在“更多字段(独立 waiting_on)+更少 status”与“更少字段(status 唯一 canonical)+更多 status”两极摆摆，二者共犯一错：都把 turn 当成必须持久的 per-task 轴。终版：turn=actor(phase) 归 pipeline-data（非 per-task），role 归树，故 per-task 只存 (pipeline_id, 裸 phase)，字段与 status 词汇两者都更少。status 串=label(role,phase) 派生显示。见 proposal §2.3 终版 + workitem-lifecycle-state.puml。PipelineState.actor 泛化在 E3。
+<!-- SECTION:NOTES:END -->

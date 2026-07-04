@@ -4,7 +4,7 @@ title: 'E3: pipeline-as-data 泛化 + exploration pipeline'
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-06-26 08:36'
+updated_date: '2026-07-04 02:18'
 labels:
   - 'kind:epic'
   - 'epicd:E3'
@@ -41,8 +41,16 @@ ordinal: 4000
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [ ] #1 exploration pipeline（spike→evaluate→kill/promote）以纯数据定义并跑通
+- [ ] #2 cross-pipeline 派生经 `provenance.spawned_from` 记录，与 `parent_id` 区分
+- [ ] #3 加新 pipeline 不触碰解释器/core（耦合纪律验收）
+- [ ] #4 完整 ADR-010 不变量进引擎测试套件
+- [ ] #5 PipelineState 增 actor: machine|human|none（泛化现 actionable: boolean）；turn=actor(phase) 由 pipeline-data 派生而非 per-task 存储；scan 谓词按 actor==machine ∧ 无有效 claim（参 proposal §2.3 终版）
+<!-- AC:END -->
 
-- [ ] exploration pipeline（spike→evaluate→kill/promote）以纯数据定义并跑通
-- [ ] cross-pipeline 派生经 `provenance.spawned_from` 记录，与 `parent_id` 区分
-- [ ] 加新 pipeline 不触碰解释器/core（耦合纪律验收）
-- [ ] 完整 ADR-010 不变量进引擎测试套件
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-07-04：四轴终版把 turn 归为 pipeline-data（非 per-task）。本 epic 需把 PipelineState 的 actionable:boolean 泛化为 actor:{machine,human,none}，使“该谁动”成为 pipeline 定义的一部分。与“加 pipeline 不改 core”耦合纪律一致。
+<!-- SECTION:NOTES:END -->
