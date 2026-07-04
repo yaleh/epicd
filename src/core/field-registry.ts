@@ -1,4 +1,5 @@
 import { normalizeDate } from "../markdown/date.ts";
+import type { JsonSchema } from "../mcp/validation/validators.ts";
 import type { CapMarker, DoDItem, Task } from "../types/index.ts";
 import { roleOf } from "../types/index.ts";
 
@@ -30,6 +31,19 @@ export interface FieldDescriptor<T = unknown> {
 	readonly present: (task: Task) => boolean;
 	/** Optional validation of a parsed value. */
 	readonly validate?: (value: T) => boolean;
+	/**
+	 * The MCP/CLI-accepted input shape for this field (ADR-011 D-5). Undefined
+	 * means the field is not exposed on the MCP create/edit schemas (e.g. it is
+	 * internal-only, derived, or has genuinely different create/edit semantics
+	 * that stay hand-written in schema-generators.ts).
+	 */
+	readonly mcpSchema?: JsonSchema;
+	/**
+	 * The property name to use on the MCP schema/input object when it differs
+	 * from `tsName` (e.g. `dod` is stored internally as `DoDItem[]` but accepted
+	 * over MCP as `dodGates: string[]`). Defaults to `tsName` when unset.
+	 */
+	readonly mcpKey?: string;
 }
 
 function normalizeStringArray(value: unknown): string[] {
@@ -74,6 +88,13 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => (Array.isArray(fm.assignee) ? fm.assignee.map(String) : fm.assignee ? [String(fm.assignee)] : []),
 		serialize: (v) => v,
 		present: () => true,
+		mcpSchema: {
+			type: "array",
+			items: {
+				type: "string",
+				maxLength: 100,
+			},
+		},
 	} as FieldDescriptor<string[]>,
 	{
 		yamlKey: "reporter",
@@ -106,6 +127,13 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => normalizeStringArray(fm.labels),
 		serialize: (v) => v,
 		present: () => true,
+		mcpSchema: {
+			type: "array",
+			items: {
+				type: "string",
+				maxLength: 50,
+			},
+		},
 	} as FieldDescriptor<string[]>,
 	{
 		yamlKey: "milestone",
@@ -122,6 +150,13 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => normalizeStringArray(fm.dependencies),
 		serialize: (v) => v,
 		present: () => true,
+		mcpSchema: {
+			type: "array",
+			items: {
+				type: "string",
+				maxLength: 50,
+			},
+		},
 	} as FieldDescriptor<string[]>,
 	{
 		yamlKey: "references",
@@ -130,6 +165,14 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => (Array.isArray(fm.references) ? fm.references.map(String) : []),
 		serialize: (v) => v,
 		present: (task) => Boolean(task.references && task.references.length > 0),
+		mcpSchema: {
+			type: "array",
+			items: {
+				type: "string",
+				maxLength: 500,
+			},
+			description: "Reference URLs or file paths related to this task",
+		},
 	} as FieldDescriptor<string[]>,
 	{
 		yamlKey: "documentation",
@@ -138,6 +181,14 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => (Array.isArray(fm.documentation) ? fm.documentation.map(String) : []),
 		serialize: (v) => v,
 		present: (task) => Boolean(task.documentation && task.documentation.length > 0),
+		mcpSchema: {
+			type: "array",
+			items: {
+				type: "string",
+				maxLength: 500,
+			},
+			description: "Documentation URLs or file paths for understanding this task",
+		},
 	} as FieldDescriptor<string[]>,
 	{
 		yamlKey: "modified_files",
@@ -146,6 +197,14 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => (Array.isArray(fm.modified_files) ? fm.modified_files.map(String) : []),
 		serialize: (v) => v,
 		present: (task) => Boolean(task.modifiedFiles && task.modifiedFiles.length > 0),
+		mcpSchema: {
+			type: "array",
+			items: {
+				type: "string",
+				maxLength: 500,
+			},
+			description: "Project-root-relative file paths modified by this task",
+		},
 	} as FieldDescriptor<string[]>,
 	{
 		yamlKey: "parent_task_id",
@@ -202,6 +261,7 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => (fm.pipeline_id ? String(fm.pipeline_id) : undefined),
 		serialize: (v) => v,
 		present: (task) => Boolean(task.pipeline_id),
+		mcpSchema: { type: "string" },
 	} as FieldDescriptor<string | undefined>,
 	{
 		yamlKey: "phase",
@@ -210,6 +270,7 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => (fm.phase ? String(fm.phase) : undefined),
 		serialize: (v) => v,
 		present: (task) => Boolean(task.phase),
+		mcpSchema: { type: "string" },
 	} as FieldDescriptor<string | undefined>,
 	{
 		yamlKey: "parent_id",
@@ -218,6 +279,7 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => (fm.parent_id ? String(fm.parent_id) : undefined),
 		serialize: (v) => v,
 		present: (task) => Boolean(task.parent_id),
+		mcpSchema: { type: "string" },
 	} as FieldDescriptor<string | undefined>,
 	{
 		yamlKey: "dod",
@@ -229,6 +291,16 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 				: undefined,
 		serialize: (v) => v,
 		present: (task) => Boolean(task.dod && task.dod.length > 0),
+		// MCP input shape diverges from the internal type on purpose (ADR-011 D-5):
+		// callers pass plain shell-command strings (`dodGates: string[]`), which are
+		// transformed into `DoDItem[]` (`{ text, checked: false }`) at the create/update
+		// boundary — not a bug to unify, `dod` itself also carries `checked` state.
+		mcpSchema: {
+			type: "array",
+			items: { type: "string", maxLength: 500 },
+			description: "Structured executable Definition of Done gates (shell commands re-run before merging).",
+		},
+		mcpKey: "dodGates",
 	} as FieldDescriptor<DoDItem[] | undefined>,
 	{
 		yamlKey: "cap",

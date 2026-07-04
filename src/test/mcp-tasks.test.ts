@@ -85,6 +85,45 @@ describe("MCP task tools (MVP)", () => {
 		expect(searchText).not.toContain("Implementation Plan:");
 	});
 
+	it("accepts and round-trips engine fields (pipeline_id, phase, parent_id, dodGates) through task_create and task_edit", async () => {
+		const createResult = await mcpServer.testInterface.callTool({
+			params: {
+				name: "task_create",
+				arguments: {
+					title: "Engine field round-trip",
+					pipeline_id: "execution",
+					phase: "ready",
+					parent_id: "task-0",
+					dodGates: ["echo one", "echo two"],
+				},
+			},
+		});
+		expect(getText(createResult.content)).toContain("Task TASK-1 - Engine field round-trip");
+
+		const created = await mcpServer.getTask("task-1");
+		expect(created?.pipeline_id).toBe("execution");
+		expect(created?.phase).toBe("ready");
+		expect(created?.parent_id).toBe("task-0");
+		expect(created?.dod).toEqual([
+			{ text: "echo one", checked: false },
+			{ text: "echo two", checked: false },
+		]);
+
+		await mcpServer.testInterface.callTool({
+			params: {
+				name: "task_edit",
+				arguments: {
+					id: "task-1",
+					dodGates: ["echo three"],
+				},
+			},
+		});
+
+		const edited = await mcpServer.getTask("task-1");
+		// Full replacement, not append.
+		expect(edited?.dod).toEqual([{ text: "echo three", checked: false }]);
+	});
+
 	it("assigns default tail ordinals for task_create and preserves explicit ordinals", async () => {
 		const first = await mcpServer.testInterface.callTool({
 			params: {

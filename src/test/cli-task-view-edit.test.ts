@@ -423,4 +423,44 @@ describe("task edit command", () => {
 		expect(updatedTask?.dependencies).toEqual(["task-1"]);
 		expect(updatedTask?.rawContent).toBe("Testing YAML preservation");
 	});
+
+	it("updateTaskFromInput sets pipeline_id/phase/parent_id and replaces dod via dodGates", async () => {
+		const core = new Core(TEST_DIR);
+
+		await core.createTask(
+			{
+				id: "task-9",
+				title: "Engine Field Symmetry",
+				status: "To Do",
+				assignee: [],
+				createdDate: "2025-06-08",
+				labels: [],
+				dependencies: [],
+				rawContent: "Testing engine field update symmetry",
+			},
+			false,
+		);
+
+		await core.updateTaskFromInput(
+			"task-9",
+			{
+				pipeline_id: "execution",
+				phase: "ready",
+				parent_id: "task-1",
+				dodGates: ["echo ok"],
+			},
+			false,
+		);
+
+		const updatedTask = await core.filesystem.loadTask("task-9");
+		expect(updatedTask?.pipeline_id).toBe("execution");
+		expect(updatedTask?.phase).toBe("ready");
+		expect(updatedTask?.parent_id).toBe("task-1");
+		expect(updatedTask?.dod).toEqual([{ text: "echo ok", checked: false }]);
+
+		// A second update with a different dodGates list must fully replace, not append.
+		await core.updateTaskFromInput("task-9", { dodGates: ["echo two"] }, false);
+		const replacedTask = await core.filesystem.loadTask("task-9");
+		expect(replacedTask?.dod).toEqual([{ text: "echo two", checked: false }]);
+	});
 });

@@ -41,6 +41,11 @@ export type TaskCreateArgs = {
 	documentation?: string[];
 	modifiedFiles?: string[];
 	finalSummary?: string;
+	// Engine pipeline fields — set these when creating engine-managed child tasks
+	pipeline_id?: string;
+	phase?: string;
+	parent_id?: string;
+	dodGates?: string[];
 };
 
 export type TaskListArgs = {
@@ -129,6 +134,10 @@ export class TaskHandlers {
 				acceptanceCriteria,
 				definitionOfDoneAdd: args.definitionOfDoneAdd,
 				disableDefinitionOfDoneDefaults: args.disableDefinitionOfDoneDefaults,
+				pipeline_id: args.pipeline_id,
+				phase: args.phase,
+				parent_id: args.parent_id,
+				dodGates: args.dodGates,
 			});
 
 			return await formatTaskCallResult(createdTask);
