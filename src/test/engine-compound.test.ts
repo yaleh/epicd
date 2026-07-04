@@ -142,6 +142,7 @@ describe("Driver compound branch", () => {
 		await driver.tick(all());
 
 		expect(all().find((t) => t.id === "epic-2")?.phase).toBe("needs-human");
+		expect(all().find((t) => t.id === "epic-2")?.status).toBe("Epic: Needs Human");
 	});
 
 	it("compound task in decomposing phase calls decompose handler", async () => {
