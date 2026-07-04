@@ -1,0 +1,150 @@
+/**
+ * Phase B wire tests — merge conflict routing + merge-lock serialisation.
+ *
+ * Verifies that:
+ *   1. completeTask with a merge that signals conflict → task phase → "needs-human"
+ *      (engine decides; worker cannot self-declare done after conflict).
+ *   2. completeTask with a successful merge + passing DoD → task phase → "done".
+ *   3. merge runs inside withMergeLock: the .merge-lock file exists while the
+ *      merge callback is executing (ENG-3 production path).
+ */
+
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync } from "node:fs";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import type { TaskStore } from "../engine/complete.ts";
+import { completeTask } from "../engine/complete.ts";
+import { MERGE_LOCK_FILENAME, type MergeLockFs } from "../engine/safety.ts";
+import type { Task } from "../types/index.ts";
+import { createUniqueTestDir } from "./test-utils.ts";
+
+const realFs: MergeLockFs = {
+	mkdir: (dir, opts) => mkdir(dir, opts).then(() => {}),
+	writeFile: (p, d) => writeFile(p, d),
+	exists: (p) => existsSync(p),
+	join: (...parts) => join(...parts),
+};
+
+function makeTask(id: string, dod: Array<{ text: string; checked: boolean }> = []): Task {
+	return {
+		id,
+		title: `Task ${id}`,
+		status: "Basic: Ready",
+		pipeline_id: "execution",
+		phase: "ready",
+		filePath: `/fake/${id}.md`,
+		body: "",
+		definitionOfDoneItems: dod,
+	} as unknown as Task;
+}
+
+function makeStore(task: Task): { store: TaskStore; savedPhase: () => string | undefined } {
+	let saved: Task = task;
+	const store: TaskStore = {
+		getTask: async (id) => (id === task.id ? saved : null),
+		updateTask: async (t) => {
+			saved = t;
+		},
+	};
+	return { store, savedPhase: () => saved.phase };
+}
+
+describe("completeTask — conflict routing → needs-human", () => {
+	it("sets phase to needs-human when merge returns conflict:true", async () => {
+		const task = makeTask("TASK-W1");
+		const { store, savedPhase } = makeStore(task);
+
+		await completeTask("TASK-W1", { success: true }, store, {
+			merge: async (_id, _res) => ({ conflict: true }),
+		});
+
+		expect(savedPhase()).toBe("needs-human");
+	});
+
+	it("does not reach adjudication on conflict (DoD items ignored)", async () => {
+		// All DoD items checked — but conflict should still → needs-human
+		const task = makeTask("TASK-W2", [{ text: "passes", checked: true }]);
+		const { store, savedPhase } = makeStore(task);
+
+		await completeTask("TASK-W2", { success: true }, store, {
+			merge: async () => ({ conflict: true }),
+		});
+
+		expect(savedPhase()).toBe("needs-human");
+	});
+});
+
+describe("completeTask — successful merge → adjudication proceeds", () => {
+	it("sets phase to done when merge succeeds and result.success is true with no unchecked DoD", async () => {
+		const task = makeTask("TASK-W3", [{ text: "step", checked: true }]);
+		const { store, savedPhase } = makeStore(task);
+
+		await completeTask("TASK-W3", { success: true }, store, {
+			merge: async () => ({ merged: true }),
+		});
+
+		expect(savedPhase()).toBe("done");
+	});
+
+	it("sets phase to needs-human when merge succeeds but result.success is false", async () => {
+		const task = makeTask("TASK-W4");
+		const { store, savedPhase } = makeStore(task);
+
+		await completeTask("TASK-W4", { success: false, error: "worker crashed" }, store, {
+			merge: async () => ({ merged: true }),
+		});
+
+		expect(savedPhase()).toBe("needs-human");
+	});
+});
+
+describe("completeTask — merge runs under withMergeLock (ENG-3)", () => {
+	let backlogDir: string;
+
+	beforeEach(async () => {
+		backlogDir = createUniqueTestDir("merge-wire-lock");
+		await mkdir(backlogDir, { recursive: true });
+	});
+
+	afterEach(async () => {
+		await rm(backlogDir, { recursive: true, force: true });
+	});
+
+	it("holds the .merge-lock while the merge callback executes", async () => {
+		const task = makeTask("TASK-W5");
+		const { store } = makeStore(task);
+		const lockPath = join(backlogDir, MERGE_LOCK_FILENAME);
+
+		let lockExistedDuringMerge = false;
+
+		await completeTask("TASK-W5", { success: true }, store, {
+			merge: async () => {
+				lockExistedDuringMerge = existsSync(lockPath);
+				return { merged: true };
+			},
+			safety: { backlogDir, lockFs: realFs },
+		});
+
+		expect(lockExistedDuringMerge).toBe(true);
+	});
+
+	it("lock is released after completeTask completes", async () => {
+		const task = makeTask("TASK-W6");
+		const { store } = makeStore(task);
+
+		await completeTask("TASK-W6", { success: true }, store, {
+			merge: async () => ({ merged: true }),
+			safety: { backlogDir, lockFs: realFs },
+		});
+
+		// Lock must be released — a second completeTask should not hang
+		const task2 = makeTask("TASK-W6b");
+		const { store: store2, savedPhase: savedPhase2 } = makeStore(task2);
+		await completeTask("TASK-W6b", { success: true }, store2, {
+			merge: async () => ({ merged: true }),
+			safety: { backlogDir, lockFs: realFs },
+		});
+		expect(savedPhase2()).toBe("done");
+	});
+});

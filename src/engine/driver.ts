@@ -9,7 +9,8 @@ import { type MergeLockFs, type WorktreeRunner, withCapGuard } from "./safety.js
 /** Worktree operations interface; primitives are stubbed here and hardened in child 5. */
 export interface WorktreeOps {
 	spawn(task: Task): Promise<CompletionResult>;
-	merge(taskId: string, result: CompletionResult): Promise<void>;
+	// biome-ignore lint/suspicious/noConfusingVoidType: void allows existing `async () => {}` callers unchanged
+	merge(taskId: string, result: CompletionResult): Promise<{ conflict?: boolean; merged?: boolean } | void>;
 }
 
 /**

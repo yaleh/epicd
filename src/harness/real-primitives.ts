@@ -8,12 +8,13 @@
  * Exports:
  *   - realSpawnPrimitive: SpawnPrimitive  — launches a Claude Code agent CLI
  *   - gitWorktreeRunner: WorktreeRunner   — runs git worktree shell commands
+ *   - gitMergeBranch                      — merges task/<id> branch into HEAD under cwd
  *   - realMergeLockFs: MergeLockFs        — fs adapter for merge-lock
  */
 
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { CompletionResult } from "../engine/complete.js";
 import type { MergeLockFs, WorktreeRunner } from "../engine/safety.js";
 import type { SpawnPrimitive } from "./worker-runner.js";
@@ -50,10 +51,26 @@ export const realSpawnPrimitive: SpawnPrimitive = async (
 
 /**
  * Real WorktreeRunner: delegates to git shell commands via Bun.spawn.
+ *
+ * `add` creates a branch `task/<taskId>` (derived from the basename of
+ * worktreePath) so the worker's commits are preserved on a named branch
+ * that `gitMergeBranch` can later merge into the main branch.  Any
+ * pre-existing `task/<taskId>` branch (crash residue) is removed first.
  */
 export const gitWorktreeRunner: WorktreeRunner = {
 	add: async (repoPath: string, worktreePath: string): Promise<void> => {
-		const proc = Bun.spawn(["git", "worktree", "add", "--detach", worktreePath], {
+		const taskId = basename(worktreePath);
+		const branchName = `task/${taskId}`;
+
+		// Best-effort: remove crash-residue branch before creating the worktree
+		const cleanup = Bun.spawn(["git", "branch", "-D", branchName], {
+			cwd: repoPath,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		await cleanup.exited; // ignore exit code — branch may not exist
+
+		const proc = Bun.spawn(["git", "worktree", "add", "-b", branchName, worktreePath], {
 			cwd: repoPath,
 			stdout: "inherit",
 			stderr: "inherit",
@@ -75,6 +92,47 @@ export const gitWorktreeRunner: WorktreeRunner = {
 	},
 	join: (...parts: string[]): string => join(...parts),
 };
+
+/**
+ * Merge the task's branch (`task/<taskId>`) into the current HEAD of repoPath
+ * using `git merge --no-ff`.
+ *
+ * On success: deletes the branch and returns `{merged: true}`.
+ * On conflict/failure: aborts the merge and returns `{merged: false, conflict: true}`.
+ */
+export async function gitMergeBranch(
+	repoPath: string,
+	taskId: string,
+): Promise<{ merged: boolean; conflict?: boolean }> {
+	const branchName = `task/${taskId}`;
+
+	const mergeProc = Bun.spawn(["git", "merge", "--no-ff", branchName], {
+		cwd: repoPath,
+		stdout: "inherit",
+		stderr: "inherit",
+	});
+	const mergeCode = await mergeProc.exited;
+
+	if (mergeCode === 0) {
+		// Success: clean up the branch
+		const del = Bun.spawn(["git", "branch", "-d", branchName], {
+			cwd: repoPath,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		await del.exited; // best-effort
+		return { merged: true };
+	}
+
+	// Failure: abort any partial merge so the repo stays clean
+	const abort = Bun.spawn(["git", "merge", "--abort"], {
+		cwd: repoPath,
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	await abort.exited; // best-effort
+	return { merged: false, conflict: true };
+}
 
 /**
  * Real MergeLockFs adapter for production use.
