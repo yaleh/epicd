@@ -1,10 +1,10 @@
 ---
 id: BACK-612
 title: BACK-601.5 - 现存 task 文件就地幂等 backfill（M1 roadmap）
-status: 'Basic: Proposal'
+status: 'Basic: Ready'
 assignee: []
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 16:42'
+updated_date: '2026-07-04 16:59'
 labels: []
 dependencies: []
 ordinal: 23000
