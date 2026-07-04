@@ -27,15 +27,15 @@ actor "Human\n(gate owner)" as Human
 node "Claude Code harness  (Monitor host)" as Harness {
   component "**supervisor**\n(persistent; singleton reap;\nbaime: Monitor+scan-loop)" as Sup
   component "**execution driver**\nInterpreter.scan → item-ready\n(baime: --mode ready)" as ExecD
-  component "**authoring driver**\n(RefiningHandler)\n(baime: --mode draft)" as AuthD
-  component "operation skills\npropose · promote · inbox · run · init" as Ops
+  component "**authoring driver** <<planned E7>>\n(RefiningHandler)\n(baime: --mode draft)" as AuthD
+  component "operation skills\nrun (epicd-run skill)\npropose · promote · inbox · init <<planned E5>>" as Ops
   Sup --> ExecD : hosts (1 per pipeline_id)
   Sup --> AuthD : hosts
 }
 
 node "git worktree  (one per claimed task)" as WT {
   component "**execute worker**\nfeature/chore Agent →\nengine.complete()" as ExecW
-  component "**refine worker** (RefineStrategy)\n+ **reviewer** (verdict as data)" as RefW
+  component "**refine worker** <<planned E7>>\n(RefineStrategy + reviewer)" as RefW
 }
 
 database "IssueSource\nbacklog/*.md\n(pipeline_id + bare phase)" as Src

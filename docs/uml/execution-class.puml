@@ -4,7 +4,7 @@
 ' execution is INVARIANT-heavy — the completion tail (complete→adjudicate→merge) is
 ' engine-owned safety machinery (ADR-010/012), NOT pluggable. Only the WORK action
 ' is dispatched by role/kind.
-' Today: interpreter.ts + pipeline.ts exist (pure, TEST-ONLY); everything else ABSENT.
+' Implemented (BACK-600.x): interpreter.ts, pipeline.ts, driver.ts, adjudicate.ts, complete.ts, safety.ts.
 
 skinparam backgroundColor #FFFFFF
 skinparam shadowing false
@@ -22,7 +22,7 @@ skinparam packageStyle rectangle
 title epicd — Execution engine (class diagram; symmetric to authoring, invariant-heavy tail)
 
 ' ===================== CORE (pure, exists today) =====================
-package "Core state machine  (pure — EXISTS, test-only)" {
+package "Core state machine  (pure)" {
   class Interpreter <<pure>> {
     +register(p, state, h)
     +scan(tasks) : ItemReadyEvent[]
@@ -40,10 +40,10 @@ package "Core state machine  (pure — EXISTS, test-only)" {
 }
 
 ' ===================== DRIVER (impure — dispatches work by role/kind) =====================
-package "Driver  (IMPURE — EXECUTION, ABSENT today)" {
-  class ExecutionDriver <<driver>> {
-    '' Handler registered at (execution, actionable phase)
-    +run(event, task) : void
+package "Driver  (IMPURE — EXECUTION)" {
+  class Driver <<driver>> {
+    '' src/engine/driver.ts — realized as class Driver (BACK-600.4)
+    +tick(tasks) : void
     -- per scan --
     '' 1. claim(task) via Coordinator (stale-safe)
     '' 2. dispatch by role:
@@ -70,9 +70,9 @@ package "Driver  (IMPURE — EXECUTION, ABSENT today)" {
   }
   WorkAction <|.. FeatureWork
   WorkAction <|.. ChoreWork
-  ExecutionDriver ..> WorkAction : dispatch (role=primitive)
-  ExecutionDriver ..> Decompose : dispatch (role=compound)
-  ExecutionDriver ..> Evaluate  : dispatch (epic-eval-due)
+  Driver ..> WorkAction : dispatch (role=primitive)
+  Driver ..> Decompose : dispatch (role=compound)
+  Driver ..> Evaluate  : dispatch (epic-eval-due)
 }
 
 ' ===================== WORKERS (spawned in worktree, Plane 2) =====================
@@ -87,8 +87,13 @@ package "Workers  (spawned in git worktree)" {
 
 ' ===================== INVARIANT TAIL (engine-owned, NOT pluggable) =====================
 package "Completion tail  (ENGINE-OWNED invariants — ADR-010/012)" {
+  ' All four realized as module functions, not classes (BACK-600.5/600.8):
+  '   CompleteHandshake → completeTask()  in src/engine/complete.ts
+  '   Adjudicator       → adjudicate()   in src/engine/adjudicate.ts
+  '   MergeCoordinator  → withMergeLock()/gitMergeBranch()  in src/engine/safety.ts + src/harness/real-primitives.ts
+  '   SafetyMonitor     → withCapGuard()/hasCapMarker()     in src/engine/safety.ts
   class CompleteHandshake <<invariant>> {
-    '' engine.complete(taskId, result): the ONLY done path
+    '' realized as completeTask() — the ONLY done path
     +complete(taskId, result) : void
   }
   class Adjudicator <<invariant>> {
@@ -118,8 +123,8 @@ interface Coordinator <<contract>> {
   +claims() : Map<taskId, Claim>   '' SAME runtime-fact channel as authoring
 }
 
-ExecutionDriver ..> Coordinator : claim during work
-ExecutionDriver ..> IssueSource : advance phase
+Driver ..> Coordinator : claim during work
+Driver ..> IssueSource : advance phase
 FeatureWorker ..> CompleteHandshake : engine.complete(result)
 ChoreWorker ..> CompleteHandshake : engine.complete(result)
 Adjudicator ..> IssueSource : pass → phase:=done
@@ -139,9 +144,9 @@ note as N_asymmetry
   lives ONLY in WorkAction (role/kind). Do NOT make the tail pluggable.
 end note
 note as N_today
-  TODAY: Interpreter + executionPipeline are pure & TEST-ONLY (unwired).
-  ExecutionDriver / CompleteHandshake / Adjudicator / MergeCoordinator /
-  SafetyMonitor / Coordinator ALL ABSENT — soak runs on baime scan-loop.
+  IMPLEMENTED (BACK-600.x, 2026-07): Driver, completeTask, adjudicate,
+  withMergeLock/gitMergeBranch, withCapGuard all delivered.
+  IssueSource / Coordinator contracts planned — BACK-601.1 (E1).
 end note
 
 @enduml
