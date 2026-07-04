@@ -1,4 +1,6 @@
+import { label } from "../core/field-registry.js";
 import type { Task } from "../types/index.js";
+import { roleOf } from "../types/index.js";
 import { adjudicate } from "./adjudicate.js";
 import type { Pipeline } from "./pipeline.js";
 import { type MergeLockFs, withMergeLock } from "./safety.js";
@@ -113,7 +115,7 @@ export async function completeTask(
 		if (result.dodResults !== undefined) {
 			const dodFailed = result.dodResults.length === 0 || result.dodResults.some((r) => !r.passed);
 			if (dodFailed) {
-				await store.updateTask({ ...task, phase: "needs-human" });
+				await store.updateTask({ ...task, phase: "needs-human", status: label(roleOf(task), "needs-human") });
 				await options?.commit?.(taskId, "needs-human");
 				return;
 			}
@@ -125,7 +127,7 @@ export async function completeTask(
 
 			// Conflict → needs-human immediately, bypass adjudication
 			if (mergeOutcome != null && (mergeOutcome as { conflict?: boolean }).conflict) {
-				await store.updateTask({ ...task, phase: "needs-human" });
+				await store.updateTask({ ...task, phase: "needs-human", status: label(roleOf(task), "needs-human") });
 				await options?.commit?.(taskId, "needs-human");
 				return;
 			}
@@ -133,7 +135,7 @@ export async function completeTask(
 
 		// Adjudicate and persist — engine is sole authority over done/needs-human
 		const verdict = adjudicate(task, result);
-		await store.updateTask({ ...task, phase: verdict });
+		await store.updateTask({ ...task, phase: verdict, status: label(roleOf(task), verdict) });
 		await options?.commit?.(taskId, verdict);
 	};
 
