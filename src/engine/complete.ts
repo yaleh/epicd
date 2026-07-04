@@ -111,16 +111,10 @@ export async function completeTask(
 	// Merge worktree branch (serialised if safety is provided)
 	if (options?.merge) {
 		const mergeFn = options.merge;
-		// biome-ignore lint/suspicious/noConfusingVoidType: void allows existing `async () => {}` callers
-		let mergeOutcome: { conflict?: boolean; merged?: boolean } | void;
-		const doMerge = async () => {
-			mergeOutcome = await mergeFn(taskId, result);
-		};
-		if (options.safety) {
-			await withMergeLock(options.safety.backlogDir, doMerge, options.safety.lockFs);
-		} else {
-			await doMerge();
-		}
+		const doMerge = () => mergeFn(taskId, result);
+		const mergeOutcome = options.safety
+			? await withMergeLock(options.safety.backlogDir, doMerge, options.safety.lockFs)
+			: await doMerge();
 
 		// Conflict → needs-human immediately, bypass adjudication
 		if (mergeOutcome != null && (mergeOutcome as { conflict?: boolean }).conflict) {
