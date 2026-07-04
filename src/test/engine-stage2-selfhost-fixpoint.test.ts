@@ -21,9 +21,9 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { runToFixpoint, hasMachineWork } from "../engine/sandbox.ts";
-import { executionPipeline, type Pipeline, type PipelineState } from "../engine/pipeline.ts";
 import { Interpreter } from "../engine/interpreter.ts";
+import { executionPipeline, type Pipeline, type PipelineState } from "../engine/pipeline.ts";
+import { hasMachineWork, runToFixpoint } from "../engine/sandbox.ts";
 import type { Task } from "../types/index.ts";
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -145,7 +145,8 @@ describe("engine-stage2-selfhost-fixpoint — MVD reconstructs itself", () => {
 		expect(eventsFromReconstructed.length).toBe(eventsFromOriginal.length);
 
 		// And the phase + task_id portions must match (pipeline_id differs only by suffix)
-		const phaseAndId = (e: string) => e.replace("item-ready: execution-reconstructed:", "").replace("item-ready: execution:", "");
+		const phaseAndId = (e: string) =>
+			e.replace("item-ready: execution-reconstructed:", "").replace("item-ready: execution:", "");
 		const normReconstructed = eventsFromReconstructed.map(phaseAndId).sort();
 		const normOriginal = eventsFromOriginal.map(phaseAndId).sort();
 		expect(normReconstructed).toEqual(normOriginal);

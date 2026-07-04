@@ -4483,6 +4483,46 @@ program
 		}
 	});
 
+// Engine command group
+const engineCmd = program.command("engine").description("execution engine commands");
+
+engineCmd
+	.command("run")
+	.description("run the execution pipeline on the real board until fixpoint (stub spawn)")
+	.option("--max-ticks <n>", "maximum tick count before stopping", "100")
+	.option("--verbose", "print tick progress to stdout")
+	.action(async (options) => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { runEngine } = await import("./engine/run.ts");
+
+			const core = new Core(cwd);
+
+			const worktree = {
+				spawn: async (_task: unknown) => ({ success: true as const }),
+				merge: async (_taskId: string, _result: unknown) => {},
+			};
+
+			const maxTicks = Number.parseInt(options.maxTicks, 10);
+			if (Number.isNaN(maxTicks) || maxTicks < 1) {
+				console.error("--max-ticks must be a positive integer");
+				process.exitCode = 1;
+				return;
+			}
+
+			const result = await runEngine(core, worktree, {
+				maxTicks,
+				onTick: options.verbose ? (t: number) => console.log(`tick ${t}`) : undefined,
+			});
+
+			console.log(`Engine run complete: ${result.ticks} tick(s).`);
+		} catch (err) {
+			console.error("engine run failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
 // Completion command group
 registerCompletionCommand(program);
 

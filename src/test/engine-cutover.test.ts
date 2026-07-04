@@ -8,8 +8,8 @@
 
 import { describe, expect, it } from "bun:test";
 import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 /** Locate the repo root by walking up from this file's directory. */
 function repoRoot(): string {

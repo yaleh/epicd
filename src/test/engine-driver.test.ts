@@ -109,8 +109,8 @@ describe("Driver detect→spawn→merge→advance loop", () => {
 		expect(all().find((t) => t.id === "task-1")?.phase).toBe("done");
 	});
 
-	it("calls complete which advances phase via pipeline data (not hardcoded)", async () => {
-		// Use executionPipeline: ready → decomposing (not done), proving data-driven advance
+	it("adjudicates to done for a primitive task with success result", async () => {
+		// Primitive task (no subtasks) in "ready" → spawn (success) → adjudicate → done
 		const { executionPipeline } = await import("../engine/pipeline.ts");
 		const task: Task = {
 			...makeTask("task-1", "ready"),
@@ -126,7 +126,7 @@ describe("Driver detect→spawn→merge→advance loop", () => {
 		const driver = new Driver([executionPipeline], store, worktree);
 		await driver.tick(all());
 
-		// ready → decomposing (next machine phase, not "done")
-		expect(all().find((t) => t.id === "task-1")?.phase).toBe("decomposing");
+		// primitive + success → adjudicate → done (role-based routing, not linear complete)
+		expect(all().find((t) => t.id === "task-1")?.phase).toBe("done");
 	});
 });

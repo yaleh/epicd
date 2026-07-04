@@ -123,6 +123,10 @@ export function addCapMarker(task: Task, phase: string): Task {
  * - Otherwise → runs `fn`, appends the cap marker via `store.updateTask`,
  *   then returns the result.  The marker is written ONLY after `fn` succeeds,
  *   so a crash mid-execution leaves no false "done" marker.
+ *
+ * The cap marker is added to the CURRENT task version (re-fetched after `fn`)
+ * so that any phase changes made by `fn` (e.g. ready → done) are preserved
+ * rather than overwritten by a stale task snapshot.
  */
 export async function withCapGuard<T>(
 	task: Task,
@@ -134,6 +138,8 @@ export async function withCapGuard<T>(
 		return undefined;
 	}
 	const result = await fn();
-	await store.updateTask(addCapMarker(task, phase));
+	// Re-read the task so any phase changes made by fn() are not overwritten.
+	const current = (await store.getTask(task.id)) ?? task;
+	await store.updateTask(addCapMarker(current, phase));
 	return result;
 }
