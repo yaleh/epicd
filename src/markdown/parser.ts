@@ -205,8 +205,7 @@ export function parseTask(content: string): Task {
 		ordinal: frontmatter.ordinal !== undefined ? Number(frontmatter.ordinal) : undefined,
 		onStatusChange: frontmatter.onStatusChange ? String(frontmatter.onStatusChange) : undefined,
 		pipeline_id: frontmatter.pipeline_id ? String(frontmatter.pipeline_id) : undefined,
-		state: frontmatter.state ? String(frontmatter.state) : undefined,
-		role: frontmatter.role ? String(frontmatter.role) : undefined,
+		phase: frontmatter.phase ? String(frontmatter.phase) : undefined,
 		parent_id: frontmatter.parent_id ? String(frontmatter.parent_id) : undefined,
 		dod: Array.isArray(frontmatter.dod)
 			? (frontmatter.dod as DoDItem[]).map((item) => ({ text: String(item.text), checked: Boolean(item.checked) }))
