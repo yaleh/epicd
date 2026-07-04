@@ -4544,6 +4544,59 @@ engineCmd
 		}
 	});
 
+engineCmd
+	.command("stage2-gate")
+	.description("run the Stage 2 fixpoint gate against a rebuilt repo tree (suite-green AND drive-fixpoint)")
+	.requiredOption("--rebuilt <path>", "absolute path to the rebuilt repo tree")
+	.option("--record <file>", "path to append the JSON gate record (default: docs/research/gcl-events.jsonl)")
+	.action(async (options) => {
+		try {
+			const { runStage2Fixpoint, recordStage2Gate } = await import("./harness/stage2-gate.ts");
+			const { MVD_SOURCE_FILES, MVD_TEST_FILES } = await import("./engine/mvd-manifest.ts");
+			const { appendFileSync, mkdirSync } = await import("node:fs");
+			const { dirname, resolve } = await import("node:path");
+			const { existsSync } = await import("node:fs");
+
+			const rebuiltRepoPath = resolve(options.rebuilt);
+			const cwd = process.cwd();
+
+			// Tracer entry: the engine-tracer-fixpoint test exercises the rebuilt driver
+			const tracerEntry = "./src/test/engine-tracer-fixpoint.test.ts";
+
+			console.log(`Running Stage 2 gate against: ${rebuiltRepoPath}`);
+			const result = await runStage2Fixpoint({
+				rebuiltRepoPath,
+				sourceFiles: MVD_SOURCE_FILES,
+				testFiles: MVD_TEST_FILES.map((f) => `./${f}`),
+				tracerEntry,
+			});
+
+			// Record to log file
+			const recordFile = options.record ?? `${cwd}/docs/research/gcl-events.jsonl`;
+			const dir = dirname(recordFile);
+			if (!existsSync(dir)) {
+				mkdirSync(dir, { recursive: true });
+			}
+			recordStage2Gate(result, rebuiltRepoPath, (line) => {
+				appendFileSync(recordFile, `${line}\n`);
+			});
+
+			if (result.passed) {
+				console.log("Stage 2 gate: PASSED (suite-green ∧ drive-fixpoint)");
+				console.log(`Record appended to: ${recordFile}`);
+			} else {
+				console.error(`Stage 2 gate: FAILED (reason: ${result.reason})`);
+				if (result.failures) {
+					console.error(result.failures.slice(0, 500));
+				}
+				process.exitCode = 1;
+			}
+		} catch (err) {
+			console.error("engine stage2-gate failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
 // Completion command group
 registerCompletionCommand(program);
 
