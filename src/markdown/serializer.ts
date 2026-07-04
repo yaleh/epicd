@@ -1,4 +1,5 @@
 import matter from "gray-matter";
+import { serializeFields } from "../core/field-registry.ts";
 import type { AcceptanceCriterion, Decision, Document, Task } from "../types/index.ts";
 import { normalizeAssignee } from "../utils/assignee.ts";
 import {
@@ -48,32 +49,9 @@ function commentItemsEqual(left: Task["comments"], right: Task["comments"]): boo
 
 export function serializeTask(task: Task): string {
 	normalizeAssignee(task);
-	const frontmatter = {
-		id: task.id,
-		title: task.title,
-		status: task.status,
-		assignee: task.assignee,
-		...(task.reporter && { reporter: task.reporter }),
-		created_date: task.createdDate,
-		...(task.updatedDate && { updated_date: task.updatedDate }),
-		labels: task.labels,
-		...(task.milestone && { milestone: task.milestone }),
-		dependencies: task.dependencies,
-		...(task.references && task.references.length > 0 && { references: task.references }),
-		...(task.documentation && task.documentation.length > 0 && { documentation: task.documentation }),
-		...(task.modifiedFiles && task.modifiedFiles.length > 0 && { modified_files: task.modifiedFiles }),
-		...(task.parentTaskId && { parent_task_id: task.parentTaskId }),
-		...(task.subtasks && task.subtasks.length > 0 && { subtasks: task.subtasks }),
-		...(task.priority && { priority: task.priority }),
-		...(task.ordinal !== undefined && { ordinal: task.ordinal }),
-		...(task.onStatusChange && { onStatusChange: task.onStatusChange }),
-		...(task.pipeline_id && { pipeline_id: task.pipeline_id }),
-		...(task.phase && { phase: task.phase }),
-		...(task.parent_id && { parent_id: task.parent_id }),
-		...(task.dod && task.dod.length > 0 && { dod: task.dod }),
-		...(task.cap && task.cap.length > 0 && { cap: task.cap }),
-		...(task.role && { role: task.role }),
-	};
+	// Frontmatter is built by iterating the single FieldDescriptor registry,
+	// which owns key order and per-field presence-gating.
+	const frontmatter = serializeFields(task);
 
 	let contentBody = task.rawContent ?? "";
 	const rawContent = task.rawContent ?? "";

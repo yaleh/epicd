@@ -1,0 +1,150 @@
+import { describe, expect, it } from "bun:test";
+import { FIELD_DESCRIPTORS, serializeFields } from "../core/field-registry.ts";
+import { parseTask } from "../markdown/parser.ts";
+import { serializeTask } from "../markdown/serializer.ts";
+import { roleOf, type Task } from "../types/index.ts";
+
+/**
+ * A minimal, valid Task with only the required fields populated. Individual
+ * round-trip cases layer one descriptor's field on top of this base.
+ */
+function baseTask(overrides: Partial<Task> = {}): Task {
+	return {
+		id: "task-1",
+		title: "Registry Task",
+		status: "Backlog",
+		assignee: [],
+		createdDate: "2026-07-04",
+		labels: [],
+		dependencies: [],
+		...overrides,
+	};
+}
+
+/**
+ * A representative in-memory value per descriptor, used to prove
+ * parse(serialize(x)) === x round-trips and that presence-gating emits the key.
+ */
+const SAMPLES: Record<string, Partial<Task>> = {
+	id: { id: "task-42" },
+	title: { title: "Some Title" },
+	status: { status: "In Progress" },
+	assignee: { assignee: ["@alice", "@bob"] },
+	reporter: { reporter: "@carol" },
+	created_date: { createdDate: "2026-07-04" },
+	updated_date: { updatedDate: "2026-07-05" },
+	labels: { labels: ["core", "engine"] },
+	milestone: { milestone: "M1" },
+	dependencies: { dependencies: ["task-2", "task-3"] },
+	references: { references: ["docs/adr/ADR-011.md"] },
+	documentation: { documentation: ["https://example.com/doc"] },
+	modified_files: { modifiedFiles: ["src/core/field-registry.ts"] },
+	parent_task_id: { parentTaskId: "task-0" },
+	subtasks: { subtasks: ["task-1.1", "task-1.2"] },
+	priority: { priority: "high" },
+	ordinal: { ordinal: 2000 },
+	onStatusChange: { onStatusChange: "echo hi" },
+	pipeline_id: { pipeline_id: "execution" },
+	phase: { phase: "ready" },
+	parent_id: { parent_id: "task-0" },
+	dod: { dod: [{ text: "tests pass", checked: false }] },
+	cap: { cap: [{ kind: "safety", value: "L2" }] },
+	role: { role: "compound" },
+	refine_log: { refine_log: ["drafted", "reviewed"] },
+};
+
+describe("FieldDescriptor registry", () => {
+	it("registers exactly the expected fields in serialize order", () => {
+		const keys = FIELD_DESCRIPTORS.map((d) => d.yamlKey);
+		expect(keys).toEqual([
+			"id",
+			"title",
+			"status",
+			"assignee",
+			"reporter",
+			"created_date",
+			"updated_date",
+			"labels",
+			"milestone",
+			"dependencies",
+			"references",
+			"documentation",
+			"modified_files",
+			"parent_task_id",
+			"subtasks",
+			"priority",
+			"ordinal",
+			"onStatusChange",
+			"pipeline_id",
+			"phase",
+			"parent_id",
+			"dod",
+			"cap",
+			"role",
+			"refine_log",
+		]);
+	});
+
+	describe("round-trips per descriptor (parse(serialize(x)) === x + presence emitted)", () => {
+		for (const descriptor of FIELD_DESCRIPTORS) {
+			it(`${descriptor.yamlKey}`, () => {
+				const sample = SAMPLES[descriptor.yamlKey];
+				if (!sample) throw new Error(`missing sample for ${descriptor.yamlKey}`);
+				const task = baseTask(sample);
+
+				// Presence: a populated field emits its key on serialize.
+				const frontmatter = serializeFields(task);
+				expect(Object.hasOwn(frontmatter, descriptor.yamlKey)).toBe(true);
+
+				// Round-trip through the real markdown serializer + parser.
+				const reparsed = parseTask(serializeTask(task));
+				const expectedValue = (sample as Record<string, unknown>)[descriptor.tsName];
+				expect((reparsed as unknown as Record<string, unknown>)[descriptor.tsName]).toEqual(expectedValue);
+			});
+		}
+	});
+
+	it("omits empty/absent engine fields on serialize (presence-gating, constraint 1)", () => {
+		// Empty-string and undefined engine fields must NOT emit a key.
+		const task = baseTask({ pipeline_id: "", phase: undefined, parent_id: "", dod: [], cap: [], refine_log: [] });
+		const frontmatter = serializeFields(task);
+		expect(Object.hasOwn(frontmatter, "pipeline_id")).toBe(false);
+		expect(Object.hasOwn(frontmatter, "phase")).toBe(false);
+		expect(Object.hasOwn(frontmatter, "parent_id")).toBe(false);
+		expect(Object.hasOwn(frontmatter, "dod")).toBe(false);
+		expect(Object.hasOwn(frontmatter, "cap")).toBe(false);
+		expect(Object.hasOwn(frontmatter, "role")).toBe(false);
+		expect(Object.hasOwn(frontmatter, "refine_log")).toBe(false);
+
+		const serialized = serializeTask(task);
+		expect(serialized).not.toContain("pipeline_id");
+		expect(serialized).not.toContain("phase:");
+		expect(serialized).not.toContain("parent_id:");
+		expect(serialized).not.toContain("\ndod:");
+		expect(serialized).not.toContain("\ncap:");
+		expect(serialized).not.toContain("refine_log");
+	});
+
+	it("refine_log round-trips and is absent by default", () => {
+		expect(Object.hasOwn(serializeFields(baseTask()), "refine_log")).toBe(false);
+
+		const task = baseTask({ refine_log: ["step-1", "step-2"] });
+		const reparsed = parseTask(serializeTask(task));
+		expect(reparsed.refine_log).toEqual(["step-1", "step-2"]);
+	});
+
+	describe("roleOf derivation (leaf vs compound)", () => {
+		it("derives primitive for a leaf (no children, no stored role)", () => {
+			expect(roleOf(baseTask())).toBe("primitive");
+		});
+
+		it("derives compound when the task has children", () => {
+			expect(roleOf(baseTask({ subtasks: ["task-1.1"] }))).toBe("compound");
+			expect(roleOf(baseTask(), ["task-1.1"])).toBe("compound");
+		});
+
+		it("stored role wins over tree derivation", () => {
+			expect(roleOf(baseTask({ role: "primitive", subtasks: ["task-1.1"] }))).toBe("primitive");
+		});
+	});
+});

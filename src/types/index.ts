@@ -97,6 +97,11 @@ export interface Task {
 	 * both the stored value and the derived value.
 	 */
 	role?: "compound" | "primitive";
+	/**
+	 * Append-only log of authoring/refine steps (BACK-601 A). Net-new engine
+	 * field; absent by default and only written when non-empty.
+	 */
+	refine_log?: string[];
 }
 
 export interface MilestoneBucket {
@@ -288,6 +293,8 @@ export interface SearchFilters {
 	assignee?: string | string[];
 	labels?: string | string[];
 	modifiedFiles?: string | string[];
+	pipeline_id?: string | string[];
+	phase?: string | string[];
 }
 
 export interface SearchOptions {

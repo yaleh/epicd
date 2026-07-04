@@ -1,14 +1,7 @@
 import matter from "gray-matter";
-import type {
-	AcceptanceCriterion,
-	CapMarker,
-	Decision,
-	Document,
-	DoDItem,
-	Milestone,
-	ParsedMarkdown,
-	Task,
-} from "../types/index.ts";
+import { parseFields } from "../core/field-registry.ts";
+import type { AcceptanceCriterion, Decision, Document, Milestone, ParsedMarkdown, Task } from "../types/index.ts";
+import { normalizeDate } from "./date.ts";
 import {
 	AcceptanceCriteriaManager,
 	CommentsManager,
@@ -75,65 +68,6 @@ function preprocessFrontmatter(frontmatter: string): string {
 		.join("\n"); // Always join with \n for consistent YAML parsing
 }
 
-function normalizeDate(value: unknown): string {
-	if (!value) return "";
-	if (value instanceof Date) {
-		// Check if this Date object came from a date-only string (time is midnight UTC)
-		const hours = value.getUTCHours();
-		const minutes = value.getUTCMinutes();
-		const seconds = value.getUTCSeconds();
-
-		if (hours === 0 && minutes === 0 && seconds === 0) {
-			// This was likely a date-only value, preserve it as date-only
-			return value.toISOString().slice(0, 10);
-		}
-		// This has actual time information, preserve it
-		return value.toISOString().slice(0, 16).replace("T", " ");
-	}
-	const str = String(value)
-		.trim()
-		.replace(/^['"]|['"]$/g, "");
-	if (!str) return "";
-
-	// Check for datetime format first (YYYY-MM-DD HH:mm)
-	let match: RegExpMatchArray | null = str.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/);
-	if (match) {
-		// Already in correct format, return as-is
-		return str;
-	}
-
-	// Check for ISO datetime format (YYYY-MM-DDTHH:mm)
-	match = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
-	if (match) {
-		// Convert T separator to space
-		return str.replace("T", " ");
-	}
-
-	// Check for date-only format (YYYY-MM-DD) - backward compatibility
-	match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-	if (match) {
-		return `${match[1]}-${match[2]}-${match[3]}`;
-	}
-
-	// Legacy date formats (date-only for backward compatibility)
-	match = str.match(/^(\d{2})-(\d{2})-(\d{2})$/);
-	if (match) {
-		const [day, month, year] = match.slice(1);
-		return `20${year}-${month}-${day}`;
-	}
-	match = str.match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
-	if (match) {
-		const [day, month, year] = match.slice(1);
-		return `20${year}-${month}-${day}`;
-	}
-	match = str.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
-	if (match) {
-		const [day, month, year] = match.slice(1);
-		return `20${year}-${month}-${day}`;
-	}
-	return str;
-}
-
 export function parseMarkdown(content: string): ParsedMarkdown {
 	// Updated regex to handle both Windows (\r\n) and Unix (\n) line endings
 	const fmRegex = /^---\r?\n([\s\S]*?)\r?\n---/;
@@ -156,11 +90,8 @@ export function parseMarkdown(content: string): ParsedMarkdown {
 export function parseTask(content: string): Task {
 	const { frontmatter, content: rawContent } = parseMarkdown(content);
 
-	// Validate priority field
-	const priority = frontmatter.priority ? String(frontmatter.priority).toLowerCase() : undefined;
-	const validPriorities = ["high", "medium", "low"];
-	const validatedPriority =
-		priority && validPriorities.includes(priority) ? (priority as "high" | "medium" | "low") : undefined;
+	// Frontmatter fields are driven by the single FieldDescriptor registry.
+	const fields = parseFields(frontmatter);
 
 	// Parse structured acceptance criteria (checked/text/index) from all sections
 	const structuredCriteria: AcceptanceCriterion[] = AcceptanceCriteriaManager.parseAllCriteria(rawContent);
@@ -174,23 +105,14 @@ export function parseTask(content: string): Task {
 	const finalSummarySection = extractStructuredSection(rawContent, STRUCTURED_SECTION_KEYS.finalSummary) || undefined;
 
 	return {
-		id: String(frontmatter.id || ""),
-		title: String(frontmatter.title || ""),
-		status: String(frontmatter.status || ""),
-		assignee: Array.isArray(frontmatter.assignee)
-			? frontmatter.assignee.map(String)
-			: frontmatter.assignee
-				? [String(frontmatter.assignee)]
-				: [],
-		reporter: frontmatter.reporter ? String(frontmatter.reporter) : undefined,
-		createdDate: normalizeDate(frontmatter.created_date),
-		updatedDate: frontmatter.updated_date ? normalizeDate(frontmatter.updated_date) : undefined,
-		labels: Array.isArray(frontmatter.labels) ? frontmatter.labels.map(String) : [],
-		milestone: frontmatter.milestone ? String(frontmatter.milestone) : undefined,
-		dependencies: Array.isArray(frontmatter.dependencies) ? frontmatter.dependencies.map(String) : [],
-		references: Array.isArray(frontmatter.references) ? frontmatter.references.map(String) : [],
-		documentation: Array.isArray(frontmatter.documentation) ? frontmatter.documentation.map(String) : [],
-		modifiedFiles: Array.isArray(frontmatter.modified_files) ? frontmatter.modified_files.map(String) : [],
+		...fields,
+		id: fields.id ?? "",
+		title: fields.title ?? "",
+		status: fields.status ?? "",
+		assignee: fields.assignee ?? [],
+		createdDate: fields.createdDate ?? "",
+		labels: fields.labels ?? [],
+		dependencies: fields.dependencies ?? [],
 		rawContent,
 		acceptanceCriteriaItems: structuredCriteria,
 		definitionOfDoneItems: structuredDefinitionOfDone,
@@ -199,22 +121,6 @@ export function parseTask(content: string): Task {
 		implementationNotes: notesSection,
 		comments,
 		finalSummary: finalSummarySection,
-		parentTaskId: frontmatter.parent_task_id ? String(frontmatter.parent_task_id) : undefined,
-		subtasks: Array.isArray(frontmatter.subtasks) ? frontmatter.subtasks.map(String) : undefined,
-		priority: validatedPriority,
-		ordinal: frontmatter.ordinal !== undefined ? Number(frontmatter.ordinal) : undefined,
-		onStatusChange: frontmatter.onStatusChange ? String(frontmatter.onStatusChange) : undefined,
-		pipeline_id: frontmatter.pipeline_id ? String(frontmatter.pipeline_id) : undefined,
-		phase: frontmatter.phase ? String(frontmatter.phase) : undefined,
-		parent_id: frontmatter.parent_id ? String(frontmatter.parent_id) : undefined,
-		dod: Array.isArray(frontmatter.dod)
-			? (frontmatter.dod as DoDItem[]).map((item) => ({ text: String(item.text), checked: Boolean(item.checked) }))
-			: undefined,
-		cap: Array.isArray(frontmatter.cap) ? (frontmatter.cap as CapMarker[]) : undefined,
-		role:
-			frontmatter.role === "compound" || frontmatter.role === "primitive"
-				? (frontmatter.role as "compound" | "primitive")
-				: undefined,
 	};
 }
 

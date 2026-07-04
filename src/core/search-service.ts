@@ -30,6 +30,8 @@ interface TaskSearchEntity extends BaseSearchEntity {
 	readonly idVariants: string[];
 	readonly dependencyIds: string[];
 	readonly modifiedFiles: string[];
+	readonly pipelineIdLower?: string;
+	readonly phaseLower?: string;
 }
 
 interface DocumentSearchEntity extends BaseSearchEntity {
@@ -50,6 +52,8 @@ type NormalizedFilters = {
 	assignees?: string[];
 	labels?: string[];
 	modifiedFiles?: string[];
+	pipelineIds?: string[];
+	phases?: string[];
 };
 
 // Regex pattern to match any prefix (letters followed by dash)
@@ -232,6 +236,8 @@ export class SearchService {
 			idVariants: createTaskIdVariants(task.id),
 			dependencyIds: (task.dependencies ?? []).flatMap((dependency) => createTaskIdVariants(dependency)),
 			modifiedFiles: task.modifiedFiles ?? [],
+			pipelineIdLower: task.pipeline_id ? task.pipeline_id.toLowerCase() : undefined,
+			phaseLower: task.phase ? task.phase.toLowerCase() : undefined,
 		}));
 
 		this.documents = documents.map((document) => ({
@@ -351,6 +357,14 @@ export class SearchService {
 		if (filters.modifiedFiles && filters.modifiedFiles.length > 0) {
 			filtered = filtered.filter((task) => matchesModifiedFileFilters(task.modifiedFiles, filters.modifiedFiles));
 		}
+		if (filters.pipelineIds && filters.pipelineIds.length > 0) {
+			const allowed = new Set(filters.pipelineIds);
+			filtered = filtered.filter((task) => Boolean(task.pipelineIdLower) && allowed.has(task.pipelineIdLower ?? ""));
+		}
+		if (filters.phases && filters.phases.length > 0) {
+			const allowed = new Set(filters.phases);
+			filtered = filtered.filter((task) => Boolean(task.phaseLower) && allowed.has(task.phaseLower ?? ""));
+		}
 		return filtered;
 	}
 
@@ -393,6 +407,18 @@ export class SearchService {
 			return false;
 		}
 
+		if (filters.pipelineIds && filters.pipelineIds.length > 0) {
+			if (!task.pipelineIdLower || !filters.pipelineIds.includes(task.pipelineIdLower)) {
+				return false;
+			}
+		}
+
+		if (filters.phases && filters.phases.length > 0) {
+			if (!task.phaseLower || !filters.phases.includes(task.phaseLower)) {
+				return false;
+			}
+		}
+
 		return true;
 	}
 
@@ -406,6 +432,8 @@ export class SearchService {
 		const assignees = this.normalizeStringArray(filters.assignee);
 		const labels = this.normalizeLabelsArray(filters.labels);
 		const modifiedFiles = normalizeModifiedFileFilters(filters.modifiedFiles);
+		const pipelineIds = this.normalizeStringArray(filters.pipeline_id);
+		const phases = this.normalizeStringArray(filters.phase);
 
 		return {
 			statuses,
@@ -413,6 +441,8 @@ export class SearchService {
 			assignees,
 			labels,
 			modifiedFiles,
+			pipelineIds,
+			phases,
 		};
 	}
 
