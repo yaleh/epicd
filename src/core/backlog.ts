@@ -1064,6 +1064,10 @@ export class Core {
 				...(typeof input.finalSummary === "string" && { finalSummary: input.finalSummary }),
 				...(acceptanceCriteriaItems.length > 0 && { acceptanceCriteriaItems }),
 				...(definitionOfDoneItems && definitionOfDoneItems.length > 0 && { definitionOfDoneItems }),
+				// Engine pipeline fields — written directly into frontmatter so engine can see the task
+				...(typeof input.pipeline_id === "string" && { pipeline_id: input.pipeline_id }),
+				...(typeof input.phase === "string" && { phase: input.phase }),
+				...(typeof input.parent_id === "string" && { parent_id: input.parent_id }),
 			};
 
 			const filePath = await this.writePreparedTask(task, isDraft);
