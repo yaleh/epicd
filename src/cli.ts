@@ -4494,26 +4494,22 @@ const engineCmd = program.command("engine").description("execution engine comman
 engineCmd
 	.command("watch")
 	.description(
-		"emit rendered instruction blobs for actionable board tasks (data-derived; never spawns an Agent/subprocess)",
+		"emit one machine line ('basic-ready:<id>') per actionable board task (data-derived; never spawns an Agent/subprocess). Rendering is the scan-loop.js daemon's job.",
 	)
 	.option("--once", "scan once and exit (default when --interval is not given)")
 	.option("--interval <ms>", "poll interval in milliseconds for repeated scanning")
-	.option("--templates-dir <path>", "directory containing event templates (default: .codex/skills/epicd-run/templates)")
 	.action(async (options) => {
 		try {
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
-			const { scanForEvents, formatEventOutput } = await import("./engine/watch.ts");
-			const { join } = await import("node:path");
+			const { scanReadyLines } = await import("./engine/watch.ts");
 
 			const core = new Core(cwd);
-			const templatesDir = options.templatesDir ?? join(cwd, ".codex", "skills", "epicd-run", "templates");
 
 			const runOnce = async () => {
 				const tasks = await core.queryTasks({});
-				const events = scanForEvents(tasks, { templatesDir });
-				for (const event of events) {
-					process.stdout.write(formatEventOutput(event));
+				for (const line of scanReadyLines(tasks)) {
+					process.stdout.write(`${line}\n`);
 				}
 			};
 

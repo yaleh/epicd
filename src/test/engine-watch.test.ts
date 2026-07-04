@@ -1,22 +1,20 @@
 /**
- * Phase B — `engine watch` data-derived emitter tests (BACK-605.8).
+ * `engine watch` scan-authority tests (BACK-614; introduced BACK-605.8 Phase B).
  *
  * Asserts:
- *   1. A primitive task in execution/ready is emitted as a rendered blob
- *      containing the task id, followed by the `---EVENT---` delimiter.
+ *   1. A primitive task in execution/ready is emitted as a single machine line
+ *      "basic-ready:<id>" — NOT a rendered template blob, NOT `---EVENT---`
+ *      (rendering is the scan-loop.js daemon's job; one renderer, not two).
  *   2. A task in a non-ready phase is NOT emitted.
  *   3. A task in a non-execution pipeline is NOT emitted.
- *   4. A compound (non-actionable-for-basic-ready) task in "decomposing"
- *      phase is NOT emitted as a basic-ready event.
- *   5. The watch path never calls a spawn primitive — the architectural
- *      boundary this task restores (engine core never spawns Agents).
+ *   4. A task with no pipeline/phase set at all is NOT emitted.
+ *   5. scanReadyLines is a pure board read — it never spawns anything.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { rm } from "node:fs/promises";
 import { Core } from "../core/backlog.ts";
-import { EVENT_DELIMITER, formatEventOutput, scanForEvents } from "../engine/watch.ts";
+import { scanReadyLines } from "../engine/watch.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
@@ -27,65 +25,54 @@ async function createBoardTask(core: Core, title: string, overrides: Partial<Tas
 	return withPipeline;
 }
 
-describe("scanForEvents", () => {
+describe("scanReadyLines", () => {
 	let projectRoot: string;
 	let core: Core;
-	let templatesDir: string;
 
 	beforeEach(async () => {
 		projectRoot = createUniqueTestDir("engine-watch");
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-watch-test");
-		templatesDir = createUniqueTestDir("engine-watch-templates");
-		await mkdir(templatesDir, { recursive: true });
-		await writeFile(join(templatesDir, "basic-ready.md"), "# basic-ready\nTask: __TASK_ID__ — __TASK_TITLE__\n");
 	});
 
 	afterEach(async () => {
 		await rm(projectRoot, { recursive: true, force: true });
-		await rm(templatesDir, { recursive: true, force: true });
 	});
 
-	it("emits a rendered blob containing the task id for an actionable execution/ready task", async () => {
+	it("emits a single 'basic-ready:<id>' machine line for an actionable execution/ready task", async () => {
 		const task = await createBoardTask(core, "Actionable task");
 		const tasks = await core.queryTasks({});
 
-		const events = scanForEvents(tasks, { templatesDir });
+		const lines = scanReadyLines(tasks);
 
-		const match = events.find((e) => e.task.id === task.id);
-		expect(match).toBeDefined();
-		expect(match?.blob).toContain(task.id);
-		expect(match?.blob).toContain("Actionable task");
-
-		const output = formatEventOutput(match!);
-		expect(output).toContain(EVENT_DELIMITER);
+		expect(lines).toContain(`basic-ready:${task.id}`);
+		// It is a machine line, NOT a rendered template blob or transport delimiter.
+		for (const line of lines) {
+			expect(line).not.toContain("---EVENT---");
+			expect(line).not.toContain("__TASK_ID__");
+			expect(line).not.toContain("Actionable task"); // no title rendering here
+		}
 	});
 
 	it("does not emit a task in a non-ready phase", async () => {
 		const task = await createBoardTask(core, "Awaiting task", { phase: "awaiting-children" });
 		const tasks = await core.queryTasks({});
 
-		const events = scanForEvents(tasks, { templatesDir });
-
-		expect(events.find((e) => e.task.id === task.id)).toBeUndefined();
+		expect(scanReadyLines(tasks)).not.toContain(`basic-ready:${task.id}`);
 	});
 
 	it("does not emit a task in a non-execution pipeline", async () => {
 		const task = await createBoardTask(core, "Other pipeline task", { pipeline_id: "authoring" });
 		const tasks = await core.queryTasks({});
 
-		const events = scanForEvents(tasks, { templatesDir });
-
-		expect(events.find((e) => e.task.id === task.id)).toBeUndefined();
+		expect(scanReadyLines(tasks)).not.toContain(`basic-ready:${task.id}`);
 	});
 
 	it("does not emit a task with no pipeline/phase set at all", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Untracked task", status: "To Do" }, false);
 		const tasks = await core.queryTasks({});
 
-		const events = scanForEvents(tasks, { templatesDir });
-
-		expect(events.find((e) => e.task.id === task.id)).toBeUndefined();
+		expect(scanReadyLines(tasks)).not.toContain(`basic-ready:${task.id}`);
 	});
 
 	it("never calls a spawn primitive — architectural boundary", async () => {
@@ -98,27 +85,21 @@ describe("scanForEvents", () => {
 			return { success: true };
 		};
 
-		const events = scanForEvents(tasks, { templatesDir });
-		// Sanity: events were produced, yet nothing invoked the spy spawn primitive.
-		expect(events.length).toBeGreaterThan(0);
+		const lines = scanReadyLines(tasks);
+		// Sanity: a line was produced, yet nothing invoked the spy spawn primitive.
+		expect(lines.length).toBeGreaterThan(0);
 		expect(spawnCalls).toBe(0);
-		// Reference the spy so it's not considered unused if scanForEvents ever
-		// takes an injectable spawn (it must not — this assertion pins that down).
 		void spySpawnPrimitive;
 	});
 
-	it("emits multiple actionable tasks each with their own delimiter", async () => {
+	it("emits one line per actionable task", async () => {
 		const t1 = await createBoardTask(core, "Task one");
 		const t2 = await createBoardTask(core, "Task two");
 		const tasks = await core.queryTasks({});
 
-		const events = scanForEvents(tasks, { templatesDir });
+		const lines = scanReadyLines(tasks);
 
-		const ids = events.map((e) => e.task.id);
-		expect(ids).toContain(t1.id);
-		expect(ids).toContain(t2.id);
-		for (const event of events) {
-			expect(formatEventOutput(event)).toContain(EVENT_DELIMITER);
-		}
+		expect(lines).toContain(`basic-ready:${t1.id}`);
+		expect(lines).toContain(`basic-ready:${t2.id}`);
 	});
 });

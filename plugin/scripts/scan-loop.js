@@ -6,8 +6,8 @@
  * event channels to stdout:
  *
  *
- *   basic-ready:TASK-N       actionable (pipeline_id/phase-derived, via `bun run cli engine
- *                            watch --once`, BACK-605.8) → worker executes task
+ *   basic-ready:TASK-N       actionable (pipeline_id/phase-derived, via `engine watch
+ *                            --once`, BACK-614) → worker executes task
  *   epic-eval-due:TASK-N     kind:epic at "Epic: Awaiting Children" AND ALL children in a
  *                            terminal state (Basic: Done or Basic: Needs Human).
  *                            Single whole-dir scan replaces per-file isChildDone; suppresses
@@ -22,13 +22,13 @@
  *   epic-draft:TASK-N        status "Epic: Draft"   (draft mode only) → worker claims
  *                            (→ "Epic: Refining") then inline-calls epic-to-backlog.
  *
- * NOTE (BACK-605.8 Phase C): the `basic-ready` channel's board-scanning predicate no
- * longer hardcodes a status-string literal. It shells out to the epicd engine's own
- * data-derived scanner (`bun run cli engine watch --once`, which reuses
- * Interpreter.scan over (pipeline_id, phase) — see src/engine/watch.ts) and parses the
- * emitted task ids out of its rendered `---EVENT---`-delimited blobs (engineWatchOnce
- * below). `epic-ready`/draft/eval channels are unaffected by this task (out of scope;
- * still baime's file-predicate scan, retained for reference/back-compat).
+ * NOTE (BACK-614): the `basic-ready` channel's scan authority is the epicd engine.
+ * `engine watch --once` reuses Interpreter.scan over (pipeline_id, phase) — see
+ * src/engine/watch.ts — and emits one minimal machine line "basic-ready:<id>" per
+ * actionable task; engineWatchOnce (below) reads those lines directly. Template
+ * rendering / the `---EVENT---` transport stays HERE (renderEvent) — one renderer, not
+ * two. `epic-*`/draft/eval channels are out of scope (still baime's file-predicate scan,
+ * reference-only).
  *
  * CLI flag --mode <ready|draft> selects which channel GROUP this scanner instance polls
  * (MODE_CHANNELS below). Default 'ready' — identical channel set/behavior to the pre-mode
@@ -365,34 +365,34 @@ function readTaskMeta(filepath) {
     const fm = m[1];
     const statusMatch = fm.match(/^status:\s*(.+)$/m);
     const status = statusMatch ? statusMatch[1].trim().replace(/['"]/g, '').toLowerCase() : null;
-    const parentMatch = content.match(/^parent_task_id:\s*(.+)$/m);
-    const parent_task_id = parentMatch ? parentMatch[1].trim().toUpperCase() : null;
-    return { status, parent_task_id };
+    // epicd frontmatter uses `parent_id` (baime used `parent_task_id`).
+    const parentMatch = content.match(/^parent_id:\s*(.+)$/m);
+    const parent_id = parentMatch ? parentMatch[1].trim().toUpperCase() : null;
+    return { status, parent_id };
   } catch { /* unreadable */ }
   return null;
 }
 
-// engineWatchOnce: BACK-605.8 Phase C board-scan source for the basic-ready channel.
-// Shells out to the epicd engine's own data-derived scanner (`bun run cli engine watch
-// --once`, which reuses Interpreter.scan over (pipeline_id, phase) — src/engine/watch.ts)
-// instead of matching a hardcoded status-string literal against each task file. The
-// engine renders one `---EVENT---`-delimited blob per actionable task, each blob
-// containing the task's id (from renderEvent's __TASK_ID__ substitution); this parses
-// those ids back out. Best-effort: any spawn/parse failure degrades to an empty Set so
-// a transient CLI/engine hiccup never crashes the scanner tick.
+// engineWatchOnce: board-scan source for the basic-ready channel (BACK-614).
+// The scan authority is the epicd engine itself: `engine watch --once` reuses
+// Interpreter.scan over (pipeline_id, phase) — src/engine/watch.ts — and emits one
+// minimal machine line "basic-ready:<id>" per actionable task. This reads those
+// lines directly (no template rendering, no blob re-parse — this daemon is the one
+// renderer). Invoked via `bun src/cli.ts` (build-free entry, no per-tick CSS rebuild).
+// Best-effort: any spawn failure degrades to an empty Set so a transient CLI/engine
+// hiccup never crashes the scanner tick.
 function engineWatchOnce(repoRoot) {
   const out = new Set();
   let stdout;
   try {
-    stdout = execSync('bun run cli engine watch --once', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
+    stdout = execSync('bun src/cli.ts engine watch --once', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
       .toString();
   } catch (_) {
     return out;
   }
-  const blobs = stdout.split('---EVENT---');
-  for (const blob of blobs) {
-    const m = blob.match(/\b([A-Za-z][A-Za-z0-9]*-\d+(?:\.\d+)*)\b/);
-    if (m) out.add(m[1].toUpperCase());
+  for (const line of stdout.split('\n')) {
+    const m = line.match(/^basic-ready:(\S+)$/);
+    if (m) out.add(m[1]);
   }
   return out;
 }
@@ -449,8 +449,8 @@ function scanEvalDueEpics(tasksDir) {
     if (!meta) continue;
     if (meta.status && meta.status.startsWith('epic:')) {
       epics[id] = meta.status;
-    } else if (meta.status && meta.status.startsWith('basic:') && meta.parent_task_id) {
-      const parentId = meta.parent_task_id;
+    } else if (meta.status && meta.status.startsWith('basic:') && meta.parent_id) {
+      const parentId = meta.parent_id;
       if (!childrenByParent[parentId]) childrenByParent[parentId] = [];
       childrenByParent[parentId].push(meta.status);
     }
