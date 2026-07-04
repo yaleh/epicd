@@ -15,6 +15,13 @@ If you can simplify the code, do it.
 - Keep behavior consistent across similar stores (defaults, parse errors, locking). Divergence requires a clear reason.
 - Don't add new exported helpers just to compute a path; derive from existing paths or add one shared helper only when reused.
 
+## Task decomposition granularity
+
+- A **Basic task ≈ one reviewable PR** — sized up to ~2000 lines of change, delivered through one worktree + one merge + one gate cycle.
+- Structure a task's work **inside its plan** using two levels: **Phase** (a recoverable checkpoint) → **Stage** (informal sub-step). A ~2000-line change is organized as a few Phases with a few Stages each — not as many separate tasks.
+- **Decompose an epic by deliverable, not by concern/file.** Do NOT create a separate task per field, per filter, or per small edit — fold related changes into one PR-sized Basic task. Over-decomposition turns coordination overhead (gates, worktrees, merges, reviews) into the dominant cost.
+- This applies to both human authoring and the engine's future dogfood decompose.
+
 
 ## Commands
 

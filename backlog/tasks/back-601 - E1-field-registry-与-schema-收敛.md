@@ -4,7 +4,7 @@ title: 'E1: field-registry 与 schema 收敛'
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 03:48'
+updated_date: '2026-07-04 04:27'
 labels:
   - 'kind:epic'
   - 'epicd:E1'
@@ -66,35 +66,29 @@ ordinal: 2000
 <!-- SECTION:PLAN:BEGIN -->
 ## Epic Plan (骨架) — E1 field-registry 与 schema 收敛（数据面）
 
-> 本骨架只钉 child 边界与时序（设计制品，像 E5）。**decompose（真正建 children）留给 M1 后引擎自驱——E1 是 M1 dogfood 的第一个 epic，手工拆会抢掉 dogfood。** 设计锚点：proposal `docs/proposals/2026-07-04-multi-lane-issue-list.md` §2.3；state 图 `docs/uml/workitem-lifecycle-state.puml`；class 图 architecture-class-skeleton / presentation-class。
+> 骨架只钉 child 边界与时序（设计制品）。**decompose（建 children）留给 M1 后引擎自驱——E1 是 M1 dogfood 的第一个 epic。** 粒度纪律（AGENTS.md）：**每个 child ≈ 一个可评审 PR（≤~2000 行），内部用 Phase→Stage 两层组织，不按字段/文件切**。设计锚点：proposal `docs/proposals/2026-07-04-multi-lane-issue-list.md` §2.3；`docs/uml/workitem-lifecycle-state.puml`。
 
 ### Background
-E1 把字段处理收敛为**单一 FieldDescriptor 表**，并落四轴终版的**数据面**。**引擎内部 slice（`state`→裸 `phase`、`actionable`→`actor`）已提前抽进 600.7（E0）**，因 600.4 driver 需先建于其上。E1 剩：人面 `status`↔`phase` 全量迁移、field-registry 统一、role 派生、IssueSource（601.1）、就地回填。
+E1 把字段处理收敛为**单一 FieldDescriptor 表**，并落四轴终版的**数据面**。**引擎内部 slice（`state`→裸 `phase`、`actionable`→`actor`）已在 600.7（E0）**。E1 剩：人面 `status`↔`phase` 全量迁移、field-registry 统一、role 派生、IssueSource（601.1）、就地回填。
 
 ### Goals（映射 AC）
-1. 单一 FieldDescriptor 表驱动 parse/serialize/validate/MCP schema — AC#1
-2. role 由树位置派生 — AC#2
-3. ADR-005 前提调整为 role 派生/声明 — AC#3
-4. 通用部分可回馈上游 — AC#4
-5. per-task 只存 pipeline_id + 裸 phase；删惰性 state；status = label(role,phase) 派生 — AC#5
-6. turn 不存（actor 派生）；search 加 pipeline_id/phase 过滤；Task 加 refine_log；旧 status→phase 迁移 — AC#6
+AC#1 单一 FieldDescriptor 表；AC#2 role 树派生；AC#3 ADR-005 调整；AC#4 可上游；AC#5 存 pipeline_id+裸 phase、删 state、status=label(role,phase) 派生；AC#6 turn 派生、search 加 pipeline_id/phase、Task 加 refine_log、旧 status→phase 迁移。
 
-### Sub-Task Decomposition（child 边界）
-1. **IssueSource（BACK-601.1，已存）** — `list/get/upsert` + LocalIssueSource；存储无关数据源。
-2. **FieldDescriptor registry** — 单表驱动 parse/serialize/validate/MCP schema（AC#1）；role 由树派生（AC#2）；ADR-005 前提调整（AC#3）；通用可上游（AC#4）。取代当前 ≥5 处分散逻辑。
-3. **status↔phase 人面迁移** — `label(role, phase)` 投影；web/CLI/board/回调改读派生 status；收敛现有重复 ~4 处 status 启发式为单一投影（AC#5 人面侧）。**承 600.7 引擎 slice**；**与 E4 分工**：E1 出投影/数据面，E4 用于多车道 UI。
-4. **search 过滤 + refine_log 字段** — NormalizedFilters 加 pipeline_id/phase（AC#6）；Task schema 加 refine_log（内嵌，供 E7）。
-5. **就地回填迁移** — 现有 `backlog/tasks/*.md` 回填 `pipeline_id`/`phase`（role/turn 派生），**幂等、就地、不搬目录、不破坏旧 loop 读取**；须在**单一活动驱动器**下跑（M1 跨机制锁纪律，见本 epic 描述"M1 边界纪律"§1）。
+### Sub-Task Decomposition（PR 粒度，4 children）
+1. **IssueSource（BACK-601.1，已存）** — `list/get/upsert` + LocalIssueSource。
+2. **Schema 收敛（field-registry）** — 一个 PR：单一 `FieldDescriptor` 表驱动 parse/serialize/validate/MCP schema（AC#1）+ role 树派生（AC#2）+ ADR-005 前提调整（AC#3）+ `search-service` NormalizedFilters 加 `pipeline_id`/`phase`（AC#6 过滤）+ Task 加 `refine_log` 字段（AC#6，供 E7）。取代 ≥5 处分散逻辑；通用可上游（AC#4）。
+3. **status↔phase 人面迁移** — 一个 PR：`label(role, phase)` 投影；web/CLI/board/回调改读派生 status；收敛现有 ~4 处 status 启发式为单一投影；端到端删冗余字段（AC#5）。承 600.7 引擎 slice；与 E4 分工（E1 出投影/数据面，E4 消费）。
+4. **就地回填迁移** — 一个 PR：现有 `backlog/tasks/*.md` 回填 `pipeline_id`/`phase`（role/turn 派生），幂等、就地、不搬目录、不破坏旧 loop；须在**单一活动驱动器**下跑（M1 跨机制锁，见描述"M1 边界纪律"§1）。
 
 ### Sequencing
-600.7（E0 引擎 slice）→ child2（FieldDescriptor）→ child3（status↔phase 迁移，需 600.7+child2）‖ child4（search+refine_log）→ child5（回填，最后、单一驱动器下）。child1（IssueSource）可与 child2 并行。
+600.7（E0）→ child2（schema 收敛）→ child3（status↔phase 迁移）→ child4（回填，最后、单一驱动器下）。child1（IssueSource）与 child2 可并行。
 
 ### Constraints
-- 600.7 已做引擎内部 phase/actor；E1 **不重复**引擎 slice，只做人面全量迁移 + registry + 回填。
-- 与 E4 分工：E1 出 `label()` 投影 + 数据面过滤；E4 消费之做多车道 UI/驱动者指示。refine_log 字段 E1 加、E7 用。
-- role 派生自树，仅在需预声明意图时存。
-- 回填绝不在旧 loop 与引擎同时活动时跑（M1 跨机制锁）；不搬家、不换目录（向后兼容超集）。
-- **decompose（建 children）= M1 后引擎自驱的 dogfood 目标**；本骨架仅设计，不建 children。若 pre-M1 需手工拆，须显式承认那不是 dogfood。
+- 每 child = 一个 PR 量级（≤~2000 行，Phase/Stage 组织）；**不为单个字段/过滤/小改另开 task**。
+- 600.7 已做引擎内部 phase/actor；E1 不重复，只做人面全量迁移 + registry + 回填。
+- 与 E4 分工：E1 出 `label()` 投影 + 数据面过滤；E4 消费之。refine_log 字段 E1 加、E7 用。
+- 回填绝不在旧 loop 与引擎同时活动时跑（M1 跨机制锁）；不搬家、不换目录。
+- decompose（建 children）= M1 后引擎自驱 dogfood；本骨架仅设计。
 <!-- SECTION:PLAN:END -->
 
 ## Implementation Notes
