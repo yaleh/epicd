@@ -72,6 +72,7 @@ export function serializeTask(task: Task): string {
 		...(task.parent_id && { parent_id: task.parent_id }),
 		...(task.dod && task.dod.length > 0 && { dod: task.dod }),
 		...(task.cap && task.cap.length > 0 && { cap: task.cap }),
+		...(task.role && { role: task.role }),
 	};
 
 	let contentBody = task.rawContent ?? "";
