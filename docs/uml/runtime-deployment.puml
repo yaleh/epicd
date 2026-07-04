@@ -1,0 +1,71 @@
+@startuml epicd-runtime-deployment
+' epicd — RUNTIME deployment: supervisor · per-pipeline drivers · workers (the "monitor" side).
+' Companion to the class diagrams (which stop at the interface layer). Shows how the
+' Claude Code plugin (E5 skills) + engine run at runtime, and the baime→epicd correspondence.
+' Grounded in: execution-class.puml, authoring-refine-class.puml, human-operations-activity.puml,
+' and baime's scan-loop.js / Monitor / .caps / .active-agents (reference implementation).
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam node {
+  BorderColor #555555
+  BackgroundColor #E8F0FE
+}
+skinparam component {
+  BorderColor #555555
+  BackgroundColor #FFF3E0
+}
+skinparam database {
+  BorderColor #555555
+  BackgroundColor #E1BEE7
+}
+
+title epicd — runtime deployment (supervisor · driver-per-pipeline · workers · spawn seam)
+
+actor "Human\n(gate owner)" as Human
+
+node "Claude Code harness  (Monitor host)" as Harness {
+  component "**supervisor**\n(persistent; singleton reap;\nbaime: Monitor+scan-loop)" as Sup
+  component "**execution driver**\nInterpreter.scan → item-ready\n(baime: --mode ready)" as ExecD
+  component "**authoring driver**\n(RefiningHandler)\n(baime: --mode draft)" as AuthD
+  component "operation skills\npropose · promote · inbox · run · init" as Ops
+  Sup --> ExecD : hosts (1 per pipeline_id)
+  Sup --> AuthD : hosts
+}
+
+node "git worktree  (one per claimed task)" as WT {
+  component "**execute worker**\nfeature/chore Agent →\nengine.complete()" as ExecW
+  component "**refine worker** (RefineStrategy)\n+ **reviewer** (verdict as data)" as RefW
+}
+
+database "IssueSource\nbacklog/*.md\n(pipeline_id + bare phase)" as Src
+component "**Coordinator** (claims)\nsoak: .caps / .active-agents\n→ engine claim registry" as Coord
+database "gate-event log (E2)" as GEL
+
+' --- drivers: scan + dispatch + the SPAWN SEAM ---
+ExecD --> Src : scan (actor(phase)=machine ∧ no claim)
+AuthD --> Src : scan
+ExecD ..> ExecW : item-ready → **worker skill spawns Agent**
+AuthD ..> RefW  : item-ready → spawn
+ExecD --> Coord : claim / release
+AuthD --> Coord : claim / release
+
+' --- worker completion (engine-owned tail; worker may NOT self-write done) ---
+ExecW --> Src : engine.complete() → adjudicate DoD (ENG-8) → merge under lock (ENG-3)
+RefW  --> Src : append refine_log / advance phase (promote→Backlog · escalate→needs-human)
+RefW  ..> GEL : reviewer verdict / gate events
+
+' --- human operations (act only on actor=human rows) ---
+Human --> Ops
+Ops --> Src : propose (→Draft) · promote (Backlog→Ready)
+Ops --> GEL : inbox (gate-review: approve/reject/escalate)
+Ops ..> Sup : run (arm supervisor+drivers) · init (bootstrap pipelines[])
+
+note bottom
+  **SPAWN SEAM (ADR-014/017):** the engine (driver) decides *when / which* task to run;
+  the actual Agent-in-worktree spawn is done by the thin harness **worker skill** — engine core never spawns.
+  **baime → epicd:** Monitor+scan-loop (2 hardcoded modes, 7 channels) ⇒ supervisor + **driver-per-pipeline**,
+  channels DERIVED from (pipeline, phase, actor); `.agent-done` sentinel ⇒ **engine.complete()**;
+  `.caps`/`.active-agents` ⇒ **Coordinator**; status-advance-as-claim ⇒ phase stable + separate claim.
+end note
+@enduml

@@ -14,6 +14,7 @@
 > [authoring](authoring-refine-class.puml)（RefineStrategy 纯 step · RefineArtifact 内嵌日志 · reviewer 裁决数据回流）·
 > [execution](execution-class.puml)（对称:ExecutionDriver 按 role/kind 派工 + ENGINE-OWNED 完成尾 complete→adjudicate→merge）·
 > [presentation](presentation-class.puml)（多车道 issue-list;绿=复用 lanes.ts,橙=新增,蓝=后端缺口）。
+> **运行时部署图**：[runtime-deployment](runtime-deployment.puml)（supervisor · 每-pipeline driver · worktree worker · spawn 接缝;baime→epicd 对应）——E5 monitors/skills 的部署视图。
 
 **方法**：典型 RUP 用例建模，**canonical 名以现有代码为准**（implementation-first）；文档/原型别名见漂移表。
 状态：`impl`=已落地接线；`planned`=ADR/proposal 有设计但代码仅测试态或缺失；`deprecated`=弱化（代码保留但从导航隐藏/待退役）；`baime`=当前只存在于 loop-backlog/loop-draft 原型。
