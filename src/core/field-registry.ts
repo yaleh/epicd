@@ -1,5 +1,6 @@
 import { normalizeDate } from "../markdown/date.ts";
 import type { CapMarker, DoDItem, Task } from "../types/index.ts";
+import { roleOf } from "../types/index.ts";
 
 /**
  * A single source of truth for how one Task field maps to/from YAML frontmatter.
@@ -284,4 +285,49 @@ export function serializeFields(task: Task): Record<string, unknown> {
 		frontmatter[descriptor.yamlKey] = descriptor.serialize(task[descriptor.tsName]);
 	}
 	return frontmatter;
+}
+
+/** Title-case a bare kebab-case phase name, e.g. "needs-human" → "Needs Human". */
+function titleCasePhase(phase: string): string {
+	return phase
+		.split("-")
+		.filter(Boolean)
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(" ");
+}
+
+/**
+ * The single `label(role, phase)` projection (BACK-601.4 / AC#5).
+ *
+ * Per-task persists only structural axes `(pipeline_id, bare phase)` and a
+ * derived `role`; the human-facing status *display* string is computed here and
+ * nowhere else. Config declares the vocabulary as `"<Role>: <Phase>"`, so the
+ * projection maps role→prefix (`primitive`⇒`Basic`, `compound`⇒`Epic`) and
+ * resolves the bare kebab phase to the config-declared casing. When config has
+ * no matching entry the phase is title-cased as a fallback.
+ *
+ * `turn`/`role` remain derived and are never persisted (turn = pipeline actor,
+ * generalized in E3; role = tree position via roleOf()).
+ */
+export function label(role: "compound" | "primitive", phase: string, statuses: readonly string[] = []): string {
+	const prefix = role === "compound" ? "Epic" : "Basic";
+	const target = titleCasePhase(phase).toLowerCase();
+	const configured = statuses.find((s) => {
+		const [statusRole, ...rest] = s.split(":");
+		return (statusRole ?? "").trim() === prefix && rest.join(":").trim().toLowerCase() === target;
+	});
+	return configured ?? `${prefix}: ${titleCasePhase(phase)}`;
+}
+
+/**
+ * Resolve a task's display status — the single read the human-facing surfaces
+ * (web/CLI/board/status-callback) should use. When the task carries an engine
+ * `phase`, the display string is *derived* via label(roleOf(task), phase),
+ * converging the implicit status-vs-phase split (the persisted `status` string
+ * can go stale as the engine advances `phase`). Non-engine tasks fall back to
+ * the persisted `status`.
+ */
+export function displayStatus(task: Task, statuses: readonly string[] = []): string {
+	if (task.phase) return label(roleOf(task), task.phase, statuses);
+	return task.status ?? "";
 }

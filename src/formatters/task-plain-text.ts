@@ -1,3 +1,4 @@
+import { displayStatus } from "../core/field-registry.ts";
 import type { Task } from "../types/index.ts";
 import type { ChecklistItem } from "../ui/checklist.ts";
 import { transformCodePathsPlain } from "../ui/code-path.ts";
@@ -6,6 +7,8 @@ import { sortByTaskId } from "../utils/task-sorting.ts";
 
 export type TaskPlainTextOptions = {
 	filePathOverride?: string;
+	/** Configured status vocabulary, so the Status line derives via label(role, phase). */
+	statuses?: string[];
 };
 
 export function formatDateForDisplay(dateStr: string): string {
@@ -81,7 +84,7 @@ export function formatTaskPlainText(task: Task, options: TaskPlainTextOptions = 
 	lines.push(`Task ${task.id} - ${task.title}`);
 	lines.push("=".repeat(50));
 	lines.push("");
-	lines.push(`Status: ${formatStatusWithIcon(task.status)}`);
+	lines.push(`Status: ${formatStatusWithIcon(displayStatus(task, options.statuses))}`);
 
 	const priorityLabel = formatPriority(task.priority);
 	if (priorityLabel) {

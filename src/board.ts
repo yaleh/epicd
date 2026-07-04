@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
+import { displayStatus } from "./core/field-registry.ts";
 import type { Milestone, Task } from "./types/index.ts";
 
 export interface BoardOptions {
@@ -37,7 +38,9 @@ export function buildKanbanStatusGroups(
 	}
 
 	for (const task of tasks) {
-		const raw = (task.status ?? "").trim();
+		// Display read: derive status via label(role, phase) when the engine
+		// carries a phase; fall back to the persisted status otherwise.
+		const raw = displayStatus(task, statuses).trim();
 		if (!raw) continue;
 		const canonical = canonicalByLower.get(raw.toLowerCase()) ?? raw;
 		if (!groupedTasks.has(canonical)) {
