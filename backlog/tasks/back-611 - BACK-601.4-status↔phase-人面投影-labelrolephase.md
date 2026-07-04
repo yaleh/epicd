@@ -1,17 +1,17 @@
 ---
 id: BACK-611
 title: 'BACK-601.4 - status↔phase 人面投影 label(role,phase)'
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee:
   - '@claude-opus'
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 15:50'
+updated_date: '2026-07-04 15:55'
 labels: []
 dependencies:
   - BACK-613
 ordinal: 22000
 pipeline_id: execution
-phase: needs-human
+phase: done
 parent_id: BACK-601
 dod:
   - text: bunx tsc --noEmit
@@ -139,6 +139,8 @@ Plan authored + self-reviewed (authoring pass to fix status↔phase mismatch: ph
 claimed: 2026-07-04T13:19:53Z
 
 SOAK OUTCOME (BACK-605.8 manual-soak, 2026-07-04): implementation is COMPLETE + sound — committed 4bfbc85 in worktree /home/yale/work/epicd-BACK-611 (branch task/BACK-611); independently verified in-worktree: bunx tsc --noEmit PASS, bun test src/test/status-label-projection.test.ts 0 fail. engine complete routed it to needs-human NOT due to the code but due to systemic defect BACK-613 (runDoD executes prose definitionOfDoneItems as sh -c instead of structured executable dod). BLOCKED on BACK-613. Do NOT re-author/re-implement — worktree + commit are preserved; after BACK-613 lands, set BACK-611's structured dod to executable gates and re-run 'bun run cli engine complete BACK-611 --worktree /home/yale/work/epicd-BACK-611' to merge.
+
+COMPLETED (manual finish, dogfooding BACK-613 --dod-gate). Set structured dod gates (bunx tsc --noEmit / bun test src/test/status-label-projection.test.ts / bun run check .) via new --dod-gate flag; merged current main into the stale task/BACK-611 worktree (resolved board-file conflict taking main's authoritative back-611.md); ran engine complete BACK-611 --worktree → gates re-verified in worktree, fast-forward merge under lock, phase→done. label(role,phase)/labelOf/displayStatus projection code now on main. Worktree+branch cleaned. NOTE: this was the manual merge-tail (engine complete), NOT a monitor-driven run — 611 was already implemented pre-BACK-613.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
