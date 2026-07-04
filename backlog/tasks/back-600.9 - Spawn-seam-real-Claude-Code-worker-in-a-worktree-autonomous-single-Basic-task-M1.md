@@ -6,7 +6,7 @@ title: >-
 status: 'Basic: Backlog'
 assignee: []
 created_date: '2026-07-04 04:53'
-updated_date: '2026-07-04 05:21'
+updated_date: '2026-07-04 05:48'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
@@ -48,9 +48,77 @@ ordinal: 1000
 - [ ] #5 single-active-driver + 旧 loop 冷备纪律不破（共享 .merge-lock）
 <!-- AC:END -->
 
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+# Plan: Spawn seam — real Claude Code worker in a worktree
+
+Proposal: 见本任务 Description（Background / Scope / Non-goals / Milestone）。
+Plan review: APPROVED（architect，9 invariants 全过；2 条 advisory 已折入 Phase A/B）。
+
+## Phase A: Spawn seam — 注入式 WorkerRunner（引擎不 spawn）
+### Tests (write first)
+- `src/test/engine-spawn-seam.test.ts`：
+  - 真 `spawn(task)` 经 `safety.withWorktree` 建 worktree，把实现委托给**注入的 `WorkerRunner`**（harness 边界）；fake runner 断言被调用、worktree 建/清理（finally）。
+  - 缺席断言：引擎 core 不含直接 Agent spawn / 子进程 shell-out（守边界，advisory A）。
+### Implementation
+- `src/engine/spawn.ts`：`WorkerRunner` 接口 + `realSpawn(worktreeOps, runner)`：建 worktree → 委托 runner（返回 `CompletionResult`）。引擎 core 只编排，不内嵌 spawn；真 runner（薄 harness skill）在 core 之外，测试用 fake。
+### DoD
+- [ ] `bun test src/test/engine-spawn-seam.test.ts`
+- [ ] `! grep -rq 'Agent(' src/engine`
+- [ ] `! grep -rqE 'child_process|Bun\.spawn' src/engine`
+- [ ] `bunx tsc --noEmit`
+
+## Phase B: engine.complete 作为唯一 worker→引擎握手 → adjudicate → merge
+### Tests (write first)
+- `src/test/engine-spawn-complete.test.ts`：worker 结果**只经** `engine.complete(taskId, result)` 回流；由它触发引擎侧 adjudicate（重跑 DoD，ENG-8）+ 锁下 merge，并置 done/needs-human；worker 不自宣 done。
+### Implementation
+- **统一握手（advisory B）**：把 600.8 driver 内联的 spawn→merge→adjudicate 收敛为**经 `engine.complete`**：`complete.ts` 从"仅推进 phase"扩为"接收 result → adjudicate → 在 `withMergeLock` 下 merge → 写 done/needs-human"；driver 的 primitive 分支调用 `engine.complete(task.id, result)`，**不再内联第二条 adjudicate 路径**（避免竞争握手）。
+### DoD
+- [ ] `bun test src/test/engine-spawn-complete.test.ts`
+- [ ] `bunx tsc --noEmit`
+
+## Phase C: 端到端自治跑通一条 Basic task（M1 自治最小证明）
+### Tests (write first)
+- `src/test/engine-autonomous-e2e.test.ts`：隔离 fixture 板上一条 `Basic: Ready` primitive → run 循环 → runner（test double）实现 → `engine.complete` → adjudicate → merge → `Basic: Done`；single-active-driver guard 生效（旧 loop 活动时拒跑）。
+### Implementation
+- 把 `realSpawn` 接入 600.8 的 run 循环；e2e harness 用 test-double runner 证明闭环；真 runner 记录于 notes 供手工验。
+### DoD
+- [ ] `bun test src/test/engine-autonomous-e2e.test.ts`
+- [ ] `bun run check .`
+
+## Constraints
+- 引擎 core 绝不 spawn Claude Code / 起子进程（seam = 注入的 harness runner）；`! grep -rq 'Agent(' src/engine` + 子进程缺席守住。
+- worker 绝不自宣 done；done/needs-human 由引擎裁决写。
+- **单一握手**：`engine.complete` 是 worker→引擎唯一入口，driver 不留第二条 adjudicate 路径（advisory B）。
+- single-active-driver + 旧 baime loop 冷备（共享 `.merge-lock`）。
+- 多 pipeline 泛化 + 插件打包 = E5；本任务只做单 pipeline 最小真 spawn。
+
+## Acceptance Gate
+- [ ] `bun test`
+- [ ] `bunx tsc --noEmit`
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+feature-to-backlog（/baime:feature-to-backlog，orchestrator=main session）：existing task → ProposalLoop（Description 作 proposal）。Plan review iteration 1: APPROVED（independent architect agent，9 invariants 全过；correctly scoped as Basic）。
+premise-ledger:
+[E] goal coverage: AC#1–#5 各映射到 Phase A/B/C 或 Acceptance Gate
+[C] feasibility: 已核实 safety.withWorktree/withMergeLock、adjudicate/isPrimitive（600.8 新增）、engine.complete 存在；src/engine/spawn.ts 待建
+[H] DoD 充分性基准: 靠背景知识判断
+GCL-self-report: E=7 C=2 H=1
+advisories 已折入：A 强化 spawn 缺席守卫（加子进程）；B engine.complete 作唯一握手，driver 不留第二条 adjudicate 路径。
+适配说明：跳过 baime-plugin 专属 Phase-5 Step D（validate-plugin.sh / plugin/skills DoD），因 600.9 是 epicd 引擎任务（与 600.4–.6 finalise 一致）。
+<!-- SECTION:NOTES:END -->
+
 ## Definition of Done
 <!-- DOD:BEGIN -->
 - [ ] #1 bunx tsc --noEmit passes when TypeScript touched
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
+- [ ] #4 bun test src/test/engine-spawn-seam.test.ts
+- [ ] #5 ! grep -rq 'Agent(' src/engine
+- [ ] #6 bun test src/test/engine-spawn-complete.test.ts
+- [ ] #7 bun test src/test/engine-autonomous-e2e.test.ts
 <!-- DOD:END -->
