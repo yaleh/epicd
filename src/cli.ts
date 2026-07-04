@@ -4502,9 +4502,12 @@ engineCmd
 				"./harness/real-primitives.ts"
 			);
 			const { runDoD } = await import("./harness/dod-runner.ts");
+			const { makeDecomposer } = await import("./harness/decomposer.ts");
 
 			const core = new Core(cwd);
 			const runner = makeWorkerRunner(realSpawnPrimitive);
+			// Compound/epic tasks: worker proposes children as JSON, engine creates them (BACK-605.5).
+			const decompose = makeDecomposer(realSpawnPrimitive, core);
 
 			const worktree = {
 				// dodRunner injected so the engine re-runs DoD in the worktree (ENG-8) — see BACK-605.4.
@@ -4530,6 +4533,7 @@ engineCmd
 			const result = await runEngine(core, worktree, {
 				maxTicks,
 				safety,
+				decompose,
 				onTick: options.verbose ? (t: number) => console.log(`tick ${t}`) : undefined,
 			});
 

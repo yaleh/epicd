@@ -1,117 +1,139 @@
 /**
- * Phase B tests: decomposer worker creates children + advances epic to awaiting-children.
+ * BACK-605.5 — epic-decompose INTEGRATION tests (real Core, real child creation).
  *
- * makeDecomposer(spawnPrimitive) returns a DecomposeHandler that:
- *   1. Calls spawnPrimitive with a brief containing the epic's plan + instructions
- *      to create children with engine fields.
- *   2. On success: advances epic phase → decomposing → awaiting-children.
- *   3. On failure (spawn returns !success): advances epic → needs-human.
+ * These tests exercise the REAL create/scan path, not a fake that bypasses it:
+ *   - the decomposer worker only *proposes* children as JSON (fake spawn returns output);
+ *   - the ENGINE creates them via core.createTaskFromInput with engine fields;
+ *   - children are asserted engine-visible (queryTasks: pipeline_id/phase/parent_id);
+ *   - idempotency is asserted against BOARD TRUTH (parent_id), not task.subtasks.
  *
- * The brief is built without a worktree path (decompose uses repo root, not worktree).
+ * This is the gate that would have caught the earlier DoD-green stub: a fake that
+ * returns success without creating children now fails the child-count assertions.
  */
 
-import { describe, expect, it } from "bun:test";
-import type { CompletionResult, TaskStore } from "../engine/complete.ts";
-import { makeDecomposer } from "../harness/decomposer.ts";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { rm } from "node:fs/promises";
+import { Core } from "../core/backlog.ts";
+import type { CompletionResult } from "../engine/complete.ts";
+import { makeDecomposer, parseProposedChildren } from "../harness/decomposer.ts";
 import type { Task } from "../types/index.ts";
+import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
-function makeEpicTask(id: string, phase: string, overrides: Partial<Task> = {}): Task {
-	return {
-		id,
-		title: `Epic ${id}`,
-		status: "Basic: Ready",
-		pipeline_id: "execution",
-		phase,
-		role: "compound" as const,
-		assignee: [],
-		labels: [],
-		dependencies: [],
-		filePath: `/fake/${id}.md`,
-		createdDate: "2026-07-04",
-		implementationPlan: "## Sub-Task Decomposition\n\n- Child A\n- Child B",
-		...overrides,
-	} as unknown as Task;
+/** Create a compound epic on the real board, enrolled in the execution pipeline. */
+async function createEpic(core: Core, title: string): Promise<Task> {
+	const { task } = await core.createTaskFromInput({ title, status: "To Do" }, false);
+	const epic: Task = { ...task, role: "compound", pipeline_id: "execution", phase: "decomposing" };
+	await core.updateTask(epic, false);
+	return epic;
 }
 
-function makeStore(initial: Task[]): { store: TaskStore; all: () => Task[] } {
-	let tasks = [...initial];
-	return {
-		store: {
-			getTask: async (id) => tasks.find((t) => t.id === id) ?? null,
-			updateTask: async (updated) => {
-				tasks = tasks.map((t) => (t.id === updated.id ? updated : t));
-			},
-		},
-		all: () => tasks,
-	};
-}
+const CHILDREN_JSON = `Some worker preamble...
+[{"title": "Child Alpha", "description": "delivers alpha"}, {"title": "Child Beta", "description": "delivers beta"}]`;
 
-describe("makeDecomposer", () => {
-	it("on spawn success: store.updateTask called with phase awaiting-children", async () => {
-		const epic = makeEpicTask("epic-1", "decomposing");
-		const { store, all } = makeStore([epic]);
+describe("makeDecomposer (integration, real Core)", () => {
+	let projectRoot: string;
+	let core: Core;
 
-		const briefs: string[] = [];
-		const fakeSpawn = async (brief: string, _cwd: string): Promise<CompletionResult> => {
-			briefs.push(brief);
-			return { success: true };
-		};
-
-		const decompose = makeDecomposer(fakeSpawn, store);
-		await decompose(epic, "/repo/root");
-
-		const updated = all().find((t) => t.id === "epic-1");
-		expect(updated?.phase).toBe("awaiting-children");
-		expect(briefs.length).toBe(1);
+	beforeEach(async () => {
+		projectRoot = createUniqueTestDir("engine-decompose");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-decompose-test");
 	});
 
-	it("on spawn failure: store.updateTask called with phase needs-human", async () => {
-		const epic = makeEpicTask("epic-2", "decomposing");
-		const { store, all } = makeStore([epic]);
-
-		const fakeSpawn = async (_brief: string, _cwd: string): Promise<CompletionResult> => {
-			return { success: false, error: "worker crashed" };
-		};
-
-		const decompose = makeDecomposer(fakeSpawn, store);
-		await decompose(epic, "/repo/root");
-
-		const updated = all().find((t) => t.id === "epic-2");
-		expect(updated?.phase).toBe("needs-human");
+	afterEach(async () => {
+		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("brief contains epic id, title, and instruction to create children", async () => {
-		const epic = makeEpicTask("epic-3", "decomposing");
-		const { store } = makeStore([epic]);
+	it("engine creates proposed children with engine fields; epic → awaiting-children", async () => {
+		const epic = await createEpic(core, "Epic to decompose");
 
-		const briefs: string[] = [];
-		const fakeSpawn = async (brief: string, _cwd: string): Promise<CompletionResult> => {
-			briefs.push(brief);
-			return { success: true };
-		};
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
 
-		const decompose = makeDecomposer(fakeSpawn, store);
-		await decompose(epic, "/repo/root");
+		// Children are actually on the board and engine-visible.
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(2);
+		for (const child of children) {
+			expect(child.pipeline_id).toBe("execution");
+			expect(child.phase).toBe("ready");
+			expect(child.parent_id).toBe(epic.id);
+		}
+		expect(children.map((c) => c.title).sort()).toEqual(["Child Alpha", "Child Beta"]);
 
-		const brief = briefs[0];
-		expect(brief).toContain("epic-3");
-		expect(brief).toContain("Epic epic-3");
-		expect(brief).toContain("backlog task create");
+		// Epic advanced to awaiting-children.
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("awaiting-children");
 	});
 
-	it("spawn receives repo root as cwd (no worktree)", async () => {
-		const epic = makeEpicTask("epic-4", "decomposing");
-		const { store } = makeStore([epic]);
+	it("idempotent: re-run does not create duplicate children and does not re-spawn", async () => {
+		const epic = await createEpic(core, "Epic decomposed twice");
 
-		const cwds: string[] = [];
-		const fakeSpawn = async (_brief: string, cwd: string): Promise<CompletionResult> => {
-			cwds.push(cwd);
-			return { success: true };
+		let spawnCalls = 0;
+		const fakeSpawn = async (): Promise<CompletionResult> => {
+			spawnCalls++;
+			return { success: true, output: CHILDREN_JSON };
 		};
+		const decompose = makeDecomposer(fakeSpawn, core);
 
-		const decompose = makeDecomposer(fakeSpawn, store);
-		await decompose(epic, "/my/repo");
+		await decompose(epic, projectRoot);
+		await decompose(epic, projectRoot); // second run must be a no-op for creation
 
-		expect(cwds).toEqual(["/my/repo"]);
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(2); // not 4
+		expect(spawnCalls).toBe(1); // worker not spawned again
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("awaiting-children");
+	});
+
+	it("worker failure → epic needs-human, no children created", async () => {
+		const epic = await createEpic(core, "Epic decompose fails");
+
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: false, error: "worker crashed" });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(0);
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("needs-human");
+	});
+
+	it("no parseable children → epic needs-human, no children created", async () => {
+		const epic = await createEpic(core, "Epic decompose empty");
+
+		const fakeSpawn = async (): Promise<CompletionResult> => ({
+			success: true,
+			output: "I could not find any subtasks.",
+		});
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(0);
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("needs-human");
+	});
+});
+
+describe("parseProposedChildren", () => {
+	it("extracts a JSON array embedded in worker prose", () => {
+		const children = parseProposedChildren(CHILDREN_JSON);
+		expect(children).toEqual([
+			{ title: "Child Alpha", description: "delivers alpha" },
+			{ title: "Child Beta", description: "delivers beta" },
+		]);
+	});
+
+	it("returns [] for missing/invalid output", () => {
+		expect(parseProposedChildren(undefined)).toEqual([]);
+		expect(parseProposedChildren("no json here")).toEqual([]);
+		expect(parseProposedChildren("[not valid json]")).toEqual([]);
+	});
+
+	it("drops entries without a title", () => {
+		expect(parseProposedChildren('[{"title": "Keep"}, {"description": "no title"}, {"title": "  "}]')).toEqual([
+			{ title: "Keep" },
+		]);
 	});
 });

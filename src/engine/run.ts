@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Core } from "../core/backlog.js";
-import { Driver, type SafetyConfig, type WorktreeOps } from "./driver.js";
+import { type DecomposeHandler, Driver, type SafetyConfig, type WorktreeOps } from "./driver.js";
 import { executionPipeline } from "./pipeline.js";
 import { makeBoardStore } from "./store.js";
 
@@ -39,6 +39,8 @@ export interface RunEngineOptions {
 	maxTicks?: number;
 	/** Optional safety config; omit for in-memory/test usage. */
 	safety?: SafetyConfig;
+	/** Optional decompose handler for compound/epic tasks (injected by the harness). */
+	decompose?: DecomposeHandler;
 	/** Called after each tick with the current tick count (optional, useful for logging). */
 	onTick?: (tick: number) => void;
 }
@@ -63,7 +65,7 @@ export async function runEngine(
 	}
 
 	const store = makeBoardStore(core);
-	const driver = new Driver([executionPipeline], store, worktree, options.safety);
+	const driver = new Driver([executionPipeline], store, worktree, options.safety, options.decompose);
 	const { maxTicks = 100, onTick } = options;
 
 	let ticks = 0;
