@@ -40,6 +40,17 @@ For each blob emitted between `---EVENT---` delimiters, follow
 Do not re-claim or re-drive a task once `engine complete` has returned — the task is
 terminal.
 
+## Untestable-in-CI gap (read before assuming this flow is fully covered)
+
+The Agent()-spawn step (session spawning a background Agent to do the actual task work
+in the worktree — step 2 above) is NOT and CANNOT be covered by this CI test — it
+requires a live Claude Code session. This gap is closed only by the manual-soak DoD
+item below, not by automation. `src/test/epicd-run-integration.test.ts` proves every
+other link in the chain (claim + worktree, sentinel wait/hand-off contract, DoD re-run,
+merge-under-lock, phase transition) by simulating the Agent's *observable side effect*
+(a commit + the `.agent-done-<id>` sentinel) directly, but never invokes an Agent tool
+call itself.
+
 ## Cross-mechanism safety
 
 `engine complete`'s merge lock and the legacy loop-backlog scanner (if still running
