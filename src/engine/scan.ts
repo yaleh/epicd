@@ -1,5 +1,5 @@
 /**
- * engine watch — data-derived scan authority (BACK-614; introduced BACK-605.8 Phase B).
+ * engine scan — data-derived scan authority (BACK-615; introduced BACK-605.8 Phase B, renamed from `engine watch`).
  *
  * Reuses Interpreter.scan's actionable-task predicate (pipeline_id/phase →
  * machine-actor state, driven by pipeline data, not a hardcoded status string)

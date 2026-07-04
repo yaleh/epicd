@@ -9,7 +9,7 @@
  *      self-reap, convergeSingleton single-instance enforcement) survives.
  *  (b) .codex/skills/epicd-run/SKILL.md is the baime-minimal form: a SINGLE
  *      persistent Monitor calling scan-loop.js (a script — NOT inline bash),
- *      with no `while true` loop, no `engine watch --once` carving, and no
+ *      with no `while true` loop, no `engine scan --once` carving, and no
  *      retired claude-subprocess wiring.
  *  (c) .codex/skills/epicd-run/templates/basic-ready.md describes the
  *      worktree + background Agent + .agent-done sentinel + engine complete
@@ -31,8 +31,8 @@ describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
 	describe("plugin/scripts/scan-loop.js", () => {
 		const contents = read("plugin/scripts/scan-loop.js");
 
-		it("shells out to `engine watch` as its scan source", () => {
-			expect(contents).toContain("engine watch");
+		it("shells out to `engine scan` as its scan source", () => {
+			expect(contents).toContain("engine scan");
 		});
 
 		it("no longer hardcodes baime's 'basic: ready' status predicate literal", () => {
@@ -82,8 +82,8 @@ describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
 			expect(body).not.toContain("while true");
 		});
 
-		it("does NOT carve `engine watch --once` into the skill (that lives in scan-loop.js)", () => {
-			expect(body).not.toContain("engine watch --once");
+		it("does NOT carve `engine scan --once` into the skill (that lives in scan-loop.js)", () => {
+			expect(body).not.toContain("engine scan --once");
 		});
 
 		it("declares allowed-tools: Monitor", () => {

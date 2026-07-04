@@ -4512,15 +4512,15 @@ program
 // Engine command group
 // Note: the old `engine run` command (which spawned a `claude` CLI subprocess as its
 // WorkerRunner/decompose primitive) has been retired — see BACK-605.8 Phase D. The engine
-// no longer spawns agents itself: `engine watch` (data-derived emit) drives the epicd-run
+// no longer spawns agents itself: `engine scan` (data-derived emit) drives the epicd-run
 // skill, which performs the actual work as an in-session Agent tool call and then calls
 // `engine complete` to adjudicate + merge.
 const engineCmd = program.command("engine").description("execution engine commands");
 
 engineCmd
-	.command("watch")
+	.command("scan")
 	.description(
-		"emit one machine line ('basic-ready:<id>') per actionable board task (data-derived; never spawns an Agent/subprocess). Rendering is the scan-loop.js daemon's job.",
+		"emit one machine line ('basic-ready:<id>') per actionable board task (data-derived; one-shot, never spawns an Agent/subprocess). Rendering is the scan-loop.js daemon's job.",
 	)
 	.option("--once", "scan once and exit (default when --interval is not given)")
 	.option("--interval <ms>", "poll interval in milliseconds for repeated scanning")
@@ -4528,7 +4528,7 @@ engineCmd
 		try {
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
-			const { scanReadyLines } = await import("./engine/watch.ts");
+			const { scanReadyLines } = await import("./engine/scan.ts");
 
 			const core = new Core(cwd);
 
@@ -4555,7 +4555,7 @@ engineCmd
 				await runOnce();
 			}
 		} catch (err) {
-			console.error("engine watch failed:", err instanceof Error ? err.message : String(err));
+			console.error("engine scan failed:", err instanceof Error ? err.message : String(err));
 			process.exitCode = 1;
 		}
 	});

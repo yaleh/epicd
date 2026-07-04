@@ -6,7 +6,7 @@
  * event channels to stdout:
  *
  *
- *   basic-ready:TASK-N       actionable (pipeline_id/phase-derived, via `engine watch
+ *   basic-ready:TASK-N       actionable (pipeline_id/phase-derived, via `engine scan
  *                            --once`, BACK-614) → worker executes task
  *   epic-eval-due:TASK-N     kind:epic at "Epic: Awaiting Children" AND ALL children in a
  *                            terminal state (Basic: Done or Basic: Needs Human).
@@ -23,9 +23,9 @@
  *                            (→ "Epic: Refining") then inline-calls epic-to-backlog.
  *
  * NOTE (BACK-614): the `basic-ready` channel's scan authority is the epicd engine.
- * `engine watch --once` reuses Interpreter.scan over (pipeline_id, phase) — see
- * src/engine/watch.ts — and emits one minimal machine line "basic-ready:<id>" per
- * actionable task; engineWatchOnce (below) reads those lines directly. Template
+ * `engine scan --once` reuses Interpreter.scan over (pipeline_id, phase) — see
+ * src/engine/scan.ts — and emits one minimal machine line "basic-ready:<id>" per
+ * actionable task; engineScanOnce (below) reads those lines directly. Template
  * rendering / the `---EVENT---` transport stays HERE (renderEvent) — one renderer, not
  * two. `epic-*`/draft/eval channels are out of scope (still baime's file-predicate scan,
  * reference-only).
@@ -373,19 +373,19 @@ function readTaskMeta(filepath) {
   return null;
 }
 
-// engineWatchOnce: board-scan source for the basic-ready channel (BACK-614).
-// The scan authority is the epicd engine itself: `engine watch --once` reuses
-// Interpreter.scan over (pipeline_id, phase) — src/engine/watch.ts — and emits one
+// engineScanOnce: board-scan source for the basic-ready channel (BACK-614).
+// The scan authority is the epicd engine itself: `engine scan --once` reuses
+// Interpreter.scan over (pipeline_id, phase) — src/engine/scan.ts — and emits one
 // minimal machine line "basic-ready:<id>" per actionable task. This reads those
 // lines directly (no template rendering, no blob re-parse — this daemon is the one
 // renderer). Invoked via `bun src/cli.ts` (build-free entry, no per-tick CSS rebuild).
 // Best-effort: any spawn failure degrades to an empty Set so a transient CLI/engine
 // hiccup never crashes the scanner tick.
-function engineWatchOnce(repoRoot) {
+function engineScanOnce(repoRoot) {
   const out = new Set();
   let stdout;
   try {
-    stdout = execSync('bun src/cli.ts engine watch --once', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
+    stdout = execSync('bun src/cli.ts engine scan --once', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
       .toString();
   } catch (_) {
     return out;
@@ -567,10 +567,10 @@ function computePulseLines(tasksDir, opts) {
     { prefix: 'stale-in-progress', predicate: f => isInProgress(f) && isReapDue(readClaimedAt(f), Date.now()) },
   ];
   const lines = [];
-  // basic-ready: data-derived via `engine watch --once` (BACK-605.8 Phase C), not a
-  // per-file status-string predicate — see engineWatchOnce.
+  // basic-ready: data-derived via `engine scan --once` (BACK-605.8 Phase C), not a
+  // per-file status-string predicate — see engineScanOnce.
   if (channelAllowed('basic-ready')) {
-    for (const id of [...engineWatchOnce(repoRoot)].sort()) {
+    for (const id of [...engineScanOnce(repoRoot)].sort()) {
       lines.push(`basic-ready:${id}`);
     }
   }
@@ -617,7 +617,7 @@ function computePulseLines(tasksDir, opts) {
 // Export all public functions for use in tests (side-effect-free require)
 module.exports = {
   parseArgs,
-  engineWatchOnce,
+  engineScanOnce,
   isEpicReady,
   isBasicDraft,
   isEpicDraft,

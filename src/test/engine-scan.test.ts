@@ -1,5 +1,5 @@
 /**
- * `engine watch` scan-authority tests (BACK-614; introduced BACK-605.8 Phase B).
+ * `engine scan` scan-authority tests (BACK-614; introduced BACK-605.8 Phase B).
  *
  * Asserts:
  *   1. A primitive task in execution/ready is emitted as a single machine line
@@ -14,7 +14,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { rm } from "node:fs/promises";
 import { Core } from "../core/backlog.ts";
-import { scanReadyLines } from "../engine/watch.ts";
+import { scanReadyLines } from "../engine/scan.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
@@ -30,9 +30,9 @@ describe("scanReadyLines", () => {
 	let core: Core;
 
 	beforeEach(async () => {
-		projectRoot = createUniqueTestDir("engine-watch");
+		projectRoot = createUniqueTestDir("engine-scan");
 		core = new Core(projectRoot);
-		await initializeTestProject(core, "engine-watch-test");
+		await initializeTestProject(core, "engine-scan-test");
 	});
 
 	afterEach(async () => {

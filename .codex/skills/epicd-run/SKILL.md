@@ -11,7 +11,7 @@ contracts:
     target: self
   - not-grep: "while true"
     target: self
-  - not-grep: "engine watch --once"
+  - not-grep: "engine scan --once"
     target: self
   - not-grep: "TaskList"
     target: self
