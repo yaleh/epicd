@@ -1,14 +1,14 @@
 ---
 id: BACK-610
 title: BACK-601.3 - MCP/CLI schema 由 registry 派生 + TaskCreateInput/TaskUpdateInput 对称
-status: 'Basic: Needs Human'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 17:26'
+updated_date: '2026-07-04 17:29'
 labels: []
 dependencies: []
 ordinal: 21000
-phase: needs-human
+phase: done
 dod:
   - text: >-
       bun test src/test/field-registry.test.ts
