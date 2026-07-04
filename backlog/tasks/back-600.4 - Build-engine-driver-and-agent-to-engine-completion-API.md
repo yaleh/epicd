@@ -4,7 +4,7 @@ title: Build engine driver and agent-to-engine completion API
 status: 'Basic: Backlog'
 assignee: []
 created_date: '2026-06-26 08:39'
-updated_date: '2026-06-26 08:53'
+updated_date: '2026-07-04 02:38'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
@@ -91,6 +91,8 @@ GCL-self-report: E=2 C=1 H=1
 cap:propose=approved
 cap:plan=approved
 Parked at Basic: Proposal under epic BACK-600. Promote to Basic: Ready to authorize execution.
+
+2026-07-04 对齐四轴终版（执行前须与 E1/BACK-601 协调）：final 决定删除惰性 state 字段、以裸 phase 为唯一持久进度、role/turn 派生（turn=actor(phase) 归 pipeline-data）。本 task 的“advance state”应理解为“advance phase”；不要在会被 E1 删除的 state 字段上建驱动器。engine.complete 推进的是 phase（查 pipeline-data 的下一 state），仍不硬编码转移；ready/in-progress 合并（靠 claim 分 queued/active），needs-human 是 actor=human 的 phase。若 E1 schema 收敛未先行，本 task 所用字段须由 E1 迁移。
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

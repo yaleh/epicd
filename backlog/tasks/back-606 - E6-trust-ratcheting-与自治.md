@@ -4,7 +4,7 @@ title: 'E6: trust ratcheting 与自治'
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-06-26 08:37'
+updated_date: '2026-07-04 02:38'
 labels:
   - 'kind:epic'
   - 'epicd:E6'
@@ -47,3 +47,9 @@ ordinal: 7000
 - [ ] `promote` gate 以 shadow 模式起步，记录 llm-vs-human 一致率
 - [ ] escape rate 作为 ratchet 度量被采集
 - [ ] shadow→抽样→auto 的棘轮机制可逐 gate 推进
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-07-04 对齐四轴终版：E6 的 gate-actor 棘轮是 E3 PipelineState.actor（结构，machine|human|none）之上的**运行时信任层**，而非改写该结构字段。结构 actor 恒定（promote gate 结构上=human）；trust ratchet 让“有效 actor”随棘轮向 machine（=E6 语境里的 llm）滞动（shadow→抽样→auto），escalation predicate = 回落到结构 human。好处：E3 的 actor 保持稳定且永可 escalate，E6 只叠运行时策略。词汇：E6 的 llm = E3 的 machine actor。UI（E4）的 👤/🤖 指示读的是“有效 actor”（结构 actor 经 trust 调制后）。
+<!-- SECTION:NOTES:END -->
