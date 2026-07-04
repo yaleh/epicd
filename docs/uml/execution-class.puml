@@ -1,0 +1,147 @@
+@startuml epicd-execution-class
+' epicd — Execution CLASS diagram (symmetric to authoring-refine-class.puml).
+' KEY ASYMMETRY (a real finding): authoring is STRATEGY-heavy (policy varies by kind);
+' execution is INVARIANT-heavy — the completion tail (complete→adjudicate→merge) is
+' engine-owned safety machinery (ADR-010/012), NOT pluggable. Only the WORK action
+' is dispatched by role/kind.
+' Today: interpreter.ts + pipeline.ts exist (pure, TEST-ONLY); everything else ABSENT.
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam class {
+  BorderColor #555555
+  BackgroundColor #E8F0FE
+  BackgroundColor<<pure>> #C8E6C9
+  BackgroundColor<<driver>> #FFE0B2
+  BackgroundColor<<worker>> #FFF3E0
+  BackgroundColor<<invariant>> #F8BBD0
+  BackgroundColor<<contract>> #E1BEE7
+}
+skinparam packageStyle rectangle
+
+title epicd — Execution engine (class diagram; symmetric to authoring, invariant-heavy tail)
+
+' ===================== CORE (pure, exists today) =====================
+package "Core state machine  (pure — EXISTS, test-only)" {
+  class Interpreter <<pure>> {
+    +register(p, state, h)
+    +scan(tasks) : ItemReadyEvent[]
+    +dispatch(events, tasks)
+  }
+  class Pipeline <<pure>> {
+    +id : string
+    +states : PipelineState[]
+  }
+  note bottom of Pipeline
+    executionPipeline states become PHASE-only under four-axis:
+    ready+in-progress MERGE; needs-human is NOT a state (→ waiting_on).
+    scan predicate → phase actionable ∧ waiting_on=machine ∧ no live claim.
+  end note
+}
+
+' ===================== DRIVER (impure — dispatches work by role/kind) =====================
+package "Driver  (IMPURE — EXECUTION, ABSENT today)" {
+  class ExecutionDriver <<driver>> {
+    '' Handler registered at (execution, actionable phase)
+    +run(event, task) : void
+    -- per scan --
+    '' 1. claim(task) via Coordinator (stale-safe)
+    '' 2. dispatch by role:
+    ''      primitive → WorkAction (by kind) in a git worktree
+    ''      compound  → Decompose | Evaluate
+    '' 3. hand result to the INVARIANT tail (below)
+  }
+  interface WorkAction <<pure>> {
+    +role = "primitive"
+    +kind : feature | chore
+    +plan(task) : WorkSpec   '' what to run; driver spawns the worker
+  }
+  class FeatureWork <<pure>> {
+    '' implement in worktree; DoD = tests
+  }
+  class ChoreWork <<pure>> {
+    '' run checklist; non-coding
+  }
+  class Decompose <<driver>> {
+    '' compound: create children ⇒ role flips primitive→compound
+  }
+  class Evaluate <<driver>> {
+    '' compound: all children terminal → verdict
+  }
+  WorkAction <|.. FeatureWork
+  WorkAction <|.. ChoreWork
+  ExecutionDriver ..> WorkAction : dispatch (role=primitive)
+  ExecutionDriver ..> Decompose : dispatch (role=compound)
+  ExecutionDriver ..> Evaluate  : dispatch (epic-eval-due)
+}
+
+' ===================== WORKERS (spawned in worktree, Plane 2) =====================
+package "Workers  (spawned in git worktree)" {
+  class FeatureWorker <<worker>> {
+    '' Claude Code: implements; calls engine.complete(result) — MAY NOT self-write done
+  }
+  class ChoreWorker <<worker>> {
+    '' Claude Code: runs checklist; calls engine.complete(result)
+  }
+}
+
+' ===================== INVARIANT TAIL (engine-owned, NOT pluggable) =====================
+package "Completion tail  (ENGINE-OWNED invariants — ADR-010/012)" {
+  class CompleteHandshake <<invariant>> {
+    '' engine.complete(taskId, result): the ONLY done path
+    +complete(taskId, result) : void
+  }
+  class Adjudicator <<invariant>> {
+    '' ENG-8: engine RE-RUNS DoD; worker verdict is NOT trusted
+    +adjudicate(task, result) : Verdict   '' pass | fail
+  }
+  class MergeCoordinator <<invariant>> {
+    '' ENG-3: single merge lock (proper-lockfile); advance state
+    +merge(task) : void
+    +reapSameFieldPeers(field) : void
+  }
+  class SafetyMonitor <<invariant>> {
+    '' stale-in-progress = waiting_on=machine ∧ claim timed out
+    +flagStale() : void   '' informational only; human decides
+  }
+  CompleteHandshake ..> Adjudicator : re-run DoD
+  Adjudicator ..> MergeCoordinator : pass → merge/advance
+}
+
+' ===================== CONTRACTS (shared with authoring) =====================
+interface IssueSource <<contract>> {
+  +list(filter) : Task[]
+  +get(id) : Task
+  +upsert(task) : void
+}
+interface Coordinator <<contract>> {
+  +claims() : Map<taskId, Claim>   '' SAME runtime-fact channel as authoring
+}
+
+ExecutionDriver ..> Coordinator : claim during work
+ExecutionDriver ..> IssueSource : advance phase / waiting_on
+FeatureWorker ..> CompleteHandshake : engine.complete(result)
+ChoreWorker ..> CompleteHandshake : engine.complete(result)
+Adjudicator ..> IssueSource : pass → phase:=done, waiting_on:=none
+Adjudicator ..> IssueSource : fail → waiting_on:=human
+SafetyMonitor ..> Coordinator : read claim age
+
+' ===================== NOTES =====================
+note as N_symmetry
+  **Symmetry with authoring:** scan → dispatch → worker → result flows back
+  as DATA → engine reads & branches. Adjudicator's DoD verdict is to execution
+  what the architect Reviewed verdict is to authoring — both appended data,
+  never a worker's own claim of success.
+end note
+note as N_asymmetry
+  **Asymmetry:** the completion tail (pink) is NOT a strategy — it is fixed
+  safety machinery (ENG-3 merge lock, ENG-8 no self-attested done). Variability
+  lives ONLY in WorkAction (role/kind). Do NOT make the tail pluggable.
+end note
+note as N_today
+  TODAY: Interpreter + executionPipeline are pure & TEST-ONLY (unwired).
+  ExecutionDriver / CompleteHandshake / Adjudicator / MergeCoordinator /
+  SafetyMonitor / Coordinator ALL ABSENT — soak runs on baime scan-loop.
+end note
+
+@enduml

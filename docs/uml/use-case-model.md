@@ -9,9 +9,10 @@
 > 多车道 issue-list 模型见 proposal [`2026-07-04-multi-lane-issue-list.md`](../proposals/2026-07-04-multi-lane-issue-list.md)。
 > **内部架构骨架（class 图输入）**：[`architecture-class-skeleton.puml`](architecture-class-skeleton.puml) —
 > 三平面（核心状态机 / 执行-驱动 / 展示）+ 两只读契约（IssueSource · Coordinator）+ RefineStrategy 注册表。
-> **可落地 class 图（authoring）**：[`authoring-refine-class.puml`](authoring-refine-class.puml) —
-> RefineStrategy（纯 step）· RefineArtifact 追加日志（内嵌 Task.refine_log）· RefineStep 意图词汇 ·
-> RefiningHandler 驱动 · reviewer 裁决数据回流。其余平面的 class 图待后续细化。
+> **可落地 class 图**：
+> [authoring](authoring-refine-class.puml)（RefineStrategy 纯 step · RefineArtifact 内嵌日志 · reviewer 裁决数据回流）·
+> [execution](execution-class.puml)（对称:ExecutionDriver 按 role/kind 派工 + ENGINE-OWNED 完成尾 complete→adjudicate→merge）·
+> [presentation](presentation-class.puml)（多车道 issue-list;绿=复用 lanes.ts,橙=新增,蓝=后端缺口）。
 
 **方法**：典型 RUP 用例建模，**canonical 名以现有代码为准**（implementation-first）；文档/原型别名见漂移表。
 状态：`impl`=已落地接线；`planned`=ADR/proposal 有设计但代码仅测试态或缺失；`deprecated`=弱化（代码保留但从导航隐藏/待退役）；`baime`=当前只存在于 loop-backlog/loop-draft 原型。

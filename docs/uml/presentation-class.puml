@@ -1,0 +1,144 @@
+@startuml epicd-presentation-class
+' epicd — Presentation CLASS diagram: multi-lane issue-list (Plane 3).
+' GROUNDED in existing code (verified): src/web/lib/lanes.ts already has LaneMode/
+' buildLanes/groupTasksByLaneAndStatus; Board.tsx renders collapsible milestone
+' swimlanes; TaskList.tsx is the flat "All Tasks" base; apiClient.search hits
+' GET /api/search; WS broadcasts a single "tasks-updated" string.
+' Green = REUSE existing ; Orange = NEW/CHANGE ; Purple = backend contract.
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam class {
+  BorderColor #555555
+  BackgroundColor #E8F0FE
+  BackgroundColor<<reuse>> #C8E6C9
+  BackgroundColor<<new>> #FFE0B2
+  BackgroundColor<<projection>> #E1BEE7
+  BackgroundColor<<contract>> #B3E5FC
+}
+skinparam packageStyle rectangle
+
+title epicd — Multi-lane issue-list (presentation class diagram; green=reuse, orange=new)
+
+' ===================== EXISTING LANE ENGINE (reuse) =====================
+package "Lane engine  (src/web/lib/lanes.ts — REUSE, extend)" {
+  class LaneMode <<new>> {
+    '' EXISTING: "none" | "milestone"  →  ADD "pipeline"
+  }
+  class LaneDefinition <<reuse>> {
+    +key : string
+    +label : string
+    +milestone? : string
+    +pipeline_id? : string   '' NEW field for pipeline lanes
+  }
+  class LaneFns <<new>> {
+    +buildLanes(mode, tasks, ...) : LaneDefinition[]    '' add pipeline branch
+    +groupTasksByLaneAndStatus(...) : Map<laneKey, Map<column, Task[]>>
+    '' pipeline mode: laneKey = pipeline_id ; column = phase (ordered states)
+  }
+  LaneFns ..> LaneDefinition
+  LaneFns ..> LaneMode
+}
+
+' ===================== VIEW COMPONENTS =====================
+package "Issue-list view  (extends TaskList.tsx base)" {
+  class IssueListView <<new>> {
+    '' the new primary surface; base = TaskList "All Tasks" table
+    +render()
+  }
+  class LaneSwitcher <<new>> {
+    '' [all] [execution] [authoring] … from config pipelines[]
+  }
+  class Swimlane <<reuse>> {
+    '' collapsible section per pipeline lane — REUSE Board.tsx swimlane structure
+    +collapsed : boolean
+  }
+  class TaskRow <<reuse>> {
+    '' base = MilestoneTaskRow / TaskList row
+  }
+  class DriverIndicator <<new>> {
+    '' 👤 / 🤖 / ⏳ / ⚠️ / ✓  from (waiting_on ⋈ claim)
+    +compute(waiting_on, claim) : Icon
+  }
+  class InlineGateReview <<new>> {
+    '' approve / reject / escalate on waiting_on=human rows (gate-inbox folded in)
+  }
+  IssueListView o-- LaneSwitcher
+  IssueListView o-- Swimlane
+  Swimlane o-- TaskRow
+  TaskRow o-- DriverIndicator
+  TaskRow ..> InlineGateReview : when waiting_on=human
+  IssueListView ..> LaneFns : group by pipeline lane
+}
+
+' ===================== PROJECTIONS (centralize 4× duplicated heuristics) =====================
+package "Projections  (view-only, one-way — R3/R4)" {
+  class LabelProjection <<projection>> {
+    +label(phase, turn, role, plane) : string
+    '' REPLACES duplicated getStatusColor / getStatusBadgeClass /
+    '' terminal-status heuristics (TaskList, TaskColumn, MilestonesPage)
+  }
+  class DisplayHints <<projection>> {
+    +byPipeline : Map<pipeline_id, {columns, sort, collapsed, icon, title}>
+    '' references pipeline_id; NOT on the pipeline definition (ADR-011 D-2.1)
+  }
+  IssueListView ..> LabelProjection
+  Swimlane ..> DisplayHints
+}
+
+' ===================== DATA LAYER (fetch + join) =====================
+package "Data layer  (apiClient + WS)" {
+  class TasksClaimsHook <<new>> {
+    '' joins tasks (REST) ⟗ claims (Coordinator); refetch on WS "tasks-updated"
+    +tasks : Task[]
+    +claims : Map<taskId, Claim>
+  }
+  class ApiClient <<new>> {
+    +search(filter) : Task[]   '' EXTEND filter: + pipeline_id / state / waiting_on
+    +postGateDecision(task, verdict)   '' NEW endpoint for inline gate-review
+    +getClaims() : Map<taskId, Claim>  '' NEW: read Coordinator runtime state
+  }
+  class WsChannel <<reuse>> {
+    '' EXISTING single "tasks-updated" broadcast → refetch (client-side join)
+  }
+  TasksClaimsHook o-- ApiClient
+  TasksClaimsHook o-- WsChannel
+  IssueListView o-- TasksClaimsHook
+}
+
+' ===================== BACKEND CONTRACTS (what presentation needs) =====================
+package "Backend (needed)" {
+  interface SearchService <<contract>> {
+    '' NormalizedFilters MUST add pipeline_id / state / waiting_on
+    '' (status/labels already filterable) — src/core/search-service.ts
+    +search(opts) : Task[]
+  }
+  interface Coordinator <<contract>> {
+    +claims() : Map<taskId, Claim>   '' ABSENT today; soak = baime .active-agents
+  }
+  interface ConfigPipelines <<contract>> {
+    +pipelines[] : Pipeline   '' ABSENT in config.yml today → source of lanes
+  }
+  ApiClient ..> SearchService
+  ApiClient ..> Coordinator
+  LaneSwitcher ..> ConfigPipelines
+}
+
+note as N_reuse
+  **Biggest reuse:** lanes.ts already models lanes+columns+collapsible swimlanes
+  for milestones. Pipeline lanes = a THIRD LaneMode ("pipeline"), laneKey =
+  pipeline_id, column = ordered phase. No new grouping subsystem.
+end note
+note as N_join
+  **Four-axis join at the row:** TaskRow reads persisted (phase, waiting_on)
+  from Task and live claim from Coordinator → DriverIndicator.
+  waiting_on=human ⇒ 👤 (+InlineGateReview) · machine∧claim ⇒ 🤖 ·
+  machine∧¬claim ⇒ ⏳ · machine∧stale ⇒ ⚠️ · none ⇒ ✓.
+end note
+note as N_gap
+  **Backend gaps (blue):** (1) SearchService.NormalizedFilters + pipeline_id/
+  waiting_on ; (2) Coordinator.claims() endpoint (none today) ; (3) config
+  pipelines[] as lane source. WS stays the coarse "tasks-updated" refetch.
+end note
+
+@enduml
