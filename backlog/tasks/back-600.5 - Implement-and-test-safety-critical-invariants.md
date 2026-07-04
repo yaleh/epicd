@@ -1,16 +1,16 @@
 ---
 id: BACK-600.5
 title: Implement and test safety-critical invariants
-status: 'Basic: Backlog'
+status: 'Basic: Needs Human'
 assignee: []
 created_date: '2026-06-26 08:39'
-updated_date: '2026-06-26 09:15'
+updated_date: '2026-07-04 04:31'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
 dependencies: []
 parent_task_id: BACK-600
-ordinal: 12000
+ordinal: 1000
 ---
 
 ## Description
@@ -25,8 +25,8 @@ Child 5 of epic BACK-600 (E0). Enforce and test ADR-010 invariants: merge serial
 - [ ] #2 bun test src/test/engine-safety-worktree.test.ts
 - [ ] #3 bun test src/test/engine-safety-cap.test.ts
 - [ ] #4 bunx tsc --noEmit
-- [ ] #5 bun test
-- [ ] #6 bun test src/test/engine-safety-cross-mechanism-lock.test.ts
+- [ ] #5 bun test src/test/engine-safety-cross-mechanism-lock.test.ts
+- [ ] #6 bun test src/test/engine-safety-merge.test.ts src/test/engine-safety-worktree.test.ts src/test/engine-safety-cap.test.ts src/test/engine-safety-cross-mechanism-lock.test.ts
 <!-- DOD:END -->
 
 ## Acceptance Criteria
@@ -120,4 +120,22 @@ cap:plan=approved
 Parked at Basic: Proposal under epic BACK-600. Promote to Basic: Ready to authorize execution.
 
 反馈（来自 epic 边界复查，问题 1）：当前 plan 的 merge 锁是引擎进程内锁（proper-lockfile），明示不做分布式/多主协调。但 ADR-010 的安全目标是『别把库改坏』，soak 期旧 loop 与引擎同读写**同一块真板**——进程内锁管不到跨机制。这正是 baime ADR-010 INV-13（两 Monitor → 重复派发）在跨机制层面的复活。新增 AC/DoD 要求引擎锁与旧 loop `.merge-lock` 同名共享，或把 fallback 钉为冷备。参见 BACK-601『M1 边界纪律』第 1 条与 ADR-010 ENG-3。
+
+claimed: 2026-07-04T04:03:31Z
+
+workerLoop DoD #0: PASS — bun test src/test/engine-safety-merge.test.ts
+
+workerLoop DoD #1: PASS — bun test src/test/engine-safety-worktree.test.ts
+
+workerLoop DoD #2: PASS — bun test src/test/engine-safety-cap.test.ts
+
+workerLoop pre-merge DoD #3 FAIL: bunx tsc --noEmit
+
+Escalated: workerLoop DoD #3 failed: bunx tsc --noEmit
+playwright.config.ts(13,21): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+playwright.config.ts(21,16): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+playwright.config.ts(22,11): error TS2580: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node`.
+src/agent-instructions.ts(1,42): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+src/agent-instructions.ts(2,23): error TS2307: Cannot find module 'node:fs/promises' or its corresponding type declarations.
+To continue: answer in Implementation Notes, then set status → Basic: Ready.
 <!-- SECTION:NOTES:END -->

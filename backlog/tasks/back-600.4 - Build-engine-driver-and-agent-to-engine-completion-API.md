@@ -1,10 +1,10 @@
 ---
 id: BACK-600.4
 title: Build engine driver and agent-to-engine completion API
-status: 'Basic: Backlog'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-26 08:39'
-updated_date: '2026-07-04 03:18'
+updated_date: '2026-07-04 04:02'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
@@ -12,7 +12,7 @@ dependencies:
   - BACK-600.3
   - BACK-600.7
 parent_task_id: BACK-600
-ordinal: 11000
+ordinal: 1000
 ---
 
 ## Description
@@ -97,6 +97,28 @@ Parked at Basic: Proposal under epic BACK-600. Promote to Basic: Ready to author
 2026-07-04 对齐四轴终版（执行前须与 E1/BACK-601 协调）：final 决定删除惰性 state 字段、以裸 phase 为唯一持久进度、role/turn 派生（turn=actor(phase) 归 pipeline-data）。本 task 的“advance state”应理解为“advance phase”；不要在会被 E1 删除的 state 字段上建驱动器。engine.complete 推进的是 phase（查 pipeline-data 的下一 state），仍不硬编码转移；ready/in-progress 合并（靠 claim 分 queued/active），needs-human 是 actor=human 的 phase。若 E1 schema 收敛未先行，本 task 所用字段须由 E1 迁移。
 
 2026-07-04：新增前置依赖 BACK-600.7（引擎四轴对齐：state→phase、actionable→actor、ready/in-progress 合并）。600.7 完成后，本 task 直接在 phase/actor 上建 driver（engine.complete 推进 phase，scan 谓词 actor==machine ∧ 无有效 claim），不再涉及 state 字段。
+
+claimed: 2026-07-04T03:30:56Z
+
+workerLoop DoD #0: PASS — bun test src/test/engine-complete.test.ts
+
+workerLoop DoD #1: PASS — ! grep -rq 'agent-done' src/engine
+
+workerLoop DoD #2: PASS — bun test src/test/engine-driver.test.ts
+
+workerLoop DoD #3: PASS — bunx tsc --noEmit
+
+workerLoop DoD #4: PASS — bun test
+
+Phase A ✓ 2026-07-04T00:00:00Z
+DoD #1: PASS — bun test src/test/engine-complete.test.ts (7 pass)
+DoD #2: PASS — ! grep -rq 'agent-done' src/engine
+Phase B ✓ 2026-07-04T00:00:00Z
+DoD #3: PASS — bun test src/test/engine-driver.test.ts (5 pass)
+DoD #4: PASS — bunx tsc --noEmit
+DoD #5: PASS — bun test (1389 pass, 2 skip, 0 fail, 1391 tests)
+
+Completed: 2026-07-04T04:02:52Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
