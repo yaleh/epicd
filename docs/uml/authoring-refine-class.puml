@@ -1,0 +1,201 @@
+@startuml epicd-authoring-refine-class
+' epicd — Authoring / RefineStrategy CLASS diagram (implementable).
+' Zooms into the "Authoring extension" package of architecture-class-skeleton.puml.
+' Locked decisions (2026-07-04):
+'   - RefineStrategy.step(task, artifacts) is PURE + re-entrant + no in-memory state.
+'   - artifacts = append-only log EMBEDDED in Task.refine_log (IssueSource.upsert persists it).
+'   - cursor is DERIVED: project(artifacts) — never persisted.
+'   - reviewer verdict flows back as an APPENDED log entry (data), not a return/callback.
+'   - revise folded into produce (v1 = fresh; vN+1 + feedback = revision).
+'   - in-flight de-dup + crash safety reuse the execution CLAIM channel (Coordinator).
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam class {
+  BorderColor #555555
+  BackgroundColor #E8F0FE
+  BackgroundColor<<pure>> #C8E6C9
+  BackgroundColor<<driver>> #FFE0B2
+  BackgroundColor<<worker>> #FFF3E0
+  BackgroundColor<<contract>> #E1BEE7
+}
+skinparam packageStyle rectangle
+
+title epicd — Authoring RefineStrategy (implementable class diagram)
+
+' ===================== DATA (persisted, embedded in Task) =====================
+package "Persisted data  (in Task.refine_log)" {
+
+  class Task <<pure>> {
+    +id : string
+    +pipeline_id : string          '' = "authoring"
+    +state : string                 '' phase: Draft | Refining | Backlog
+    +waiting_on : machine|human|none
+    +labels : string[]              '' kind:feature|chore|epic
+    +refine_log : RefineArtifact[]  '' APPEND-ONLY log (the artifacts)
+  }
+
+  abstract class RefineArtifact <<pure>>
+  class Produced <<pure>> {
+    +t = "produced"
+    +kind : ArtifactKind
+    +version : int
+    +ref : DocRef
+  }
+  class Reviewed <<pure>> {
+    +t = "reviewed"
+    +kind : ArtifactKind
+    +version : int
+    +round : int
+    +verdict : approved | changes_requested
+    +feedback? : DocRef
+    +reviewer : string
+  }
+  class HumanInput <<pure>> {
+    +t = "human_input"
+    +ref : DocRef
+    +note? : string
+  }
+  RefineArtifact <|-- Produced
+  RefineArtifact <|-- Reviewed
+  RefineArtifact <|-- HumanInput
+  Task "1" *-- "0..*" RefineArtifact : refine_log (append-only)
+  RefineArtifact ..> DocRef : ref → Backlog.md Document
+}
+
+' ===================== STRATEGY (pure decision) =====================
+package "Strategy  (PURE — decides WHAT; cursor derived)" {
+
+  interface RefineStrategy <<pure>> {
+    +kind : feature | chore | epic
+    +step(task : Task, artifacts : RefineArtifact[]) : RefineStep
+  }
+  class FeatureRefine <<pure>> {
+    '' produce(proposal)→review→[produce(v+1,feedback)→review]≤2→produce(plan)→review→promote
+    '' round>2 ∧ still changes_requested ⇒ escalate
+  }
+  class ChoreRefine <<pure>> {
+    '' produce(checklist)→review(1)→promote
+  }
+  class EpicRefine <<pure>> {
+    '' produce(plan)→promote  (no children yet)
+  }
+  class RefineCursor <<pure>> {
+    +produced : Map<ArtifactKind,{version,verdict?}>
+    +rounds : int
+    .. derived, NOT persisted ..
+    {static} +project(artifacts : RefineArtifact[]) : RefineCursor
+  }
+  RefineStrategy <|.. FeatureRefine
+  RefineStrategy <|.. ChoreRefine
+  RefineStrategy <|.. EpicRefine
+  RefineStrategy ..> RefineCursor : uses project(artifacts) internally
+  RefineStrategy ..> RefineStep : returns
+}
+
+' ===================== STEP (intent vocabulary) =====================
+package "RefineStep  (uniform intent — driver executes)" {
+  abstract class RefineStep <<pure>>
+  class Produce_S <<pure>> {
+    +kind = "produce"
+    +artifact : ArtifactKind
+    +version : int
+    +basedOn? : int      '' set ⇒ revision of vN
+    +feedback? : DocRef
+  }
+  class Review_S <<pure>> {
+    +kind = "review"
+    +target : ArtifactKind
+    +version : int
+    +round : int
+  }
+  class Promote_S <<pure>> {
+    +kind = "promote"    '' → phase:=Backlog, waiting_on:=human
+  }
+  class Escalate_S <<pure>> {
+    +kind = "escalate"   '' → waiting_on:=human (stays Refining)
+    +reason : string
+  }
+  RefineStep <|-- Produce_S
+  RefineStep <|-- Review_S
+  RefineStep <|-- Promote_S
+  RefineStep <|-- Escalate_S
+}
+
+' ===================== DRIVER (impure — decides HOW, performs side effects) =====================
+package "Driver  (IMPURE — performs side effects)" {
+  class RefineRegistry <<driver>> {
+    -byKind : Map<kind, RefineStrategy>
+    +register(s : RefineStrategy)
+    +get(kind) : RefineStrategy
+  }
+  class RefiningHandler <<driver>> {
+    '' registered at Interpreter (pipeline=authoring, state="Refining")
+    +run(event, task) : void
+    -- per scan --
+    '' 1. claim(task) via Coordinator  (stale-safe de-dup)
+    '' 2. s = registry.get(kind(task))
+    '' 3. step = s.step(task, task.refine_log)   // PURE
+    '' 4. execute(step):
+    ''      produce  → spawn AuthorWorker → append Produced
+    ''      review   → spawn ReviewerWorker → append Reviewed(verdict)
+    ''      promote  → IssueSource.upsert(phase=Backlog, waiting_on=human)
+    ''      escalate → IssueSource.upsert(waiting_on=human) + append reason
+    '' 5. release claim
+  }
+  interface Handler <<pure>>
+  RefiningHandler ..|> Handler
+  RefiningHandler o-- RefineRegistry
+  RefiningHandler ..> RefineStrategy : step() [pure]
+}
+
+' ===================== WORKERS + CONTRACTS =====================
+package "Workers  (spawned by driver — Plane 2)" {
+  class AuthorWorker <<worker>> {
+    '' Claude Code: writes/revises proposal|plan|checklist → returns DocRef
+  }
+  class ReviewerWorker <<worker>> {
+    '' Claude Code architect reviewer: reads doc → verdict + feedback DocRef
+    '' NOT part of the strategy interface — its output is just an appended artifact
+  }
+}
+
+interface IssueSource <<contract>> {
+  +get(id) : Task
+  +upsert(task) : void        '' persists refine_log + phase + waiting_on
+}
+interface Coordinator <<contract>> {
+  +claims() : Map<taskId, Claim>   '' same runtime-fact channel as execution
+}
+
+RefiningHandler ..> AuthorWorker : spawn (produce)
+RefiningHandler ..> ReviewerWorker : spawn (review)
+RefiningHandler ..> IssueSource : upsert (append artifact / advance phase+turn)
+RefiningHandler ..> Coordinator : claim during a step
+
+' ===================== NOTES =====================
+note as N_boundary
+  **BOUNDARY = intent vs mechanism.**
+  Strategy (green, PURE) sees only DATA (task + refine_log) → returns a RefineStep.
+  Driver (orange) spawns workers, appends artifacts, writes waiting_on/phase, claims.
+  Strategy never holds a session handle / path → unit-tests with a fabricated log.
+end note
+
+note as N_verdict
+  **Verdict flow-back (the loop):**
+  step→review  ⇒ driver spawns ReviewerWorker ⇒ APPENDS Reviewed{verdict,feedback}
+  next scan: step reads the new Reviewed entry ⇒ branch:
+    approved         → next artifact or promote
+    changes_requested→ produce(vN+1, basedOn=vN, feedback)   (round = #Reviewed)
+    round>cap        → escalate (waiting_on:=human)
+  No cycle counter stored — everything is read off the append-only log.
+end note
+
+note as N_reentrant
+  **Re-entrant / crash-safe:** step() is pure over (task, refine_log).
+  A step's APPEND is the commit point; claim (Coordinator) de-dups in-flight
+  work and goes stale on crash ⇒ step re-issued (idempotent, worst case one
+  re-run). cursor = project(refine_log), derived every scan — never persisted.
+end note
+
+@enduml

@@ -82,7 +82,8 @@ package "Authoring extension · RefineStrategy registry  (kind selects strategy)
 
   interface RefineStrategy <<pure>> {
     +kind : "feature" | "chore" | "epic"
-    +step(task : Task, artifacts, cursor) : RefineStep   '' PURE, re-entrant, no in-memory state
+    +step(task : Task, artifacts) : RefineStep   '' PURE, re-entrant; cursor DERIVED (project), not a param
+    '' artifacts = Task.refine_log (append-only). Detail: authoring-refine-class.puml
   }
   class RefineStep <<pure>> {
     '' produce(artifact) | review(round,target) | revise(feedback)
