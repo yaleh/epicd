@@ -55,6 +55,7 @@ import { upsertTaskUpdatedDate } from "../utils/task-updated-date.ts";
 import { isTerminalStatus } from "../utils/terminal-status.ts";
 import { migrateConfig, needsMigration } from "./config-migration.ts";
 import { ContentStore } from "./content-store.ts";
+import { displayStatus } from "./field-registry.ts";
 import { migrateDraftPrefixes, needsDraftPrefixMigration } from "./prefix-migration.ts";
 import { calculateNewOrdinal, DEFAULT_ORDINAL_STEP, resolveOrdinalConflicts } from "./reorder.ts";
 import { SearchService } from "./search-service.ts";
@@ -1093,10 +1094,13 @@ export class Core {
 	async updateTask(task: Task, autoCommit?: boolean): Promise<void> {
 		normalizeAssignee(task);
 
-		// Load original task to detect status changes for callbacks
+		// Load original task to detect status changes for callbacks. Display status
+		// is derived via label(role, phase) (field-registry), so an engine phase
+		// advance is observed even when the persisted `status` string is unchanged.
 		const originalTask = await this.fs.loadTask(task.id);
-		const oldStatus = originalTask?.status ?? "";
-		const newStatus = task.status ?? "";
+		const callbackStatuses = (await this.fs.loadConfig())?.statuses ?? undefined;
+		const oldStatus = originalTask ? displayStatus(originalTask, callbackStatuses) : "";
+		const newStatus = displayStatus(task, callbackStatuses);
 		const statusChanged = oldStatus !== newStatus;
 
 		// Always set updatedDate when updating a task

@@ -2766,7 +2766,8 @@ addHelpSchema(taskCmd.command("view <taskId>"), {
 		// Plain text output for non-interactive environments
 		const usePlainOutput = isPlainRequested(options) || shouldAutoPlain;
 		if (usePlainOutput) {
-			console.log(formatTaskPlainText(task));
+			const config = await core.filesystem.loadConfig();
+			console.log(formatTaskPlainText(task, { statuses: config?.statuses ?? undefined }));
 			return;
 		}
 
@@ -2933,7 +2934,8 @@ taskCmd
 		// Plain text output for non-interactive environments
 		const usePlainOutput = isPlainRequested(options) || shouldAutoPlain;
 		if (usePlainOutput) {
-			console.log(formatTaskPlainText(task));
+			const config = await core.filesystem.loadConfig();
+			console.log(formatTaskPlainText(task, { statuses: config?.statuses ?? undefined }));
 			return;
 		}
 

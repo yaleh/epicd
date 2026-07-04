@@ -4,6 +4,7 @@ title: 'BACK-601.4 - status↔phase 人面投影 label(role,phase)'
 status: 'Basic: Proposal'
 assignee: []
 created_date: '2026-07-04 10:44'
+updated_date: '2026-07-04 13:31'
 labels: []
 dependencies: []
 ordinal: 22000
@@ -24,3 +25,11 @@ parent_id: BACK-601
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Phase A done: added label(role,phase) + displayStatus(task,statuses) to src/core/field-registry.ts; projection tests green (src/test/status-label-projection.test.ts). Starting Phase B: repoint web/CLI/board/status-callback display reads.
+
+Phase B done: repointed display-status consumers to displayStatus(task, statuses): board grouping (src/board.ts), CLI plain-text Status line (src/formatters/task-plain-text.ts + task view call sites in src/cli.ts), and onStatusChange callback old/new status (src/core/backlog.ts). DoD verified in worktree: bunx tsc --noEmit clean; bun run check . clean (pre-existing warnings only, none in touched files); bun test green except pre-existing environmental build.test.ts timeout (confirmed failing on clean base, unrelated).
+<!-- SECTION:NOTES:END -->
