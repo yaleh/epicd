@@ -1,5 +1,7 @@
 import type { Task } from "../types/index.js";
+import { adjudicate } from "./adjudicate.js";
 import type { Pipeline } from "./pipeline.js";
+import { type MergeLockFs, withMergeLock } from "./safety.js";
 
 export interface CompletionResult {
 	success: boolean;
@@ -48,4 +50,54 @@ export async function complete(
 	// Advance phase; result is recorded by the caller (driver/coordinator)
 	void result; // acknowledged — stored externally if needed
 	await store.updateTask({ ...task, phase: nextState.name });
+}
+
+/**
+ * Options for the unified worker→engine handshake (completeTask).
+ */
+export interface CompleteTaskOptions {
+	/**
+	 * Called to git-merge the task worktree branch.
+	 * When combined with `safety`, the call is wrapped in withMergeLock.
+	 */
+	merge?: (taskId: string, result: CompletionResult) => Promise<void>;
+	/** Safety config for merge-lock serialisation. */
+	safety?: { backlogDir: string; lockFs: MergeLockFs };
+}
+
+/**
+ * Unified worker→engine handshake for primitive tasks.
+ *
+ * Replaces the driver's previously-inlined adjudicate+merge+update logic so
+ * there is exactly one adjudication path (ENG-8 / advisory B).
+ *
+ * Flow:
+ *   1. Load task from store.
+ *   2. Merge worktree branch (under merge lock when safety is provided).
+ *   3. Adjudicate result (success + DoD items) → done | needs-human.
+ *   4. Update task phase — engine decides; worker never self-declares done.
+ */
+export async function completeTask(
+	taskId: string,
+	result: CompletionResult,
+	store: TaskStore,
+	options?: CompleteTaskOptions,
+): Promise<void> {
+	const task = await store.getTask(taskId);
+	if (!task) throw new Error(`Task ${taskId} not found`);
+
+	// Merge worktree branch (serialised if safety is provided)
+	if (options?.merge) {
+		const mergeFn = options.merge;
+		const doMerge = () => mergeFn(taskId, result);
+		if (options.safety) {
+			await withMergeLock(options.safety.backlogDir, doMerge, options.safety.lockFs);
+		} else {
+			await doMerge();
+		}
+	}
+
+	// Adjudicate and persist — engine is sole authority over done/needs-human
+	const verdict = adjudicate(task, result);
+	await store.updateTask({ ...task, phase: verdict });
 }

@@ -1,9 +1,10 @@
 import type { Task } from "../types/index.js";
-import { adjudicate, isPrimitive } from "./adjudicate.js";
+import { isPrimitive } from "./adjudicate.js";
 import type { CompletionResult, TaskStore } from "./complete.js";
+import { completeTask } from "./complete.js";
 import { Interpreter } from "./interpreter.js";
 import type { Pipeline } from "./pipeline.js";
-import { type MergeLockFs, type WorktreeRunner, withCapGuard, withMergeLock } from "./safety.js";
+import { type MergeLockFs, type WorktreeRunner, withCapGuard } from "./safety.js";
 
 /** Worktree operations interface; primitives are stubbed here and hardened in child 5. */
 export interface WorktreeOps {
@@ -55,14 +56,10 @@ export class Driver {
 
 						const result = await worktree.spawn(task);
 
-						if (safety) {
-							await withMergeLock(safety.backlogDir, () => worktree.merge(task.id, result), safety.lockFs);
-						} else {
-							await worktree.merge(task.id, result);
-						}
-
-						const verdict = adjudicate(task, result);
-						await store.updateTask({ ...task, phase: verdict });
+						await completeTask(task.id, result, store, {
+							merge: (id, res) => worktree.merge(id, res),
+							safety: safety ? { backlogDir: safety.backlogDir, lockFs: safety.lockFs } : undefined,
+						});
 					};
 
 					if (safety) {
