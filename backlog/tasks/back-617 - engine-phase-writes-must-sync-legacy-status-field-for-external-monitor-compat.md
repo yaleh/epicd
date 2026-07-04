@@ -1,11 +1,11 @@
 ---
 id: BACK-617
 title: engine phase writes must sync legacy status field for external monitor compat
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 16:48'
-updated_date: '2026-07-04 16:57'
+updated_date: '2026-07-04 16:58'
 labels:
   - 'kind:basic'
 dependencies: []
