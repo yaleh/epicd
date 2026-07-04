@@ -6,13 +6,14 @@ title: >-
 status: 'Basic: Backlog'
 assignee: []
 created_date: '2026-07-04 04:53'
+updated_date: '2026-07-04 05:21'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
 dependencies:
   - BACK-600.8
 parent_task_id: BACK-600
-ordinal: 13000
+ordinal: 1000
 ---
 
 ## Description

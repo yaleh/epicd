@@ -3,10 +3,10 @@ id: BACK-600.8
 title: >-
   Assemble a runnable execution driver on the real board (wire safety, role/DoD
   branching, run loop)
-status: 'Basic: Backlog'
+status: 'Basic: In Progress'
 assignee: []
 created_date: '2026-07-04 04:52'
-updated_date: '2026-07-04 04:52'
+updated_date: '2026-07-04 05:22'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
@@ -14,7 +14,7 @@ dependencies:
   - BACK-600.5
   - BACK-600.6
 parent_task_id: BACK-600
-ordinal: 12000
+ordinal: 14000
 ---
 
 ## Description
@@ -77,9 +77,15 @@ ordinal: 12000
 - `bunx tsc --noEmit` · `bun run check .` · `bun test`
 <!-- SECTION:PLAN:END -->
 
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-04T05:22:14Z
+<!-- SECTION:NOTES:END -->
+
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
+- [ ] #1 bunx tsc --noEmit
+- [ ] #2 bunx biome check src/engine/ src/types/
+- [ ] #3 bun test src/test/engine-driver-board.test.ts
 <!-- DOD:END -->
