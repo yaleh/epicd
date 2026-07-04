@@ -6,7 +6,7 @@ title: >-
 status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 06:16'
-updated_date: '2026-07-04 06:44'
+updated_date: '2026-07-04 11:35'
 labels:
   - 'kind:basic'
   - 'kind:feature'
@@ -129,6 +129,8 @@ DoD #2: PASS — bun run check . (warnings only, no errors)
 DoD #3: PASS — bun test --parallel (1501 pass, 0 fail)
 
 Completed: 2026-07-04T06:44:35Z
+
+⚠ MIS-IMPLEMENTED (flagged 2026-07-04 after user caught the architecture error). This task's DESCRIPTION correctly mandated 'Monitor 托管：持久 Monitor 承载 engine run，item-ready 时 spawn 真 Claude Code Agent … 对应 baime handle-basic-ready.sh + Monitor 模式'. But what SHIPPED does the OPPOSITE: realSpawnPrimitive = Bun.spawn(['claude','--print',brief]) — a claude CLI SUBPROCESS, not an in-session Monitor-hosted Agent. .codex/skills/epicd-run/SKILL.md hosts 'engine run' which internally spawns that subprocess. This is a DoD-green-but-wrong-architecture case (same meta-pattern as the merged decompose stub / fake Stage-2 test): it 'passed' because a claude subprocess does run, so the divergence from its own spec went unnoticed. Superseded by the correction task (Monitor-hosted in-session Agent + engine watch emit). Do NOT trust 605.1 as a correct delivery of the Monitor pattern.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
