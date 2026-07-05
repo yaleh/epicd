@@ -30,12 +30,17 @@ describe("epicd-run wiring (BACK-625 / ADR-015)", () => {
 	describe("plugin/scripts/scan-loop.cjs — pure transport", () => {
 		const contents = read("plugin/scripts/scan-loop.cjs");
 
-		it("shells out to `engine scan` as its scan (dedup) source", () => {
-			expect(contents).toContain("engine scan");
+		it("routes to the engine CLI through a single invocation seam (runEngineCli)", () => {
+			expect(contents).toContain("runEngineCli");
+			expect(contents).toContain("engine ' + args"); // builds `bun src/cli.ts engine <args>`
 		});
 
-		it("shells out to `engine dispatch` for the basic-ready payload (engine authors it)", () => {
-			expect(contents).toContain("engine dispatch");
+		it("uses `engine scan --once` as its scan (dedup) source", () => {
+			expect(contents).toContain("scan --once");
+		});
+
+		it("fetches the basic-ready payload via `engine dispatch <id>` (engine authors it)", () => {
+			expect(contents).toContain("dispatch ' + id");
 		});
 
 		it("no longer hardcodes baime's 'basic: ready' status predicate literal", () => {

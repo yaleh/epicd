@@ -58,6 +58,13 @@ describe("renderBasicReadyDispatch — self-contained payload (AC #1/#8)", () =>
 		expect(payload).toContain(":!backlog/tasks");
 	});
 
+	it("does not instruct a bare `git add -A && git commit` without excluding the board file (BACK-619)", () => {
+		// Negative guard carried over from the retired template test: a future added commit line
+		// that omits the exclusion must fail even though the first exclusion still satisfies the
+		// positive check above.
+		expect(payload).not.toMatch(/git add -A && git commit(?!.*backlog\/tasks)/);
+	});
+
 	it("leaves no unsubstituted template tokens", () => {
 		expect(payload).not.toContain("__TASK_ID__");
 		expect(payload).not.toContain("__TASK_TITLE__");

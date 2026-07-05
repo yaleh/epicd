@@ -9,19 +9,23 @@
  * as opaque bytes: it dedups on the first-line machine key and passes the whole block
  * through verbatim (it never parses or rewrites the payload — ADR-015 D3/D5).
  *
- * Distribution-agnostic (BACK-625 AC #6): the payload is compiled into the engine, so it
- * renders identically under dev (src/), npm install (scripts/*.cjs), and the single-binary
- * build. There is no `__dirname`-relative file lookup — the root of the earlier template
- * path bug (all events fell back to the bare `basic-ready:<id>` line).
+ * Distribution-agnostic PAYLOAD (BACK-625 AC #6): the payload TEXT is compiled into the
+ * engine, so it renders identically under dev (src/), npm install (scripts/*.cjs), and the
+ * single-binary build. There is no `__dirname`-relative file lookup — the root of the earlier
+ * template path bug (all events fell back to the bare `basic-ready:<id>` line). Note this is a
+ * claim about the payload text only; the transport still reaches this via `bun src/cli.ts
+ * engine dispatch` (scan-loop.cjs, shared with engineScanOnce), which assumes a source checkout.
  */
 
 /**
  * Render the complete basic-ready dispatch block for one task.
  *
- * Line 1 is the stable machine key `basic-ready:<id>` (the dedup handle + a traceability
- * header); everything after it is the self-contained instruction. `repoRoot` must be an
- * absolute path: the reader runs each block in a fresh Bash shell with no inherited cwd or
- * env, so every path in the payload is absolute.
+ * Line 1 is the stable machine key `basic-ready:<id>` — a traceability header (and the
+ * "key" half of ADR-015 D4's "machine key + payload"). Note the transport dedups on the
+ * separate `engine scan --once` machine line, NOT on this payload's first line, so this line
+ * is not itself the acquisition-dedup handle. Everything after it is the self-contained
+ * instruction. `repoRoot` must be an absolute path: the reader runs each block in a fresh
+ * Bash shell with no inherited cwd or env, so every path in the payload is absolute.
  */
 export function renderBasicReadyDispatch(taskId: string, title: string, repoRoot: string): string {
 	const heading = title ? `${taskId} — ${title}` : taskId;

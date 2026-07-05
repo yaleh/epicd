@@ -312,17 +312,19 @@ function convergeSingleton(selfPid, tasksDir, mode) {
 // daemon is pure transport — it never reads a template file, never substitutes. The
 // returned block's first line is the `basic-ready:<id>` machine key, followed by the
 // self-contained instruction (the exact bytes a Monitor seat or `claude -p` executes).
-// Best-effort: any spawn/engine failure degrades to the bare `basic-ready:<id>` line so a
-// transient CLI hiccup emits a still-actionable (if terse) event instead of wedging.
+// The task id is validated against the canonical id shape before it is ever handed to the
+// shell (upstream capture is `\S+`) — defense-in-depth against shell metacharacters. On a
+// transient engine-CLI failure it degrades to a single-shot, still-actionable line (NOT a
+// guidance-less bare key: the Monitor description no longer explains bare lines).
+const TASK_ID_RE = /^[A-Za-z][A-Za-z0-9]*-\d+(?:\.\d+)*$/;
 function engineDispatch(repoRoot, id) {
-  try {
-    const out = execSync('bun src/cli.ts engine dispatch ' + id,
-      { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
-    const trimmed = out.replace(/\n+$/, '');
-    return trimmed || ('basic-ready:' + id);
-  } catch (_) {
-    return 'basic-ready:' + id;  // safe fallback
-  }
+  if (!TASK_ID_RE.test(id)) return 'basic-ready:' + id; // malformed id → never spawned
+  const out = runEngineCli(repoRoot, 'dispatch ' + id);
+  const trimmed = out === null ? null : out.replace(/\n+$/, '');
+  if (trimmed) return trimmed;
+  return 'basic-ready:' + id +
+    '\nEngine dispatch failed this tick — re-run `bun src/cli.ts engine dispatch ' + id +
+    '` from the repo root and follow its output.';
 }
 
 function parseTaskId(filename) {
@@ -348,23 +350,32 @@ function readTaskMeta(filepath) {
   return null;
 }
 
+// runEngineCli: single invocation seam to the epicd engine CLI (the scan/dispatch
+// authority). Invoked via `bun src/cli.ts` (build-free entry, no per-tick rebuild), cwd =
+// repoRoot, stderr suppressed. Returns stdout on success or null on any spawn/engine
+// failure — callers degrade best-effort so a transient CLI hiccup never crashes the tick.
+// Both the scan source (engineScanOnce) and the payload fetch (engineDispatch) route
+// through here so the invocation contract lives in exactly one place.
+function runEngineCli(repoRoot, args) {
+  try {
+    return execSync('bun src/cli.ts engine ' + args,
+      { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+  } catch (_) {
+    return null;
+  }
+}
+
 // engineScanOnce: board-scan source for the basic-ready channel (BACK-614).
 // The scan authority is the epicd engine itself: `engine scan --once` reuses
 // Interpreter.scan over (pipeline_id, phase) — src/engine/scan.ts — and emits one
 // minimal machine line "basic-ready:<id>" per actionable task. This reads those
 // lines directly (no template rendering, no blob re-parse — this daemon is the one
-// renderer). Invoked via `bun src/cli.ts` (build-free entry, no per-tick CSS rebuild).
-// Best-effort: any spawn failure degrades to an empty Set so a transient CLI/engine
-// hiccup never crashes the scanner tick.
+// renderer). Best-effort: a null result degrades to an empty Set so a transient
+// CLI/engine hiccup never crashes the scanner tick.
 function engineScanOnce(repoRoot) {
   const out = new Set();
-  let stdout;
-  try {
-    stdout = execSync('bun src/cli.ts engine scan --once', { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString();
-  } catch (_) {
-    return out;
-  }
+  const stdout = runEngineCli(repoRoot, 'scan --once');
+  if (stdout === null) return out;
   for (const line of stdout.split('\n')) {
     const m = line.match(/^basic-ready:(\S+)$/);
     if (m) out.add(m[1]);

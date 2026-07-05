@@ -139,16 +139,23 @@ describe("Absence: engine core has no direct Agent/subprocess spawn", () => {
 	it("src/engine contains no Agent() call", async () => {
 		const engineDir = join(import.meta.dir, "../engine");
 		const files = await readdir(engineDir);
-		// dispatch.ts is the invocation-prompt AUTHOR (BACK-625 / ADR-015): it embeds the
-		// literal `Agent(run_in_background=true)` spawn instruction inside a payload STRING for
-		// the harness/`claude -p` to execute. That is instruction text, not a call — the engine
-		// still never spawns. It has zero imports and is covered by the child_process/Bun.spawn
-		// absence check below, so excluding it from this string-scan does not weaken the boundary.
+		// dispatch.ts is the invocation-prompt AUTHOR (BACK-625 / ADR-015): it embeds the literal
+		// `Agent(run_in_background=true)` spawn instruction inside a payload STRING for the
+		// harness/`claude -p` to execute — instruction text, not a call. Excluding it from the
+		// string-scan (which the payload text trips) does NOT create a blind spot, because the
+		// dedicated assertion below proves dispatch.ts is a pure data module (zero imports/require)
+		// and therefore structurally cannot call Agent() or any spawn primitive at all.
 		const tsFiles = files.filter((f) => f.endsWith(".ts") && f !== "dispatch.ts");
 
 		for (const file of tsFiles) {
 			const content = await Bun.file(join(engineDir, file)).text();
 			expect(content).not.toMatch(/Agent\s*\(/);
 		}
+
+		// dispatch.ts must remain a pure string builder: no imports/require → no capability to
+		// spawn anything, so the embedded Agent(...) payload text can never become a real call.
+		const dispatch = await Bun.file(join(engineDir, "dispatch.ts")).text();
+		expect(dispatch).not.toMatch(/^\s*import\s/m);
+		expect(dispatch).not.toMatch(/\brequire\s*\(/);
 	});
 });
