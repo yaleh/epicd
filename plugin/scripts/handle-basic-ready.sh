@@ -7,6 +7,15 @@ set -euo pipefail
 
 TASK_ID="${1:?usage: handle-basic-ready.sh TASK-ID}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+# CLI_JS is resolved from this script's own on-disk location — NOT from
+# $REPO_ROOT — so the claim always runs through the dev CLI belonging to
+# this codebase, even when this script is invoked with a different git
+# repo as its board target (e.g. a test fixture). This is what actually
+# avoids the version-skew hazard: the bare `backlog` on $PATH can resolve
+# to a stale globally installed package whose frontmatter schema doesn't
+# know about engine structural fields (pipeline_id, phase, parent_id,
+# dod) and silently drops them on rewrite (BACK-620).
+CLI_JS="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/src/cli.ts"
 CAPS_DIR="${REPO_ROOT}/backlog/.caps"
 LOCK_FILE="${CAPS_DIR}/${TASK_ID}.exec-lock"
 WT_PATH="${REPO_ROOT}/../$(basename "$REPO_ROOT")-${TASK_ID}"
@@ -25,8 +34,8 @@ trap 'release_lock; git -C "$REPO_ROOT" worktree remove "$WT_PATH" --force 2>/de
 # Step 2: status → In Progress + cap marker. Clear any stale completion signal FIRST
 # so a leftover .agent-done-TASK from a prior run cannot cause a false-done merge.
 rm -f "$SIGNAL_FILE"
-backlog task edit "$TASK_ID" --status "Basic: In Progress" \
-  --append-notes "claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)" 2>/dev/null || true
+(cd "$REPO_ROOT" && bun "$CLI_JS" task edit "$TASK_ID" --status "Basic: In Progress" \
+  --append-notes "claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)") 2>/dev/null || true
 printf 'cap:claim=started\n' >> "${CAPS_DIR}/${TASK_ID}"
 
 # Step 3: worktree add (directory = capability token #3)
