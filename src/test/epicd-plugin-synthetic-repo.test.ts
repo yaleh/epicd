@@ -69,11 +69,13 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 	let siblingWorktreeDir: string | undefined;
 
 	beforeAll(() => {
-		// Build the standalone CLI binary fresh (bun --compile, ~1-2s) — the only
-		// epicd artifact the scratch repo below receives.
+		// Build the standalone CLI binary fresh (bun --compile, ~1-2s standalone, but
+		// slower under `bun test --parallel` when contending with other files for CPU) —
+		// the only epicd artifact the scratch repo below receives. Explicit timeout
+		// above bun:test's default 5000ms hook timeout avoids flaky kills under load.
 		execSync("bun run build", { cwd: repoRoot, stdio: ["ignore", "pipe", "pipe"] });
 		expect(existsSync(BIN_PATH)).toBe(true);
-	});
+	}, 60000);
 
 	afterEach(async () => {
 		if (siblingWorktreeDir) {
