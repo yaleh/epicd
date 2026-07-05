@@ -8,10 +8,14 @@
  * Asserts:
  *   1. Promoting a "Basic: Backlog" task sets pipeline_id: execution,
  *      phase: ready, status: "Basic: Ready".
- *   2. Promoting an "Epic: Backlog" task sets the same with status "Epic: Ready".
+ *   2. Promoting an "Epic: Backlog" task sets phase: decomposing, role: compound,
+ *      status: "Epic: Decomposing" (BACK-631 — must NOT be phase: ready, which
+ *      scan.ts's PHASE_PREFIX would misroute as basic-ready instead of epic-ready).
  *   3. Promoting a task NOT at a Backlog status is rejected (non-zero exit,
  *      task unchanged).
- *   4. A promoted task is reported by `engine scan --once` as `basic-ready:<id>`.
+ *   4. A promoted Basic task is reported by `engine scan --once` as `basic-ready:<id>`.
+ *   5. A promoted Epic is reported by `engine scan --once` as `epic-ready:<id>`,
+ *      never `basic-ready:<id>` (BACK-631).
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
@@ -85,16 +89,33 @@ describe("engine promote CLI", () => {
 		expect(updated?.status).toBe("Basic: Ready");
 	});
 
-	it("promotes an Epic: Backlog task to pipeline_id execution, phase ready, status Epic: Ready", async () => {
-		const task = await createTaskWithStatus(core, "Epic backlog task", "Epic: Backlog", "compound");
+	it("promotes an Epic: Backlog task to pipeline_id execution, phase decomposing, status Epic: Decomposing (BACK-631)", async () => {
+		const task = await createTaskWithStatus(core, "Epic backlog task", "Epic: Backlog");
+
+		const result = await runCli(["engine", "promote", task.id], projectRoot);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain(`engine promote: ${task.id} → execution/decomposing`);
+
+		const updated = await core.getTask(task.id);
+		expect(updated?.pipeline_id).toBe("execution");
+		expect(updated?.phase).toBe("decomposing");
+		expect(updated?.role).toBe("compound");
+		expect(updated?.status).toBe("Epic: Decomposing");
+	});
+
+	it("promotes an Epic: Backlog task even with no pre-declared role or children (role can't be tree-derived yet)", async () => {
+		// No `role` passed — this is the exact pre-decompose state roleOf()'s doc
+		// comment describes: an epic before decompose has no children to derive
+		// "compound" from, so promote must pre-declare it explicitly (BACK-631).
+		const task = await createTaskWithStatus(core, "Epic with no role/children", "Epic: Backlog");
+		expect(task.role).toBeUndefined();
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
 		expect(result.exitCode).toBe(0);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.pipeline_id).toBe("execution");
-		expect(updated?.phase).toBe("ready");
-		expect(updated?.status).toBe("Epic: Ready");
+		expect(updated?.role).toBe("compound");
+		expect(updated?.phase).toBe("decomposing");
 	});
 
 	it("rejects promote when status is not a Backlog status, task unchanged", async () => {
@@ -118,7 +139,7 @@ describe("engine promote CLI", () => {
 		expect(result.stderr).toContain("not found");
 	});
 
-	it("a promoted task is reported by engine scan --once as basic-ready:<id>", async () => {
+	it("a promoted Basic task is reported by engine scan --once as basic-ready:<id>", async () => {
 		const task = await createTaskWithStatus(core, "Promote then scan", "Basic: Backlog");
 
 		const promoteResult = await runCli(["engine", "promote", task.id], projectRoot);
@@ -127,5 +148,17 @@ describe("engine promote CLI", () => {
 		const scanResult = await runCli(["engine", "scan", "--once"], projectRoot);
 		expect(scanResult.exitCode).toBe(0);
 		expect(scanResult.stdout).toContain(`basic-ready:${task.id}`);
+	});
+
+	it("a promoted Epic is reported by engine scan --once as epic-ready:<id>, never basic-ready (BACK-631 negative control)", async () => {
+		const task = await createTaskWithStatus(core, "Promote epic then scan", "Epic: Backlog");
+
+		const promoteResult = await runCli(["engine", "promote", task.id], projectRoot);
+		expect(promoteResult.exitCode).toBe(0);
+
+		const scanResult = await runCli(["engine", "scan", "--once"], projectRoot);
+		expect(scanResult.exitCode).toBe(0);
+		expect(scanResult.stdout).toContain(`epic-ready:${task.id}`);
+		expect(scanResult.stdout).not.toContain(`basic-ready:${task.id}`);
 	});
 });

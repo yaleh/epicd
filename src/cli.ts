@@ -4710,7 +4710,7 @@ engineCmd
 engineCmd
 	.command("promote")
 	.description(
-		"human promote gate: writes pipeline_id/phase/status to move a task from authoring's Backlog boundary to execution/ready (workitem-lifecycle-state.puml authoring.done → execution.ready edge). Only accepts tasks at 'Basic: Backlog' or 'Epic: Backlog'.",
+		"human promote gate: writes pipeline_id/phase/status to move a task from authoring's Backlog boundary to execution/ready or execution/decomposing (workitem-lifecycle-state.puml authoring.done → execution edge). Only accepts tasks at 'Basic: Backlog' or 'Epic: Backlog'.",
 	)
 	.argument("<id>", "task id to promote")
 	.action(async (id: string) => {
@@ -4735,13 +4735,19 @@ engineCmd
 				return;
 			}
 
+			const isEpic = task.status === "Epic: Backlog";
+			const phase = isEpic ? "decomposing" : "ready";
 			await store.updateTask({
 				...task,
 				pipeline_id: "execution",
-				phase: "ready",
+				phase,
+				// roleOf() falls back to tree-derivation when unset, but a pre-decompose
+				// epic has no children yet to derive "compound" from — must pre-declare
+				// (types/index.ts roleOf() doc comment covers exactly this case).
+				...(isEpic ? { role: "compound" as const } : {}),
 			});
 
-			console.log(`engine promote: ${id} → execution/ready`);
+			console.log(`engine promote: ${id} → execution/${phase}`);
 		} catch (err) {
 			console.error("engine promote failed:", err instanceof Error ? err.message : String(err));
 			process.exitCode = 1;
