@@ -3,7 +3,7 @@ id: BACK-621
 title: >-
   gitCommitBoardChange stages entire backlog tree, can sweep unrelated task
   state into completion commits
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:09'
@@ -12,6 +12,7 @@ labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 33000
+phase: done
 dod:
   - text: bun test src/test/engine-merge.test.ts src/test/engine-merge-wire.test.ts
     checked: false
