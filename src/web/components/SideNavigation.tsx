@@ -154,6 +154,11 @@ const Icons = {
 			<circle cx="12" cy="12" r="1" strokeWidth={2} />
 		</svg>
 	),
+	GateInbox: () => (
+		<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+		</svg>
+	),
 };
 
 interface SideNavigationProps {
@@ -579,6 +584,21 @@ const SideNavigation = memo(function SideNavigation({
 							<Icons.Statistics />
 							<span className="ml-3 text-sm font-medium">Statistics</span>
 						</NavLink>
+
+						{/* Gate Inbox Navigation */}
+						<NavLink
+							to="/gate-inbox"
+							className={({ isActive }) =>
+								`flex items-center px-3 py-2 rounded-lg transition-colors duration-200 ${
+									isActive
+										? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium'
+										: 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+								}`
+							}
+						>
+							<Icons.GateInbox />
+							<span className="ml-3 text-sm font-medium">Gate Inbox</span>
+						</NavLink>
 					</div>
 				)}
 
@@ -784,6 +804,22 @@ const SideNavigation = memo(function SideNavigation({
 						>
 							<div className="w-6 h-6 flex items-center justify-center">
 								<Icons.Statistics />
+							</div>
+						</NavLink>
+						<NavLink
+							to="/gate-inbox"
+							data-tooltip-id="sidebar-tooltip"
+							data-tooltip-content="Gate Inbox"
+							className={({ isActive }) =>
+								`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
+									isActive
+										? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-400'
+										: 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+								}`
+							}
+						>
+							<div className="w-6 h-6 flex items-center justify-center">
+								<Icons.GateInbox />
 							</div>
 						</NavLink>
 						<button
