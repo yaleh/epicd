@@ -76,6 +76,11 @@ describe("engine complete CLI", () => {
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-complete-cli-test");
 
+		// Mirror this project's own .gitignore convention (BACK-616/BACK-621):
+		// the merge-lock sentinel is ephemeral, machine-local lock state, not
+		// board content — it must never be tracked in board history.
+		await writeFile(join(projectRoot, ".gitignore"), "backlog/.merge-lock\nbacklog/.merge-lock-sentinel\n");
+
 		// initializeTestProject writes backlog/ files but does not commit them;
 		// commit so the repo has a clean HEAD for worktree/merge operations.
 		await $`git add -A`.cwd(projectRoot).quiet();

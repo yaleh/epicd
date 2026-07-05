@@ -167,13 +167,24 @@ export async function gitMergeBranch(
  * Commits the board-file phase write that `completeTask` makes after a merge
  * (BACK-616) — without this, `store.updateTask`'s write lands on disk but is
  * never part of git history, leaving the repo dirty after every `engine
- * complete` run. Scoped to `backlog/` so it never stages unrelated
- * working-tree changes. No-ops (does not commit) when nothing is staged —
- * safe to call even if the phase write happened to match what was already
- * committed.
+ * complete` run. Scoped to the completing task's own board file(s) under
+ * `backlog/tasks/` (BACK-621) — never the whole `backlog` directory — so any
+ * unrelated dirty state elsewhere under `backlog/` (a concurrent claim, a
+ * stray manual edit) is left untouched rather than silently swept into this
+ * commit. No-ops (does not commit) when nothing is staged — safe to call
+ * even if the phase write happened to match what was already committed.
  */
 export async function gitCommitBoardChange(repoPath: string, taskId: string, verdict: string): Promise<void> {
-	const add = Bun.spawn(["git", "add", "-A", "--", "backlog"], {
+	const idLower = taskId.toLowerCase();
+	const tasksDir = join(repoPath, "backlog", "tasks");
+	let files: string[] = [];
+	if (existsSync(tasksDir)) {
+		const candidates = await Array.fromAsync(new Bun.Glob(`${idLower}*.md`).scan({ cwd: tasksDir }));
+		files = candidates.filter((f) => f.startsWith(`${idLower} -`) || f.startsWith(`${idLower}-`));
+	}
+	if (files.length === 0) return; // no board file(s) for this task — nothing to stage
+
+	const add = Bun.spawn(["git", "add", "--", ...files.map((f) => join("backlog", "tasks", f))], {
 		cwd: repoPath,
 		stdout: "pipe",
 		stderr: "inherit",
