@@ -62,8 +62,12 @@ Ops --> GEL : inbox (gate-review: approve/reject/escalate)
 Ops ..> Sup : run (arm supervisor+drivers) · init (bootstrap pipelines[])
 
 note bottom
-  **SPAWN SEAM (ADR-014/017):** the engine (driver) decides *when / which* task to run;
+  **INVOCATION SEAM (ADR-015):** the engine (driver) decides *when / which* task to run;
   the actual Agent-in-worktree spawn is done by the thin harness **worker skill** — engine core never spawns.
+  The seam abstracts `invokeClaudeCode(taskPrompt, worktree)`: ideal impl = `claude -p "<self-contained prompt>"`
+  (one headless process/task); today's impl = one persistent interactive **seat + Monitor** multiplexing N such calls
+  (billing-forced). **Monitor = invocation adapter, NOT scheduler/executor.** engine authors the prompt (payload);
+  the adapter is prompt-agnostic transport. swap-litmus: engine output must drive EITHER a Monitor seat OR raw `claude -p`.
   **baime → epicd:** Monitor+scan-loop (2 hardcoded modes, 7 channels) ⇒ supervisor + **driver-per-pipeline**,
   channels DERIVED from (pipeline, phase, actor); `.agent-done` sentinel ⇒ **engine.complete()**;
   `.caps`/`.active-agents` ⇒ **Coordinator**; status-advance-as-claim ⇒ phase stable + separate claim.

@@ -46,7 +46,7 @@
 | **AI Agent** | MCP client · worker · implementer Agent · **Handler**(代码座) · decomposer(规划变体) | 经 MCP 操作 backlog；被 spawn 时即执行体。 |
 | **Architect Reviewer** | 独立 Agent reviewer · architect 评审 · posterior review · (gate) actor: llm | authoring 内 fan-out 的独立上下文 LLM，评审 proposal/plan 至 APPROVED。 |
 | **IssueSource** | LocalIssueSource(唯一实现) · 远程 GitHub/GitLab(stub) · `sourceId` · (旧)`tasksDir` | 存储无关 task 数据源（BACK-601.1）。上游 = fork 自 Backlog.md。 |
-| **Claude Code Monitor host** | Monitor(persistent) · harness · daemon | 承载并驱动自驱环的外部宿主；今天由它 + baime `scan-loop.js` 供电。 |
+| **Claude Code Monitor host** | Monitor(persistent) · harness · daemon | 承载并驱动自驱环的外部宿主；今天由它 + baime `scan-loop.js` 供电。**定位（ADR-015）**：Monitor 是 **invocation adapter**（`claude -p` 的计费替身），非调度/执行——见漂移表 invocation seam 行。 |
 | **baime** | GCL/methodology(消费 payload) · old loop-backlog(soak fallback/冷备) · M2 采用方 | 解释 gate-event payload（E/C/H、GCL）。 |
 
 ## Work-item 层次厘清（feature/task/epic）
@@ -80,7 +80,8 @@ Done ；DoD fail/epic 评估异常 → needs-human（gate-review 在 issue-list 
 | 伞形系统 | 引擎/engine/engine core/`epicd`/受管 Bun 服务/daemon(`-d`) | ADR-011 header；ADR-010 | **engine / epicd** |
 | 监督层 | supervisor/监督器/受管 Bun 服务/**Monitor**/供电 | driver-supervisor §4.3；authoring §4.1 | **supervisor** |
 | 单车道循环 | driver/驱动器/**Monitor worker(主循环)**/scan-loop.js/**scanner** | driver-supervisor §4.2；ADR-012 ENG-6 | **driver** |
-| "Monitor worker" 歧义 | 横跨 supervisor+driver+worker，自标"假定但未定义" | authoring §4.1/4.2 vs driver-supervisor §1 | 拆分使用 |
+| "Monitor worker" 歧义 | 横跨 supervisor+driver+worker，自标"假定但未定义" | authoring §4.1/4.2 vs driver-supervisor §1 | **拆分（ADR-015 定案）**：Monitor ≡ **invocation adapter**，与 supervisor/driver/worker 正交 |
+| **invocation seam / Monitor 定位** | spawn seam（runtime-deployment）· Monitor · daemon | ADR-015；runtime-deployment.puml | **invocation adapter**：`claude -p` 的计费替身（多路复用一个 seat 冒充 N 个独立 `claude -p`）；非调度/执行。四角色归位：supervisor+transport→适配器，driver+prompt-authoring→engine。swap-litmus = engine 输出足以驱动 Monitor seat 或裸 `claude -p` 而 engine 不改 |
 | 纯函数核 | 解释器/interpreter/极小解释器/Bun 引擎核 | ADR-011 D-2；ADR-013 D1 | **interpreter** |
 | 执行体 | worker/执行体/implementer Agent/**Handler**(代码) | driver-supervisor §4.4；ADR-012 ENG-8 | **Handler**(代码)/worker(文档) |
 | LLM 裁判 | 独立 Agent reviewer/architect 评审/posterior review/actor:llm | authoring §4.1；ADR-011 D-2 | **architect reviewer** |

@@ -43,6 +43,9 @@ baime 的 `loop-backlog` / `loop-draft` 是**仍在跑的原型**，它的运行
 | `mode`（`ready`/`draft`） | 一组可动作谓词的投影 = **一条车道** | **pipeline**（`pipeline_id`） | `executionPipeline` 已有；authoring 待建 |
 | `scan-loop.js`（自 reap 单例、`/proc` 自省、pulse 行协议） | 车道的**驱动器 driver** | 待建 `src/engine/driver.ts`（BACK-600.4） | **缺**（只有纯函数 scan/dispatch） |
 | Monitor（Claude Code 内编排器，SKILL 只 arm 它） | 车道的**监督/供电** supervisor | 待建 受管 Bun 服务（ADR-010 提及） | **缺** |
+<!-- 修订（ADR-015）：Monitor 的本质不是"编排器/调度"，而是 **invocation adapter**——`claude -p` 的
+     计费替身。它承担 supervisor（单例/存活）+ invocation transport（把 item-ready 投给一个 seat）两个
+     适配器角色；调度（when/which）属 driver/engine，prompt authoring 属 engine。见 docs/adr/ADR-015。 -->
 | channel（`basic-ready`/`epic-draft`…） | 车道内一个 actionable 谓词 | pipeline 的一个 actionable `state` | 已有 |
 | worker（templates + complete-task.sh，worktree 隔离） | 执行体 | worktree worker + `engine.complete()` | 待建（BACK-600.4/600.5） |
 
