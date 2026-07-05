@@ -1,15 +1,15 @@
 ---
 id: BACK-612
 title: BACK-601.5 - 现存 task 文件就地幂等 backfill（M1 roadmap）
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 23:48'
+updated_date: '2026-07-05 00:38'
 labels: []
 dependencies: []
 ordinal: 23000
 pipeline_id: execution
-phase: in-progress
+phase: done
 parent_id: BACK-601
 dod:
   - text: bun test src/test/engine-fields-backfill.test.ts
