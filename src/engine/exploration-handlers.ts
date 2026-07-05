@@ -28,7 +28,7 @@ export type PromoteToExecution = (spikeTask: Task) => Promise<void>;
 /**
  * Builds the `WorktreeOps` the driver spawns for exploration `spike` tasks.
  *
- * `merge` is a no-op success (BACT-603 603.3's spike/evaluate step never
+ * `merge` is a no-op success (BACK-603 603.3's spike/evaluate step never
  * touches a git worktree branch — it's an in-place decision, not a code
  * change to merge); the only real work happens in `spawn`.
  */
