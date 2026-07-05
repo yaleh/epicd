@@ -47,6 +47,7 @@ const SAMPLES: Record<string, Partial<Task>> = {
 	pipeline_id: { pipeline_id: "execution" },
 	phase: { phase: "ready" },
 	parent_id: { parent_id: "task-0" },
+	provenance: { provenance: { spawned_from: "task-9" } },
 	dod: { dod: [{ text: "tests pass", checked: false }] },
 	cap: { cap: [{ kind: "safety", value: "L2" }] },
 	role: { role: "compound" },
@@ -78,6 +79,7 @@ describe("FieldDescriptor registry", () => {
 			"pipeline_id",
 			"phase",
 			"parent_id",
+			"provenance",
 			"dod",
 			"cap",
 			"role",
@@ -106,11 +108,20 @@ describe("FieldDescriptor registry", () => {
 
 	it("omits empty/absent engine fields on serialize (presence-gating, constraint 1)", () => {
 		// Empty-string and undefined engine fields must NOT emit a key.
-		const task = baseTask({ pipeline_id: "", phase: undefined, parent_id: "", dod: [], cap: [], refine_log: [] });
+		const task = baseTask({
+			pipeline_id: "",
+			phase: undefined,
+			parent_id: "",
+			provenance: undefined,
+			dod: [],
+			cap: [],
+			refine_log: [],
+		});
 		const frontmatter = serializeFields(task);
 		expect(Object.hasOwn(frontmatter, "pipeline_id")).toBe(false);
 		expect(Object.hasOwn(frontmatter, "phase")).toBe(false);
 		expect(Object.hasOwn(frontmatter, "parent_id")).toBe(false);
+		expect(Object.hasOwn(frontmatter, "provenance")).toBe(false);
 		expect(Object.hasOwn(frontmatter, "dod")).toBe(false);
 		expect(Object.hasOwn(frontmatter, "cap")).toBe(false);
 		expect(Object.hasOwn(frontmatter, "role")).toBe(false);

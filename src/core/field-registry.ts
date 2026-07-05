@@ -282,6 +282,26 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		mcpSchema: { type: "string" },
 	} as FieldDescriptor<string | undefined>,
 	{
+		yamlKey: "provenance",
+		tsName: "provenance",
+		type: "string",
+		// Object-valued (not a plain string) but round-trips the same way every
+		// other presence-gated field does: parse straight from frontmatter,
+		// serialize straight back, omit the key when absent (BACK-603 603.2).
+		parse: (fm) => {
+			const raw = fm.provenance as { spawned_from?: unknown } | undefined;
+			return raw && typeof raw.spawned_from === "string" ? { spawned_from: raw.spawned_from } : undefined;
+		},
+		serialize: (v) => v,
+		present: (task) => Boolean(task.provenance?.spawned_from),
+		mcpSchema: {
+			type: "object",
+			properties: { spawned_from: { type: "string" } },
+			required: ["spawned_from"],
+			description: "Cross-pipeline derivation edge: id of the task in another pipeline this task was spawned from.",
+		},
+	} as FieldDescriptor<{ spawned_from: string } | undefined>,
+	{
 		yamlKey: "dod",
 		tsName: "dod",
 		type: "dod",

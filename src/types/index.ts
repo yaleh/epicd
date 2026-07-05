@@ -87,6 +87,14 @@ export interface Task {
 	pipeline_id?: string;
 	phase?: string; // bare phase name within the pipeline (replaces state)
 	parent_id?: string;
+	/**
+	 * Cross-pipeline derivation edge (BACK-603 603.2). Distinct from `parent_id`,
+	 * which is a same-pipeline decomposition-tree edge (epic → its decomposed
+	 * children): `provenance.spawned_from` records the id of the task in a
+	 * DIFFERENT pipeline that this task was spawned from (e.g. an execution task
+	 * spawned out of a finished exploration spike). Optional; absent by default.
+	 */
+	provenance?: { spawned_from: string };
 	dod?: DoDItem[];
 	cap?: CapMarker[];
 	/**
@@ -177,6 +185,8 @@ export interface TaskCreateInput {
 	pipeline_id?: string;
 	phase?: string;
 	parent_id?: string;
+	/** Cross-pipeline derivation edge (BACK-603 603.2); see `Task.provenance`. */
+	provenance?: { spawned_from: string };
 }
 
 export interface TaskUpdateInput {
@@ -225,6 +235,8 @@ export interface TaskUpdateInput {
 	pipeline_id?: string;
 	phase?: string;
 	parent_id?: string;
+	/** Cross-pipeline derivation edge (BACK-603 603.2); see `Task.provenance`. */
+	provenance?: { spawned_from: string };
 	/**
 	 * Structured executable DoD gates (BACK-613), full-replace semantics
 	 * (mirrors `TaskCreateInput.dodGates`; no add/remove variants).
