@@ -153,3 +153,111 @@ describe("gitMergeBranch — real git merge under test", () => {
 		expect(lines[0]).toContain("Merge branch");
 	});
 });
+
+describe("gitMergeBranch — board-file-only conflicts auto-resolve (BACK-619)", () => {
+	let repoDir: string;
+
+	beforeEach(async () => {
+		repoDir = createUniqueTestDir("merge-board-conflict");
+		await initRepo(repoDir);
+		await mkdir(join(repoDir, "backlog", "tasks"), { recursive: true });
+		await writeFile(join(repoDir, "backlog", "tasks", "t.md"), "---\nstatus: To Do\n---\nbody\n");
+		await $`git -C ${repoDir} add backlog/tasks/t.md`.quiet();
+		await $`git -C ${repoDir} commit -m "add board file"`.quiet();
+	});
+
+	afterEach(async () => {
+		await $`git -C ${repoDir} worktree prune`.quiet().catch(() => {});
+		await rm(repoDir, { recursive: true, force: true });
+	});
+
+	it("board-file-only conflict resolves in favor of main and merges", async () => {
+		await $`git -C ${repoDir} checkout -b task/TASK-1`.quiet();
+		await writeFile(join(repoDir, "backlog", "tasks", "t.md"), "---\nstatus: In Progress\n---\nbranch notes\n");
+		await $`git -C ${repoDir} add backlog/tasks/t.md`.quiet();
+		await $`git -C ${repoDir} commit -m "branch board edit"`.quiet();
+		await $`git -C ${repoDir} checkout main`.quiet();
+
+		await writeFile(join(repoDir, "backlog", "tasks", "t.md"), "---\nstatus: Done\n---\nmain notes\n");
+		await $`git -C ${repoDir} add backlog/tasks/t.md`.quiet();
+		await $`git -C ${repoDir} commit -m "main board edit"`.quiet();
+
+		const mainVersionBefore = await Bun.file(join(repoDir, "backlog", "tasks", "t.md")).text();
+
+		const result = await gitMergeBranch(repoDir, "TASK-1");
+
+		expect(result.merged).toBe(true);
+		expect(result.conflict).toBeFalsy();
+
+		const status = await $`git -C ${repoDir} status --porcelain`.quiet();
+		expect(status.stdout.toString().trim()).toBe("");
+
+		const merged = await Bun.file(join(repoDir, "backlog", "tasks", "t.md")).text();
+		expect(merged).toBe(mainVersionBefore);
+
+		const branches = await $`git -C ${repoDir} branch`.quiet();
+		expect(branches.stdout.toString()).not.toContain("task/TASK-1");
+	});
+
+	it("code-file conflict still aborts to conflict", async () => {
+		await mkdir(join(repoDir, "src"), { recursive: true });
+		await writeFile(join(repoDir, "src", "x.ts"), "export const a = 1;\n");
+		await $`git -C ${repoDir} add src/x.ts`.quiet();
+		await $`git -C ${repoDir} commit -m "add x.ts"`.quiet();
+
+		await $`git -C ${repoDir} checkout -b task/TASK-2`.quiet();
+		await writeFile(join(repoDir, "src", "x.ts"), "export const a = 2;\n");
+		await $`git -C ${repoDir} add src/x.ts`.quiet();
+		await $`git -C ${repoDir} commit -m "branch code edit"`.quiet();
+		await $`git -C ${repoDir} checkout main`.quiet();
+
+		await writeFile(join(repoDir, "src", "x.ts"), "export const a = 3;\n");
+		await $`git -C ${repoDir} add src/x.ts`.quiet();
+		await $`git -C ${repoDir} commit -m "main code edit"`.quiet();
+
+		const result = await gitMergeBranch(repoDir, "TASK-2");
+
+		expect(result.merged).toBe(false);
+		expect(result.conflict).toBe(true);
+
+		const status = await $`git -C ${repoDir} status --porcelain`.quiet();
+		expect(status.stdout.toString().trim()).toBe("");
+
+		const mergeHead = await $`git -C ${repoDir} rev-parse -q --verify MERGE_HEAD`.quiet().catch(() => ({ stdout: "" }));
+		expect(mergeHead.stdout.toString().trim()).toBe("");
+
+		await $`git -C ${repoDir} branch -D task/TASK-2`.quiet().catch(() => {});
+	});
+
+	it("mixed board+code conflict aborts to conflict (code path dominates)", async () => {
+		await mkdir(join(repoDir, "src"), { recursive: true });
+		await writeFile(join(repoDir, "src", "x.ts"), "export const a = 1;\n");
+		await $`git -C ${repoDir} add src/x.ts`.quiet();
+		await $`git -C ${repoDir} commit -m "add x.ts"`.quiet();
+
+		await $`git -C ${repoDir} checkout -b task/TASK-3`.quiet();
+		await writeFile(join(repoDir, "backlog", "tasks", "t.md"), "---\nstatus: In Progress\n---\nbranch notes\n");
+		await writeFile(join(repoDir, "src", "x.ts"), "export const a = 2;\n");
+		await $`git -C ${repoDir} add backlog/tasks/t.md src/x.ts`.quiet();
+		await $`git -C ${repoDir} commit -m "branch board+code edit"`.quiet();
+		await $`git -C ${repoDir} checkout main`.quiet();
+
+		await writeFile(join(repoDir, "backlog", "tasks", "t.md"), "---\nstatus: Done\n---\nmain notes\n");
+		await writeFile(join(repoDir, "src", "x.ts"), "export const a = 3;\n");
+		await $`git -C ${repoDir} add backlog/tasks/t.md src/x.ts`.quiet();
+		await $`git -C ${repoDir} commit -m "main board+code edit"`.quiet();
+
+		const result = await gitMergeBranch(repoDir, "TASK-3");
+
+		expect(result.merged).toBe(false);
+		expect(result.conflict).toBe(true);
+
+		const status = await $`git -C ${repoDir} status --porcelain`.quiet();
+		expect(status.stdout.toString().trim()).toBe("");
+
+		const mergeHead = await $`git -C ${repoDir} rev-parse -q --verify MERGE_HEAD`.quiet().catch(() => ({ stdout: "" }));
+		expect(mergeHead.stdout.toString().trim()).toBe("");
+
+		await $`git -C ${repoDir} branch -D task/TASK-3`.quiet().catch(() => {});
+	});
+});
