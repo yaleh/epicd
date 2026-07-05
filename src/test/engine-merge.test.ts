@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { $ } from "bun";
-import { gitMergeBranch, gitWorktreeRunner } from "../harness/real-primitives.ts";
+import { gitCommitBoardChange, gitMergeBranch, gitWorktreeRunner } from "../harness/real-primitives.ts";
 import { createUniqueTestDir } from "./test-utils.ts";
 
 /** Initialise a minimal git repo with one commit on `main`. */
@@ -259,5 +259,66 @@ describe("gitMergeBranch — board-file-only conflicts auto-resolve (BACK-619)",
 		expect(mergeHead.stdout.toString().trim()).toBe("");
 
 		await $`git -C ${repoDir} branch -D task/TASK-3`.quiet().catch(() => {});
+	});
+});
+
+describe("gitCommitBoardChange — scoped to the completing task's own board file (BACK-621)", () => {
+	let repoDir: string;
+
+	beforeEach(async () => {
+		repoDir = createUniqueTestDir("commit-board-scope");
+		await initRepo(repoDir);
+		await mkdir(join(repoDir, "backlog", "tasks"), { recursive: true });
+		await writeFile(join(repoDir, "backlog", "tasks", "task-a - Title A.md"), "---\nstatus: To Do\n---\na\n");
+		await writeFile(join(repoDir, "backlog", "tasks", "task-b - Title B.md"), "---\nstatus: To Do\n---\nb\n");
+		await $`git -C ${repoDir} add backlog/tasks`.quiet();
+		await $`git -C ${repoDir} commit -m "add board files"`.quiet();
+	});
+
+	afterEach(async () => {
+		await rm(repoDir, { recursive: true, force: true });
+	});
+
+	it("commits only the target task's board file, leaving an unrelated dirty board file untouched", async () => {
+		// Simulate completeTask's phase write to task-a's board file.
+		await writeFile(join(repoDir, "backlog", "tasks", "task-a - Title A.md"), "---\nstatus: Done\n---\na done\n");
+		// Simulate an unrelated, already-dirty, uncommitted claim-edit for task-b.
+		await writeFile(
+			join(repoDir, "backlog", "tasks", "task-b - Title B.md"),
+			"---\nstatus: In Progress\n---\nb claimed\n",
+		);
+
+		await gitCommitBoardChange(repoDir, "TASK-A", "done");
+
+		const log = await $`git -C ${repoDir} log -1 --name-only --pretty=format:`.quiet();
+		const changedFiles = log.stdout
+			.toString()
+			.split("\n")
+			.map((l) => l.trim())
+			.filter(Boolean);
+		expect(changedFiles).toEqual(["backlog/tasks/task-a - Title A.md"]);
+
+		// task-b's dirty state must remain untouched (still dirty, not swept in).
+		const status = await $`git -C ${repoDir} status --porcelain`.quiet();
+		expect(status.stdout.toString()).toContain("backlog/tasks/task-b - Title B.md");
+	});
+
+	it("still commits when only the target file is dirty", async () => {
+		await writeFile(join(repoDir, "backlog", "tasks", "task-a - Title A.md"), "---\nstatus: Done\n---\na done\n");
+
+		await gitCommitBoardChange(repoDir, "TASK-A", "done");
+
+		const log = await $`git -C ${repoDir} log -1 --pretty=format:%s`.quiet();
+		expect(log.stdout.toString()).toBe("board: TASK-A -> done");
+
+		const status = await $`git -C ${repoDir} status --porcelain`.quiet();
+		expect(status.stdout.toString().trim()).toBe("");
+	});
+
+	it("no-ops when the target task has no board file and nothing else is staged", async () => {
+		await expect(gitCommitBoardChange(repoDir, "TASK-NOPE", "done")).resolves.toBeUndefined();
+
+		const log = await $`git -C ${repoDir} log -1 --pretty=format:%s`.quiet();
+		expect(log.stdout.toString()).toBe("add board files");
 	});
 });
