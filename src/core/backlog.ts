@@ -1082,6 +1082,7 @@ export class Core {
 				...(typeof input.pipeline_id === "string" && { pipeline_id: input.pipeline_id }),
 				...(typeof input.phase === "string" && { phase: input.phase }),
 				...(typeof input.parent_id === "string" && { parent_id: input.parent_id }),
+				...(input.provenance && { provenance: input.provenance }),
 			};
 
 			const filePath = await this.writePreparedTask(task, isDraft);
@@ -1239,6 +1240,11 @@ export class Core {
 		applyStringField(input.parent_id, task.parent_id, (next) => {
 			task.parent_id = next;
 		});
+
+		if (input.provenance !== undefined && input.provenance.spawned_from !== task.provenance?.spawned_from) {
+			task.provenance = input.provenance;
+			mutated = true;
+		}
 
 		if (input.dodGates !== undefined) {
 			const nextDod = input.dodGates.map((text) => ({ text: String(text), checked: false }));
