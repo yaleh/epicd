@@ -33,6 +33,20 @@ import { type CochangeOverlap, findCochangeOverlaps, type GitLogPrimitive } from
  *  worker's stdout in `output` so the engine can parse the proposed children. */
 export type SpawnPrimitive = (brief: string, cwd: string) => Promise<CompletionResult>;
 
+/**
+ * Single source of truth for the standard structured DoD gates a decompose-created
+ * child gets when its proposal doesn't declare its own `dodGates` (BACK-649). Reused
+ * both in the brief sent to the decompose worker (buildDecomposeBrief) and as the
+ * fallback in applyProposedChildren, so the two can never drift apart. Mirrors this
+ * project's prose Definition of Done defaults (tsc/check/test), but expressed as
+ * literally runnable shell commands — dod-runner.ts's runDoD shells these out verbatim.
+ */
+export const DEFAULT_CHILD_DOD_GATES: readonly string[] = [
+	"bunx tsc --noEmit",
+	"bun run check .",
+	"bun test --parallel",
+];
+
 /** A child task proposed by the decomposer worker. */
 export interface ProposedChild {
 	title: string;
@@ -41,9 +55,9 @@ export interface ProposedChild {
 	 *  Best-effort and allowed to over-report; used only to compute sibling overlap. */
 	touches?: string[];
 	/** Structured executable DoD gates (BACK-613) for this child. Optional — if omitted,
-	 *  the child is created with no `dod`, and dod-runner.ts's documented safety behavior
-	 *  applies (no dod → engine complete always routes to needs-human). Declaring gates
-	 *  here is the only way a decompose-created child can ever be auto-completed (BACK-634). */
+	 *  the child falls back to DEFAULT_CHILD_DOD_GATES (BACK-649) so it is never created
+	 *  ungated. Declaring gates here lets a child request different/additional commands
+	 *  (e.g. a scoped test file) than the defaults. */
 	dodGates?: string[];
 }
 
@@ -140,16 +154,16 @@ function buildDecomposeBrief(task: Task): string {
 	lines.push(
 		"Emit ONLY a JSON array of children as the last thing in your output:",
 		"```json",
-		'[{"title": "First child title", "description": "what it delivers", "touches": ["path/a.ts"], "dodGates": ["bunx tsc --noEmit", "bun run check .", "bun test <scoped test file>"]}, {"title": "Second child title", "description": "..."}]',
+		`[{"title": "First child title", "description": "what it delivers", "touches": ["path/a.ts"], "dodGates": [${DEFAULT_CHILD_DOD_GATES.map((g) => `"${g}"`).join(", ")}, "bun test <scoped test file>"]}, {"title": "Second child title", "description": "..."}]`,
 		"```",
 		'"touches" is optional: the files/modules you expect this child to touch. Best-effort — ',
 		"over-reporting is fine. It is used only to flag possible overlap between siblings for a",
 		"human to review; it never blocks decomposition.",
-		'"dodGates" is optional but strongly recommended: structured shell commands re-run',
-		"verbatim by `engine complete` to adjudicate done vs needs-human (BACK-634). A child",
-		"created with no dodGates can NEVER be auto-completed — it always routes to needs-human",
-		"by design (dod-runner.ts). Include the project's standard gates plus any test file the",
-		"child is expected to add.",
+		'"dodGates" is optional: structured shell commands re-run verbatim by `engine complete`',
+		"to adjudicate done vs needs-human (BACK-613/634). If omitted, the child falls back to",
+		`the project's standard gates (${DEFAULT_CHILD_DOD_GATES.join(", ")}; BACK-649) — so add`,
+		"dodGates explicitly only when this child needs different or additional commands (e.g. a",
+		"scoped test file).",
 	);
 	if (task.implementationPlan) {
 		lines.push("", "## Implementation Plan (source of child tasks)", task.implementationPlan);
@@ -194,11 +208,17 @@ export async function applyProposedChildren(
 	// Engine creates children with engine fields so the scan can see them. Children
 	// created by decompose are always primitive/leaf tasks.
 	for (const child of children) {
+		// BACK-649: a proposal that omits dodGates still gets the project's standard
+		// structured gates (DEFAULT_CHILD_DOD_GATES) — otherwise the child's task.dod is
+		// empty, runDoD returns [], and engine complete always routes it to needs-human
+		// regardless of whether the implementation is correct. The worker may still
+		// override with its own dodGates (e.g. to add a scoped test file).
+		const dodGates = child.dodGates && child.dodGates.length > 0 ? child.dodGates : DEFAULT_CHILD_DOD_GATES;
 		await core.createTaskFromInput(
 			{
 				title: child.title,
 				...(child.description ? { description: child.description } : {}),
-				...(child.dodGates && child.dodGates.length > 0 ? { dodGates: child.dodGates } : {}),
+				dodGates: [...dodGates],
 				pipeline_id: "execution",
 				phase: "ready",
 				parent_id: task.id,

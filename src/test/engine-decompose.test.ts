@@ -17,8 +17,14 @@ import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { Core } from "../core/backlog.ts";
 import { displayStatus, label } from "../core/field-registry.ts";
-import type { CompletionResult } from "../engine/complete.ts";
-import { findTouchesOverlaps, makeDecomposer, parseProposedChildren } from "../harness/decomposer.ts";
+import { type CompletionResult, completeTask } from "../engine/complete.ts";
+import {
+	DEFAULT_CHILD_DOD_GATES,
+	findTouchesOverlaps,
+	makeDecomposer,
+	parseProposedChildren,
+} from "../harness/decomposer.ts";
+import { runDoD } from "../harness/dod-runner.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
@@ -265,14 +271,41 @@ describe("makeDecomposer (integration, real Core)", () => {
 		]);
 	});
 
-	it("BACK-634: a proposed child WITHOUT dodGates gets no task.dod (documents the needs-human-by-default gap)", async () => {
+	it("BACK-649: a proposed child WITHOUT dodGates falls back to the project's standard structured dod (no more false needs-human)", async () => {
 		const epic = await createEpic(core, "Epic with un-gated child");
 		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
 		const decompose = makeDecomposer(fakeSpawn, core);
 		await decompose(epic, projectRoot);
 
 		const [child] = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
-		expect(child?.dod ?? []).toEqual([]);
+		expect(child?.dod).toEqual(DEFAULT_CHILD_DOD_GATES.map((text) => ({ text, checked: false })));
+	});
+
+	it("BACK-649: runDoD/completeTask no longer falsely route a decompose-created child to needs-human", async () => {
+		const epic = await createEpic(core, "Epic with un-gated child (runDoD)");
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const [child] = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		if (!child) throw new Error("expected a child to be created");
+
+		// Trivially-true commands stand in for the project's real gates so this test
+		// stays fast/hermetic — the point is that dod is non-empty and runDoD executes it.
+		const trivialTask: Task = { ...child, dod: DEFAULT_CHILD_DOD_GATES.map(() => ({ text: "true", checked: false })) };
+		const dodResults = await runDoD(trivialTask, projectRoot);
+		expect(dodResults.length).toBeGreaterThan(0);
+		expect(dodResults.every((r) => r.passed)).toBe(true);
+
+		const updates: string[] = [];
+		const store = {
+			getTask: async () => trivialTask,
+			updateTask: async (t: Task) => {
+				updates.push(t.phase ?? "");
+			},
+		};
+		await completeTask(child.id, { success: true, dodResults }, store);
+		expect(updates).not.toContain("needs-human");
 	});
 });
 
