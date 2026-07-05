@@ -129,5 +129,13 @@ describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
 		it("does not hardcode the literal 'Basic: Done' status", () => {
 			expect(contents).not.toContain("Basic: Done");
 		});
+
+		it("Step 6 commit guidance excludes the board file from `git add` (BACK-619)", () => {
+			expect(contents).toMatch(/:!backlog\/tasks|:\(exclude\)backlog\/tasks/);
+		});
+
+		it("does not instruct a bare `git add -A && git commit` without excluding the board file (BACK-619)", () => {
+			expect(contents).not.toMatch(/git add -A && git commit(?!.*backlog\/tasks)/);
+		});
 	});
 });

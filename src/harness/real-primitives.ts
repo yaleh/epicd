@@ -99,6 +99,60 @@ export async function gitMergeBranch(
 		return { merged: true };
 	}
 
+	// Failure: check whether every unmerged path is a board file under
+	// backlog/tasks/ — if so, the collision is the structural engine-owns-
+	// the-board-file conflict (BACK-619), not a genuine code conflict.
+	// Resolve those paths in favor of main and finish the merge. Any other
+	// unmerged path (including other backlog/ subtrees) still escalates.
+	const unmergedProc = Bun.spawn(["git", "diff", "--name-only", "--diff-filter=U"], {
+		cwd: repoPath,
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	const unmergedOut = await new Response(unmergedProc.stdout).text();
+	await unmergedProc.exited;
+	const unmergedPaths = unmergedOut
+		.split("\n")
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0);
+
+	const isBoardOnly = unmergedPaths.length > 0 && unmergedPaths.every((path) => path.startsWith("backlog/tasks/"));
+
+	if (isBoardOnly) {
+		const checkoutOurs = Bun.spawn(["git", "checkout", "--ours", "--", ...unmergedPaths], {
+			cwd: repoPath,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const checkoutCode = await checkoutOurs.exited;
+
+		const add = Bun.spawn(["git", "add", "--", ...unmergedPaths], {
+			cwd: repoPath,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const addCode = await add.exited;
+
+		const commit = Bun.spawn(["git", "commit", "--no-edit"], {
+			cwd: repoPath,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const commitCode = await commit.exited;
+
+		if (checkoutCode === 0 && addCode === 0 && commitCode === 0) {
+			const del = Bun.spawn(["git", "branch", "-d", branchName], {
+				cwd: repoPath,
+				stdout: "pipe",
+				stderr: "pipe",
+			});
+			await del.exited; // best-effort
+			return { merged: true };
+		}
+
+		// Resolution attempt itself failed unexpectedly — fall through to abort.
+	}
+
 	// Failure: abort any partial merge so the repo stays clean
 	const abort = Bun.spawn(["git", "merge", "--abort"], {
 		cwd: repoPath,

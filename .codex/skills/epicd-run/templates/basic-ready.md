@@ -25,7 +25,10 @@ you just read for every `$WT_PATH` below (the Agent has no native cwd — it mus
 > **Constraints**
 > - Work exclusively inside `$WT_PATH`. Do NOT run `git merge` or `git push`.
 > - Do NOT spawn sub-agents (the Agent tool is not available to you).
-> - After all work, run `git add -A && git commit` if there are changes.
+> - After all work, run `git add -A -- . ':!backlog/tasks' && git commit` if there are changes
+>   (board state is engine-owned — `main`'s `backlog/tasks/**` is authoritative and `engine complete`
+>   commits it after merge; never stage or commit the task board file on the branch. `--append-notes`
+>   below is for the human-readable progress trail only, not for committing).
 > - Do NOT run `bun run cli task edit` with `--status`/`--dod`/`--check-dod` — the target task's terminal
 >   state is a merge gate owned by `engine complete`, which independently re-runs every DoD shell-gate
 >   in the worktree before merging (ENG-8). You MAY use `bun run cli task edit __TASK_ID__
