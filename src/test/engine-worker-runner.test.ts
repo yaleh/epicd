@@ -139,7 +139,12 @@ describe("Absence: engine core has no direct Agent/subprocess spawn", () => {
 	it("src/engine contains no Agent() call", async () => {
 		const engineDir = join(import.meta.dir, "../engine");
 		const files = await readdir(engineDir);
-		const tsFiles = files.filter((f) => f.endsWith(".ts"));
+		// dispatch.ts is the invocation-prompt AUTHOR (BACK-625 / ADR-015): it embeds the
+		// literal `Agent(run_in_background=true)` spawn instruction inside a payload STRING for
+		// the harness/`claude -p` to execute. That is instruction text, not a call — the engine
+		// still never spawns. It has zero imports and is covered by the child_process/Bun.spawn
+		// absence check below, so excluding it from this string-scan does not weaken the boundary.
+		const tsFiles = files.filter((f) => f.endsWith(".ts") && f !== "dispatch.ts");
 
 		for (const file of tsFiles) {
 			const content = await Bun.file(join(engineDir, file)).text();

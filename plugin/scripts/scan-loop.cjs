@@ -22,13 +22,18 @@
  *   epic-draft:TASK-N        status "Epic: Draft"   (draft mode only) → worker claims
  *                            (→ "Epic: Refining") then inline-calls epic-to-backlog.
  *
- * NOTE (BACK-614): the `basic-ready` channel's scan authority is the epicd engine.
- * `engine scan --once` reuses Interpreter.scan over (pipeline_id, phase) — see
- * src/engine/scan.ts — and emits one minimal machine line "basic-ready:<id>" per
- * actionable task; engineScanOnce (below) reads those lines directly. Template
- * rendering / the `---EVENT---` transport stays HERE (renderEvent) — one renderer, not
- * two. `epic-*`/draft/eval channels are out of scope (still baime's file-predicate scan,
- * reference-only).
+ * NOTE (BACK-614 / BACK-625 / ADR-015): the `basic-ready` channel's scan authority AND
+ * its dispatch payload are BOTH the epicd engine. `engine scan --once` reuses
+ * Interpreter.scan over (pipeline_id, phase) — src/engine/scan.ts — and emits one minimal
+ * machine line "basic-ready:<id>" per actionable task; engineScanOnce (below) reads those
+ * for edge-dedup. On each NEW basic-ready key, engineDispatch (below) fetches the
+ * self-contained instruction from `engine dispatch <id>` (src/engine/dispatch.ts) and this
+ * daemon passes it through verbatim. This daemon is PURE TRANSPORT: it authors no
+ * instruction text, reads no template file — it only dedups on the stable machine key and
+ * adds the `---EVENT---` framing (the invocation-adapter's job; ADR-015 D3/D5). The engine's
+ * dispatch output is exactly the block a Monitor seat OR raw `claude -p` executes
+ * (swap-litmus). `epic-*`/draft/eval channels stay bare `prefix:id` (out of scope until
+ * their handlers move to the engine too).
  *
  * CLI flag --mode <ready|draft> selects which channel GROUP this scanner instance polls
  * (MODE_CHANNELS below). Default 'ready' — identical channel set/behavior to the pre-mode
@@ -79,7 +84,6 @@ function parseArgs(argv) {
     interval:       2,
     scanOnce:       false,
     reviewInterval: 10,
-    templatesDir:   null,
     mode:           'ready',  // 'ready' (default) | 'draft' — selects MODE_CHANNELS group
   };
   for (let i = 2; i < argv.length; i++) {
@@ -91,15 +95,10 @@ function parseArgs(argv) {
       case '--scan-once':        args.scanOnce = true; break;
       case '--loop':             args.scanOnce = false; break;
       case '--review-interval':  args.reviewInterval = parseInt(argv[++i], 10); break;
-      case '--templates-dir':    args.templatesDir = argv[++i]; break;
       case '--mode':              args.mode = argv[++i] || 'ready'; break;
     }
   }
   return args;
-}
-
-function resolveTemplatesDir(args) {
-  return args.templatesDir || path.join(__dirname, '..', 'skills', 'loop-backlog', 'templates');
 }
 
 // resolveTasksDir: self-resolving tasks-dir (ADR-012 §151 / TASK-232). Returns
@@ -308,45 +307,21 @@ function convergeSingleton(selfPid, tasksDir, mode) {
   killAndEscalate(victims);
 }
 
-function renderEvent(prefix, id, templatesDir, repoRoot, tasksDir = null) {
-  const templatePath = path.join(templatesDir, prefix + '.md');
+// engineDispatch: fetch the self-contained basic-ready dispatch payload for ONE task
+// from the engine (BACK-625 / ADR-015). The engine authors the payload (prompt); this
+// daemon is pure transport — it never reads a template file, never substitutes. The
+// returned block's first line is the `basic-ready:<id>` machine key, followed by the
+// self-contained instruction (the exact bytes a Monitor seat or `claude -p` executes).
+// Best-effort: any spawn/engine failure degrades to the bare `basic-ready:<id>` line so a
+// transient CLI hiccup emits a still-actionable (if terse) event instead of wedging.
+function engineDispatch(repoRoot, id) {
   try {
-    const tmpl = fs.readFileSync(templatePath, 'utf8');
-    // Bake in absolute paths so the emitted event line is self-contained.
-    // Claude runs each event line in a fresh Bash shell that does NOT inherit
-    // env vars from the daemon (Bash-tool shells re-init from the user profile),
-    // so a literal $BAIME_SCRIPTS / ${REPO_ROOT} would expand to empty there.
-    // __dirname IS the BAIME_SCRIPTS dir (handler scripts are co-located here).
-
-    // Extract task title — safe-degrade to '' on any miss or exception.
-    // Title replacement runs LAST so a title containing __TASK_ID__ / $REPO_ROOT
-    // / $BAIME_SCRIPTS is not re-expanded.
-    let title = '';
-    if (tasksDir) {
-      try {
-        const filePath = findTaskFileById(tasksDir, id);
-        if (filePath) {
-          const content = fs.readFileSync(filePath, 'utf8');
-          const m = content.match(/^title:\s*(.+)$/m);
-          if (m) {
-            title = m[1].trim();
-            // Strip a single matching pair of surrounding quotes (' or ")
-            if ((title.startsWith("'") && title.endsWith("'")) ||
-                (title.startsWith('"') && title.endsWith('"'))) {
-              title = title.slice(1, -1);
-            }
-          }
-        }
-      } catch (_) { /* safe-degrade: title stays '' */ }
-    }
-
-    return tmpl
-      .replace(/__TASK_ID__/g, id)
-      .replace(/\$\{BAIME_SCRIPTS\}|\$BAIME_SCRIPTS/g, __dirname)
-      .replace(/\$\{REPO_ROOT\}|\$REPO_ROOT/g, repoRoot)
-      .replace(/__TASK_TITLE__/g, title);
-  } catch (e) {
-    return prefix + ':' + id;  // safe fallback
+    const out = execSync('bun src/cli.ts engine dispatch ' + id,
+      { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    const trimmed = out.replace(/\n+$/, '');
+    return trimmed || ('basic-ready:' + id);
+  } catch (_) {
+    return 'basic-ready:' + id;  // safe fallback
   }
 }
 
@@ -417,17 +392,6 @@ function isEpicDraft(filepath) {
   const meta = readTaskMeta(filepath);
   if (!meta) return false;
   return meta.status === EPIC_DRAFT_STATUS;
-}
-
-// Locate a task .md file by its task id (e.g. "TASK-3") within tasksDir.
-function findTaskFileById(tasksDir, taskId) {
-  let entries;
-  try { entries = fs.readdirSync(tasksDir); } catch { return null; }
-  for (const entry of entries) {
-    if (!entry.endsWith('.md')) continue;
-    if (parseTaskId(entry) === taskId) return path.join(tasksDir, entry);
-  }
-  return null;
 }
 
 // scanEvalDueEpics: single whole-dir scan that returns a Set of epic IDs where
@@ -545,6 +509,43 @@ function logStaleInProgress(tasksDir, id) {
   } catch (e) { /* best-effort logging */ }
 }
 
+// trackEvents: edge-triggered acquisition dedup + edge-clear — the self-clearing bridge
+// (ADR-009 lineage / ADR-015 layer 1). Given the prior `notified` state (Map<prefix,
+// Set<id>>, pre-seeded with the mode's channels) and the current pulse `lines`, returns the
+// newly-actionable {prefix, id} (rising edge only) and mutates `notified` to match: it adds
+// each freshly-emitted id and edge-clears any id no longer present. So a task that leaves the
+// emit set (e.g. `engine complete` advances its phase off `ready`) drops out of `notified`
+// and will re-emit if it ever becomes actionable again — while a still-present (claimed,
+// In-Progress) task is NOT re-dispatched. This layer only ever inspects the machine key; it
+// never looks at the dispatch payload (ADR-015 D3/D5). Only pre-seeded prefixes emit.
+function trackEvents(notified, lines) {
+  const current = new Map();
+  for (const line of lines) {
+    const colon = line.indexOf(':');
+    if (colon < 0) continue;
+    const prefix = line.slice(0, colon);
+    const id     = line.slice(colon + 1);
+    if (!current.has(prefix)) current.set(prefix, new Set());
+    current.get(prefix).add(id);
+  }
+  const fresh = [];
+  for (const [prefix, ids] of current) {
+    const seen = notified.get(prefix);
+    if (!seen) continue; // channel not polled in this mode — never emit
+    for (const id of ids) {
+      if (!seen.has(id)) { fresh.push({ prefix, id }); seen.add(id); }
+    }
+  }
+  // edge-clear ids no longer actionable
+  for (const [prefix, seen] of notified) {
+    const cur = current.get(prefix);
+    for (const id of [...seen]) {
+      if (!cur || !cur.has(id)) seen.delete(id);
+    }
+  }
+  return fresh;
+}
+
 /**
  * Compute current actionable event lines.
  * Returns array of strings like "basic-ready:TASK-N".
@@ -618,6 +619,7 @@ function computePulseLines(tasksDir, opts) {
 module.exports = {
   parseArgs,
   engineScanOnce,
+  engineDispatch,
   isEpicReady,
   isBasicDraft,
   isEpicDraft,
@@ -626,11 +628,10 @@ module.exports = {
   isInProgress,
   readClaimedAt,
   scanIds,
+  trackEvents,
   computePulseLines,
   isReviewDue,
   computeReviewDueLine,
-  resolveTemplatesDir,
-  renderEvent,
   logStaleInProgress,
   resolveTasksDir,
   selfBootstrap,
@@ -706,7 +707,6 @@ if (require.main === module) {
     const notified = new Map(); // prefix -> Set<id>
     const channelPrefixes = MODE_CHANNELS[args.mode] || MODE_CHANNELS.ready;
     for (const p of channelPrefixes) notified.set(p, new Set());
-    const templatesDir = resolveTemplatesDir(args);
 
     function tick() {
       if (fs.existsSync(stopFile)) {
@@ -746,36 +746,17 @@ if (require.main === module) {
       // in this scanner. See plugin/skills/loop-draft/SKILL.md.
 
       const lines = computePulseLines(tasksDir, args);
-      // Parse prefix from each line and track new events
-      for (const line of lines) {
-        const colon = line.indexOf(':');
-        if (colon < 0) continue;
-        const prefix = line.slice(0, colon);
-        const id     = line.slice(colon + 1);
-        const seen   = notified.get(prefix);
-        if (seen && !seen.has(id)) {
-          if (prefix === 'stale-in-progress') logStaleInProgress(tasksDir, id);
-          const rendered = renderEvent(prefix, id, templatesDir, repoRoot, tasksDir);
-          process.stdout.write(rendered + '\n---EVENT---\n');
-          seen.add(id);
-        }
-      }
-      // Remove IDs that are no longer actionable (edge-clear)
-      const currentIds = new Map();
-      for (const line of lines) {
-        const colon = line.indexOf(':');
-        if (colon < 0) continue;
-        const prefix = line.slice(0, colon);
-        const id     = line.slice(colon + 1);
-        if (!currentIds.has(prefix)) currentIds.set(prefix, new Set());
-        currentIds.get(prefix).add(id);
-      }
-      for (const [prefix, seen] of notified) {
-        for (const id of [...seen]) {
-          if (!currentIds.has(prefix) || !currentIds.get(prefix).has(id)) {
-            seen.delete(id);
-          }
-        }
+      // Edge-triggered dedup + edge-clear (self-clearing bridge). trackEvents returns only
+      // the rising-edge {prefix, id}; the payload is fetched/built here (transport layer).
+      for (const { prefix, id } of trackEvents(notified, lines)) {
+        if (prefix === 'stale-in-progress') logStaleInProgress(tasksDir, id);
+        // basic-ready payload is authored by the engine (BACK-625 / ADR-015); this daemon
+        // is pure transport. Other channels stay bare `prefix:id` (out of scope until their
+        // handlers move to the engine too). `---EVENT---` framing is the adapter's job.
+        const block = prefix === 'basic-ready'
+          ? engineDispatch(repoRoot, id)
+          : (prefix + ':' + id);
+        process.stdout.write(block + '\n---EVENT---\n');
       }
     }
 

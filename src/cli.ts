@@ -4563,6 +4563,31 @@ engineCmd
 	});
 
 engineCmd
+	.command("dispatch <taskId>")
+	.description(
+		"emit the self-contained basic-ready dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Payload is authored here, not by scan-loop templates.",
+	)
+	.action(async (taskId: string) => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { renderBasicReadyDispatch } = await import("./engine/dispatch.ts");
+
+			const core = new Core(cwd);
+			const task = await core.getTask(taskId);
+			if (!task) {
+				console.error(`engine dispatch: task ${taskId} not found`);
+				process.exitCode = 1;
+				return;
+			}
+			process.stdout.write(`${renderBasicReadyDispatch(task.id, task.title ?? "", cwd)}\n`);
+		} catch (err) {
+			console.error("engine dispatch failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
 	.command("complete")
 	.description(
 		"worker→engine completion handshake: re-run DoD in the worktree and merge under lock (ENG-8), or route to needs-human",

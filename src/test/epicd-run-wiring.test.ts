@@ -1,20 +1,19 @@
 /**
- * epicd-run wiring test – BACK-614 (crystallization norm; was BACK-605.8 Phase C)
+ * epicd-run wiring test – BACK-614 (crystallization norm); flipped by BACK-625 / ADR-015.
  *
  * Asserts that:
- *  (a) plugin/scripts/scan-loop.js's board-scanning predicate reads `engine
- *      watch`'s machine lines instead of hardcoding baime's "basic: ready"
- *      status string, while its runtime hardening (---EVENT--- delimiter
- *      protocol, renderEvent templating, edge-triggered notified dedup, EPIPE
- *      self-reap, convergeSingleton single-instance enforcement) survives.
- *  (b) .codex/skills/epicd-run/SKILL.md is the baime-minimal form: a SINGLE
- *      persistent Monitor calling scan-loop.js (a script — NOT inline bash),
- *      with no `while true` loop, no `engine scan --once` carving, and no
- *      retired claude-subprocess wiring.
- *  (c) .codex/skills/epicd-run/templates/basic-ready.md describes the
- *      worktree + background Agent + .agent-done sentinel + engine complete
- *      flow, and no longer references claude --print or a hardcoded status
- *      literal.
+ *  (a) plugin/scripts/scan-loop.cjs is PURE TRANSPORT: it reads the engine's scan
+ *      lines and dispatch payload (never a template), while its runtime hardening
+ *      (---EVENT--- delimiter protocol, edge-triggered notified dedup, EPIPE self-reap,
+ *      convergeSingleton single-instance enforcement) survives. It no longer authors
+ *      instruction text — renderEvent / resolveTemplatesDir / template-dir reads are gone.
+ *  (b) .codex/skills/epicd-run/SKILL.md is the baime-minimal form: a SINGLE persistent
+ *      Monitor calling scan-loop.cjs (a script — NOT inline bash), with no `while true`
+ *      loop, no `engine scan --once` carving, and no retired claude-subprocess wiring.
+ *  (c) The basic-ready dispatch payload is authored by the ENGINE (src/engine/dispatch.ts),
+ *      not the .codex template: the engine block describes the worktree + background Agent +
+ *      .agent-done sentinel + engine complete flow, and the template file is retired as the
+ *      dispatch authority (BACK-625 / ADR-015 D3).
  */
 
 import { describe, expect, it } from "bun:test";
@@ -27,24 +26,34 @@ function read(relPath: string): string {
 	return readFileSync(join(repoRoot, relPath), "utf8");
 }
 
-describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
-	describe("plugin/scripts/scan-loop.cjs", () => {
+describe("epicd-run wiring (BACK-625 / ADR-015)", () => {
+	describe("plugin/scripts/scan-loop.cjs — pure transport", () => {
 		const contents = read("plugin/scripts/scan-loop.cjs");
 
-		it("shells out to `engine scan` as its scan source", () => {
+		it("shells out to `engine scan` as its scan (dedup) source", () => {
 			expect(contents).toContain("engine scan");
+		});
+
+		it("shells out to `engine dispatch` for the basic-ready payload (engine authors it)", () => {
+			expect(contents).toContain("engine dispatch");
 		});
 
 		it("no longer hardcodes baime's 'basic: ready' status predicate literal", () => {
 			expect(contents.toLowerCase()).not.toContain("basic: ready");
 		});
 
-		it("preserves the ---EVENT--- delimiter protocol", () => {
+		it("preserves the ---EVENT--- delimiter protocol (transport framing is the adapter's job)", () => {
 			expect(contents).toContain("---EVENT---");
 		});
 
-		it("preserves renderEvent templating", () => {
-			expect(contents).toContain("renderEvent");
+		it("no longer authors instruction text: renderEvent is gone", () => {
+			expect(contents).not.toContain("renderEvent");
+		});
+
+		it("no longer reads a template directory: resolveTemplatesDir / templatesDir / --templates-dir are gone", () => {
+			expect(contents).not.toContain("resolveTemplatesDir");
+			expect(contents).not.toContain("templatesDir");
+			expect(contents).not.toContain("--templates-dir");
 		});
 
 		it("preserves edge-triggered notified dedup", () => {
@@ -82,7 +91,7 @@ describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
 			expect(body).not.toContain("while true");
 		});
 
-		it("does NOT carve `engine scan --once` into the skill (that lives in scan-loop.js)", () => {
+		it("does NOT carve `engine scan --once` into the skill (that lives in scan-loop.cjs)", () => {
 			expect(body).not.toContain("engine scan --once");
 		});
 
@@ -103,39 +112,47 @@ describe("epicd-run wiring (BACK-605.8 Phase C)", () => {
 		});
 	});
 
-	describe(".codex/skills/epicd-run/templates/basic-ready.md", () => {
-		const contents = read(".codex/skills/epicd-run/templates/basic-ready.md");
+	describe("src/engine/dispatch.ts — the basic-ready dispatch authority", () => {
+		const contents = read("src/engine/dispatch.ts");
 
-		it("describes the worktree step", () => {
-			expect(contents).toContain("worktree");
+		it("emits the machine key as the first payload line (basic-ready:<id>)", () => {
+			expect(contents).toContain("basic-ready:");
 		});
 
-		it("describes spawning a background Agent", () => {
-			expect(contents).toContain("Agent");
-		});
-
-		it("describes the engine complete handoff", () => {
+		it("describes the worktree + background Agent + .agent-done sentinel + engine complete flow", () => {
+			expect(contents).toContain("handle-basic-ready.sh");
+			expect(contents).toContain("Agent(run_in_background=true)");
+			expect(contents).toContain(".agent-done-");
 			expect(contents).toContain("engine complete");
 		});
 
-		it("describes waiting for the .agent-done sentinel", () => {
-			expect(contents).toContain(".agent-done");
+		it("keeps the BACK-619 board-file exclusion in the commit guidance", () => {
+			expect(contents).toMatch(/:!backlog\/tasks|:\(exclude\)backlog\/tasks/);
 		});
 
 		it("does not reference `claude --print`", () => {
 			expect(contents).not.toContain("claude --print");
 		});
 
-		it("does not hardcode the literal 'Basic: Done' status", () => {
-			expect(contents).not.toContain("Basic: Done");
+		it("is distribution-agnostic: authors the payload in-code, no template file read", () => {
+			// No filesystem read and no __dirname-relative path lookup — the payload is a
+			// compiled-in template literal (prose mentions of the words are fine; usage is not).
+			expect(contents).not.toContain("readFileSync");
+			expect(contents).not.toContain("readFile(");
+			expect(contents).not.toContain("path.join(__dirname");
+		});
+	});
+
+	describe(".codex/skills/epicd-run/templates/basic-ready.md — retired", () => {
+		const contents = read(".codex/skills/epicd-run/templates/basic-ready.md");
+
+		it("is no longer the dispatch authority (no substitution tokens)", () => {
+			expect(contents).not.toContain("__TASK_ID__");
+			expect(contents).not.toContain("__TASK_TITLE__");
 		});
 
-		it("Step 6 commit guidance excludes the board file from `git add` (BACK-619)", () => {
-			expect(contents).toMatch(/:!backlog\/tasks|:\(exclude\)backlog\/tasks/);
-		});
-
-		it("does not instruct a bare `git add -A && git commit` without excluding the board file (BACK-619)", () => {
-			expect(contents).not.toMatch(/git add -A && git commit(?!.*backlog\/tasks)/);
+		it("points at the engine as the current authority", () => {
+			expect(contents).toContain("engine dispatch");
 		});
 	});
 });

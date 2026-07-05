@@ -1,11 +1,11 @@
 ---
 id: BACK-625
 title: engine 产出自包含派发指令，scan-loop 瘦身为纯传输：解耦消息获取与任务执行
-status: 'Basic: Proposal'
+status: 'Basic: In Progress'
 assignee:
   - '@claude'
 created_date: '2026-07-05 02:30'
-updated_date: '2026-07-05 02:54'
+updated_date: '2026-07-05 03:29'
 labels:
   - 'kind:refactor'
 dependencies: []
@@ -59,16 +59,16 @@ acquisition（内存、电平再浮现）与 execution（磁盘、durable 已认
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 engine scan --loop 路径为每个 actionable basic-ready 任务发出【首行 basic-ready:<id> 机器键 + 其后自包含多行载荷】；载荷含 handle-basic-ready.sh 的绝对路径命令、spawn agent 指令、engine complete 收尾、反分诊守则
-- [ ] #2 engine scan --once 仍只发裸 basic-ready:<id>（探测/测试语义不变）
-- [ ] #3 scan-loop.cjs 删除 renderEvent / resolveTemplatesDir / --templates-dir / 模板目录读取；tick 按首行机器键做 edge-dedup 并整块透传载荷 + ---EVENT---
-- [ ] #4 自清除桥保留：被 claim 的任务（离开 phase=ready）在下一 tick 掉出 emit 集并 edge-clear 出 notified，不再重发（回归测试覆盖）
-- [ ] #5 epicd-run SKILL 的 Monitor description 删除 'Each stdout line is a self-contained instruction — follow it verbatim'；反分诊守则改由载荷承载
-- [ ] #6 分发无关正确性：载荷生成不依赖任何 __dirname 相对的外部文件查找，npm 安装形态（scripts/*.cjs）与单二进制 build 下均产出完整载荷
-- [ ] #7 worker 执行守卫（flock/caps/status）与 handle-basic-ready.sh、engine complete 不改；BACK-624 式 basic-ready→claim→执行→complete 全链路端到端仍通过
-- [ ] #8 swap-litmus（分层验收锚）：engine 对一个 actionable 任务的输出（机器键 + 自包含载荷）足以驱动任一实现——Monitor 多路复用 seat 或裸 `claude -p <载荷>`——而 engine 一行不改。载荷即 -p 入参，monitor 对其内容 agnostic
-- [ ] #9 存活/单例/自清除机械（EPIPE 自愈、singleton reap、level-trigger 电平再浮现）是 Monitor 适配器专属，留在 scan-loop，绝不进 engine；engine 只按 (pipeline_id, phase→machine-actor) 谓词产 emit
-- [ ] #10 翻转 L1 守护测试 src/test/epicd-run-wiring.test.ts：现断言 'preserves renderEvent templating'（line 46-47）+ 依赖 .codex/skills/epicd-run/templates/basic-ready.md 存在——这是锁死旧模板架构的静态不变量。改为断言 scan-loop.cjs 无 renderEvent/templatesDir、engine scan 产自包含载荷、模板文件不再是 dispatch 权威
+- [x] #1 engine scan --loop 路径为每个 actionable basic-ready 任务发出【首行 basic-ready:<id> 机器键 + 其后自包含多行载荷】；载荷含 handle-basic-ready.sh 的绝对路径命令、spawn agent 指令、engine complete 收尾、反分诊守则
+- [x] #2 engine scan --once 仍只发裸 basic-ready:<id>（探测/测试语义不变）
+- [x] #3 scan-loop.cjs 删除 renderEvent / resolveTemplatesDir / --templates-dir / 模板目录读取；tick 按首行机器键做 edge-dedup 并整块透传载荷 + ---EVENT---
+- [x] #4 自清除桥保留：被 claim 的任务（离开 phase=ready）在下一 tick 掉出 emit 集并 edge-clear 出 notified，不再重发（回归测试覆盖）
+- [x] #5 epicd-run SKILL 的 Monitor description 删除 'Each stdout line is a self-contained instruction — follow it verbatim'；反分诊守则改由载荷承载
+- [x] #6 分发无关正确性：载荷生成不依赖任何 __dirname 相对的外部文件查找，npm 安装形态（scripts/*.cjs）与单二进制 build 下均产出完整载荷
+- [x] #7 worker 执行守卫（flock/caps/status）与 handle-basic-ready.sh、engine complete 不改；BACK-624 式 basic-ready→claim→执行→complete 全链路端到端仍通过
+- [x] #8 swap-litmus（分层验收锚）：engine 对一个 actionable 任务的输出（机器键 + 自包含载荷）足以驱动任一实现——Monitor 多路复用 seat 或裸 `claude -p <载荷>`——而 engine 一行不改。载荷即 -p 入参，monitor 对其内容 agnostic
+- [x] #9 存活/单例/自清除机械（EPIPE 自愈、singleton reap、level-trigger 电平再浮现）是 Monitor 适配器专属，留在 scan-loop，绝不进 engine；engine 只按 (pipeline_id, phase→machine-actor) 谓词产 emit
+- [x] #10 翻转 L1 守护测试 src/test/epicd-run-wiring.test.ts：现断言 'preserves renderEvent templating'（line 46-47）+ 依赖 .codex/skills/epicd-run/templates/basic-ready.md 存在——这是锁死旧模板架构的静态不变量。改为断言 scan-loop.cjs 无 renderEvent/templatesDir、engine scan 产自包含载荷、模板文件不再是 dispatch 权威
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -100,11 +100,31 @@ acquisition（内存、电平再浮现）与 execution（磁盘、durable 已认
 **判定无需改**：
 - ADR-012 引用 baime ADR-017（ENG-8 信任模型）—— 与本定位正交，无冲突。
 - "monitor 驱动的 Claude Code"措辞（use-case-model §5、multi-lane proposal）—— 语义是"经 monitor 驱动的 CC"，非"monitor 即 driver"，ADR-015 已澄清，保留。
+
+## 决策：不修路径，删层（2026-07-05 确认）
+
+原始症状是 resolveTemplatesDir 硬编码默认路径找不到模板目录 → 所有事件走 fallback。曾考虑的方案是『修路径解析，让它在 dev/npm/binary 三种分发形态下都能定位模板目录』。**此方案否决。**
+
+理由：模板层本身是范畴错误（ADR-015 D3——prompt authoring 归 engine，不归 monitor 适配器），无论路径怎么修都是让一个本不该存在的机制运转起来。修路径 = 给要删的层续命。
+
+**定案：不修 resolveTemplatesDir 路径解析；直接删除整个模板层（renderEvent / resolveTemplatesDir / --templates-dir / basic-ready.md 作为 dispatch 权威）；改由 engine scan 直接输出自包含 payload。** AC #6『分发无关正确性』因此不再靠修路径达成，而是靠『载荷生成不依赖任何 __dirname 相对的外部文件查找』——删层是达成 AC #6 的手段本身。
+
+## 实现完成（2026-07-05）
+
+引入 `engine dispatch <id>`（src/engine/dispatch.ts）作为 basic-ready 派发载荷的唯一权威，载荷是编译进引擎的模板字面量（无 __dirname/readFileSync 查找 → 分发无关，AC #6；CLI packaging 测试证明其编进单二进制）。scan-loop.cjs 瘦身为纯传输：删除 renderEvent / resolveTemplatesDir / --templates-dir / findTaskFileById / templatesDir 管线；新增 engineDispatch()（按新机器键调 `engine dispatch` 取整块载荷透传）与 trackEvents()（从 tick 内联抽出的边沿去重+边沿清除纯函数，使自清除桥可单测）。
+
+- 层次落位：`engine scan --once` 出裸机器键（去重源，AC #2 未动）→ 层 1；`engine dispatch <id>` 出【机器键首行 + 自包含指令】→ 层 2（引擎）；handle-basic-ready.sh flock/.caps + engine complete 未动 → 层 3（AC #7/#9）。swap-litmus（AC #8）：`engine dispatch` 的 stdout 即 `claude -p` 的入参。
+- 决策落地：不修 resolveTemplatesDir 路径，直接删层；basic-ready.md 降为指向 `engine dispatch` 的人类指针文档（非派发权威）。
+- SKILL Monitor description 去掉『self-contained instruction — follow it verbatim』meta 话术；反分诊守则（不要 arm/不要问确认）随载荷承载（AC #5）。
+- 测试：翻转 epicd-run-wiring.test.ts L1 守护（现断言 scan-loop 无 renderEvent/templatesDir、dispatch.ts 为载荷权威、模板已退役，AC #10）；新增 engine-dispatch.test.ts（自包含载荷/CLI e2e/trackEvents 自清除桥/scanReadyLines 引擎边沿自清除，AC #1/#4/#8）；engine-spawn-seam+worker-runner 的『engine 无 Agent() 调用』absence 测试排除 dispatch.ts（它是调用 prompt 的作者，Agent(...) 是指令文本非调用；无 import，仍受 child_process/Bun.spawn absence 覆盖）。
+- 验证：bunx tsc --noEmit 干净；bun run check 干净；相关 67 测试全绿；全量套件仅 parallel 负载 flaky（隔离运行全通过，含 CLI packaging 单二进制构建）。
+
+范围内非目标保持：epic-ready/epic-eval-due/review-due 仍出裸 prefix:id（其 handler 尚未下沉引擎）。
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
+- [x] #1 bunx tsc --noEmit passes when TypeScript touched
+- [x] #2 bun run check . passes when formatting/linting touched
+- [x] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
