@@ -4,7 +4,7 @@ title: 'E7: Authoring 引擎 — RefineStrategy + refine driver + 状态式 draf
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-07-04 01:58'
-updated_date: '2026-07-04 02:19'
+updated_date: '2026-07-05 16:31'
 labels:
   - 'kind:epic'
   - 'epicd:E7'
@@ -48,6 +48,8 @@ authoring 与 execution 共用两条只读契约（IssueSource 数据面 · Coor
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-07-04 终版对齐：turn 不 per-task 存（proposal §2.3 终版）。refine driver 写的是下一个 phase：promote→Backlog phase（actor=human）、escalate→needs-human phase；actor 由 authoring pipeline-data 定，不写 waiting_on。RefineStep 词汇不变；driver 把 promote/escalate 翻成 phase 迁移而非 turn 写入。
+
+2026-07-05 granularity review (git-history churn audit): kept as Epic — sizing this against E0/E5 (BACK-600/605), the most comparable historical epics ('new pipeline type + registry + driver + retiring an old mechanism' shape ran 4000-8000 lines), makes it plausible this clears the ~3600-line (≥1.8x) margin over the Basic ceiling, and the three build-blocks below are each independently reviewable/mergeable like BACK-600's children. Recommended decomposition when this moves to Decomposing — by build-block, NOT by concern: (1) RefineStrategy interface + feature/chore/epic implementations as ONE child (the three strategies are thin implementations of one interface, historically only a few hundred lines combined — splitting per-kind would repeat the BACK-628.2.1 over-fragmentation anti-pattern of turning an administrative/thin slice into its own task); (2) refine driver (RefiningHandler) + RefineStep vocabulary + claim-channel dedup (AC#2/#6); (3) stateful draft migration, retiring drafts/ dir + promoteDraft (AC#3); (4) shared IssueSource/Coordinator contract verification (AC#4/#5) — fold into child 2 or 3 if its own diff is small, don't spin it out as a 4th task just to mirror the AC numbering.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

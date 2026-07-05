@@ -1,12 +1,11 @@
 ---
 id: BACK-606
 title: 'E6: trust ratcheting 与自治'
-status: 'Epic: Proposal'
+status: 'Basic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 02:38'
+updated_date: '2026-07-05 16:31'
 labels:
-  - 'kind:epic'
   - 'epicd:E6'
 dependencies:
   - BACK-602
@@ -42,14 +41,15 @@ ordinal: 7000
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
-
-- [ ] gate 模型含 actor + escalation predicate
-- [ ] `promote` gate 以 shadow 模式起步，记录 llm-vs-human 一致率
-- [ ] escape rate 作为 ratchet 度量被采集
-- [ ] shadow→抽样→auto 的棘轮机制可逐 gate 推进
+<!-- AC:BEGIN -->
+- [ ] #1 gate 模型含 actor + escalation predicate
+- [ ] #2 `promote` gate 以 shadow 模式起步，记录 llm-vs-human 一致率
+<!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
 2026-07-04 对齐四轴终版：E6 的 gate-actor 棘轮是 E3 PipelineState.actor（结构，machine|human|none）之上的**运行时信任层**，而非改写该结构字段。结构 actor 恒定（promote gate 结构上=human）；trust ratchet 让“有效 actor”随棘轮向 machine（=E6 语境里的 llm）滞动（shadow→抽样→auto），escalation predicate = 回落到结构 human。好处：E3 的 actor 保持稳定且永可 escalate，E6 只叠运行时策略。词汇：E6 的 llm = E3 的 machine actor。UI（E4）的 👤/🤖 指示读的是“有效 actor”（结构 actor 经 trust 调制后）。
+
+2026-07-05 granularity review (git-history churn audit): downgraded Epic→Basic. Rationale: this task cannot name a 2nd independently-mergeable deliverable right now — only the `promote` gate shadow-mode MVP (old AC#1/#2) is concretely scoped; the ratchet auto-advance mechanism (old AC#3/#4) and the E4 UI increment are still directional/unscoped research, not decomposable children. Per AGENTS.md 'Task decomposition granularity' plan-time test: no 2nd deliverable yet + size estimate for the shadow-mode-only scope (gate actor field + escalation predicate + shadow recording + unit tests) is well under the ~2000-line ceiling, nowhere near the ~3600-line margin needed to justify an Epic. Scope narrowed to the promote-gate shadow MVP; escape-rate generalization, auto-ratchet advance, and the E4 UI increment are deferred to separate future Basic tasks to be scoped when concretely needed — not pre-declared as Epic children now.
 <!-- SECTION:NOTES:END -->
