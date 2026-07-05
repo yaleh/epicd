@@ -16,7 +16,7 @@ import { rm } from "node:fs/promises";
 import { Core } from "../core/backlog.ts";
 import { label } from "../core/field-registry.ts";
 import type { CompletionResult } from "../engine/complete.ts";
-import { makeDecomposer, parseProposedChildren } from "../harness/decomposer.ts";
+import { findTouchesOverlaps, makeDecomposer, parseProposedChildren } from "../harness/decomposer.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
@@ -170,6 +170,69 @@ describe("makeDecomposer (integration, real Core)", () => {
 		expect(reloaded?.status).toBe(label("compound", "awaiting-children"));
 	});
 
+	it("ADR-016: overlapping touches → advisory note on epic, decompose still succeeds", async () => {
+		const epic = await createEpic(core, "Epic with overlapping touches");
+
+		const overlappingJson = JSON.stringify([
+			{ title: "Child Alpha", description: "delivers alpha", touches: ["src/foo.ts", "src/shared.ts"] },
+			{ title: "Child Beta", description: "delivers beta", touches: ["src/shared.ts", "src/bar.ts"] },
+		]);
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: overlappingJson });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		// Non-blocking: children still created, epic still advances.
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(2);
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("awaiting-children");
+
+		// Advisory report attached to the epic.
+		expect(reloaded?.implementationNotes).toContain("ADR-016");
+		expect(reloaded?.implementationNotes).toContain("Child Alpha");
+		expect(reloaded?.implementationNotes).toContain("Child Beta");
+		expect(reloaded?.implementationNotes).toContain("src/shared.ts");
+	});
+
+	it("ADR-016: disjoint touches → no advisory note appended", async () => {
+		const epic = await createEpic(core, "Epic with disjoint touches");
+
+		const disjointJson = JSON.stringify([
+			{ title: "Child Alpha", touches: ["src/foo.ts"] },
+			{ title: "Child Beta", touches: ["src/bar.ts"] },
+		]);
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: disjointJson });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("awaiting-children");
+		expect(reloaded?.implementationNotes ?? "").not.toContain("ADR-016");
+	});
+
+	it("ADR-016 D2/D3: historically cochanging (but not declared-overlapping) siblings → advisory note", async () => {
+		const epic = await createEpic(core, "Epic with historically coupled touches");
+
+		const disjointJson = JSON.stringify([
+			{ title: "Child Alpha", touches: ["src/a.ts"] },
+			{ title: "Child Beta", touches: ["src/b.ts"] },
+		]);
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: disjointJson });
+		const fakeGitLog = async () =>
+			[1700000000, 1700000001, 1700000002].map((ts) => [String(ts), "src/a.ts", "src/b.ts"].join("\0")).join("\0");
+		const decompose = makeDecomposer(fakeSpawn, core, { gitLog: fakeGitLog, cochangeThreshold: 3 });
+		await decompose(epic, projectRoot);
+
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(2);
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("awaiting-children");
+		expect(reloaded?.implementationNotes).toContain("ADR-016");
+		expect(reloaded?.implementationNotes).toContain("历史强耦合");
+		expect(reloaded?.implementationNotes).toContain("src/a.ts");
+		expect(reloaded?.implementationNotes).toContain("src/b.ts");
+	});
+
 	it("created children get a status consistent with phase:ready", async () => {
 		const epic = await createEpic(core, "Epic children status");
 
@@ -204,5 +267,40 @@ describe("parseProposedChildren", () => {
 		expect(parseProposedChildren('[{"title": "Keep"}, {"description": "no title"}, {"title": "  "}]')).toEqual([
 			{ title: "Keep" },
 		]);
+	});
+
+	it("extracts touches when present as a string array (ADR-016 D1)", () => {
+		expect(parseProposedChildren('[{"title": "A", "touches": ["src/a.ts", "src/b.ts"]}]')).toEqual([
+			{ title: "A", touches: ["src/a.ts", "src/b.ts"] },
+		]);
+	});
+
+	it("tolerates missing/malformed touches without dropping the child", () => {
+		expect(
+			parseProposedChildren(
+				'[{"title": "A"}, {"title": "B", "touches": "not-an-array"}, {"title": "C", "touches": [1, 2]}]',
+			),
+		).toEqual([{ title: "A" }, { title: "B" }, { title: "C" }]);
+	});
+});
+
+describe("findTouchesOverlaps", () => {
+	it("returns one entry per non-empty pairwise intersection", () => {
+		const overlaps = findTouchesOverlaps([
+			{ title: "A", touches: ["x.ts", "shared.ts"] },
+			{ title: "B", touches: ["shared.ts", "y.ts"] },
+			{ title: "C", touches: ["z.ts"] },
+		]);
+		expect(overlaps).toEqual([{ a: "A", b: "B", files: ["shared.ts"] }]);
+	});
+
+	it("returns [] when no children declare touches or none overlap", () => {
+		expect(findTouchesOverlaps([{ title: "A" }, { title: "B" }])).toEqual([]);
+		expect(
+			findTouchesOverlaps([
+				{ title: "A", touches: ["x.ts"] },
+				{ title: "B", touches: ["y.ts"] },
+			]),
+		).toEqual([]);
 	});
 });
