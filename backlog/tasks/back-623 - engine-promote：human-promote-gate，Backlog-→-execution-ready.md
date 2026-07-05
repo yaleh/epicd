@@ -1,15 +1,16 @@
 ---
 id: BACK-623
 title: engine promote：human promote gate，Backlog → execution/ready
-status: 'Basic: Proposal'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 01:07'
-updated_date: '2026-07-05 01:07'
+updated_date: '2026-07-05 01:14'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 24000
+phase: done
 dod:
   - text: bun test src/test/engine-promote.test.ts
     checked: false
@@ -86,3 +87,9 @@ Add `authoringPipeline` to `src/engine/pipeline.ts` next to `executionPipeline`,
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-05T01:08:09Z
+<!-- SECTION:NOTES:END -->
