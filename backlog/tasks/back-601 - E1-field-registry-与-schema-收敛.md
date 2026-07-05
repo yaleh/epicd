@@ -1,10 +1,10 @@
 ---
 id: BACK-601
 title: 'E1: field-registry 与 schema 收敛'
-status: 'Epic: Ready'
+status: 'Epic: Needs Human'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 10:44'
+updated_date: '2026-07-05 01:27'
 labels:
   - 'kind:epic'
   - 'epicd:E1'
@@ -12,7 +12,7 @@ dependencies:
   - BACK-600
 ordinal: 2000
 pipeline_id: execution
-phase: awaiting-children
+phase: needs-human
 role: compound
 ---
 
