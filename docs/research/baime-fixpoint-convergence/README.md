@@ -108,6 +108,24 @@ epic 完成流程中的系统性审计步骤主动挡下。这正是 LFDD 要补
      它对任何在本平台上运行的多 agent 编排实验都成立，因此被计入
      iteration-2 的 V_meta reusability 分量证据（见
      [iterations/iteration-2.md](./iterations/iteration-2.md)）。
+  4. **派发颗粒度规则（由该约束直接推出，而非独立设计选择）**：
+     一次 Agent 派发的正确颗粒度是**原子/Basic task**，绝不是 **Epic**。
+     Epic 天然需要"编排者"角色——decompose 出多个 child、排定依赖顺序、
+     跑多轮独立审计、判断 HIGH 当场修/范围外归档 follow-up——这些都是
+     协调职责；在深度恰好为 1 的约束下，只有主会话能持有协调者角色，
+     因为主会话派发出去的任何 agent 都不能再自己 decompose-再派发。
+     "一个 agent 顶一整个 Epic"因此**做不到诚实的自我实现**（epic-driver
+     的失败正是这个模式的真实案例：它被迫在自己内部假装完成了本该属于
+     协调层的 decompose + 多轮独立审计）。反之，一个 Basic task（CLAUDE.md
+     定义为"≈ 一个可评审 PR，≤~2000 行"）恰好是不需要内部再协调、
+     一个不能继续嵌套派发的 agent 能在自己上下文内独立从头做到尾的
+     最大单元。因此：**派发粒度 = 现有任务颗粒度纪律（Basic task）本身，
+     而不是一个独立的、需要另外设计的"agent 分工"维度**——每个 child 一个
+     实现 agent、每一轮独立审计一个 agent、一个 scribe agent，均对应一次
+     Basic-task 量级的、自包含的、无需再派发的工作单元。代价：主会话
+     仍需親自持有整个编排循环（decompose/complete/evaluate 这些短命令），
+     无法把"协调本身"也下放出去——这是该约束下无法绕开的真实上限，
+     已记在下方"局限与后续观察点"中。
 
 ## 执行方式（iteration-2 修正版：两层，非三层）
 
