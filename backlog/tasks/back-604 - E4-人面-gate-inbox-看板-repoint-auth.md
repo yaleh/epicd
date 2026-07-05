@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 17:23'
+updated_date: '2026-07-05 17:32'
 labels:
   - 'kind:epic'
   - 'epicd:E4'
@@ -188,6 +188,42 @@ Additional findings from audit, fixed or filed:
   project dir.
 - No lanes.ts/Board.tsx duplication found - Board.tsx correctly reuses
   buildPhaseColumns from lanes.ts rather than re-implementing it.
+
+Independent audit round 2 (2026-07-05, fully fresh context, no memory of
+round 1's specific findings) findings and disposition:
+
+Confirmed round 1's fix was real but incomplete: /api/search,
+/api/gate-events, and the mutating /api/tasks/cleanup(/execute) endpoints
+were still unguarded even with webAuthToken configured - live test showed
+/api/search leaking full task data unauthenticated. FIXED directly (commit
+0aee148): all four now gated via checkAuth, consistent with /api/tasks*
+and /api/coordinator-claims. Also hardened checkBearerAuth's token
+comparison to constant-time (node:crypto.timingSafeEqual) per the same
+audit's MEDIUM finding. Test coverage added to
+server-auth-endpoint.test.ts.
+
+Confirmed BACK-650/651/652 are all accurate, still-open, non-stale
+findings (re-verified independently, not just re-reading round 1's
+claims).
+
+Re-verified AC#1/#3/#6/#7 against real code (sampled, not full re-audit
+of all 7): all hold. No lanes.ts/Board.tsx phase-ordering drift found -
+both TaskList's groupTasksByPhase and Board's buildPhaseColumns share
+PIPELINE_PHASE_ORDER as single source of truth.
+
+Gates after fix, all personally re-run: tsc clean; biome clean (11
+pre-existing warnings, unrelated files); bun test --parallel 1903
+pass/2 skip/0 fail; playwright e2e 6/6 pass (38.1s).
+
+Zero new HIGH-severity findings after the round-2 fix. Remaining known
+gaps are exactly BACK-650 (AC#8 self-observation loop never assigned to
+a child), BACK-651 (webAuthToken has no client-side wiring - enabling it
+would 401 the whole web UI), BACK-652 (e2e suite mutates real repo task
+data instead of an isolated fixture) - all already filed as follow-ups,
+none newly discovered. BACK-604 is considered converged at the epic
+level: AC#1-7 genuinely implemented and gate-verified across two
+independent audit rounds; AC#8/#9 knowingly left open with documented,
+honest rationale rather than falsely checked.
 <!-- SECTION:NOTES:END -->
 
 ## Comments
