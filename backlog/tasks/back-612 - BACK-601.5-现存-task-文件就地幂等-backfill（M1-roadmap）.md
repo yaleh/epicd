@@ -8,6 +8,16 @@ updated_date: '2026-07-04 23:48'
 labels: []
 dependencies: []
 ordinal: 23000
+pipeline_id: execution
+phase: in-progress
+parent_id: BACK-601
+dod:
+  - text: bun test src/test/engine-fields-backfill.test.ts
+    checked: false
+  - text: bunx tsc --noEmit
+    checked: false
+  - text: bun run check .
+    checked: false
 ---
 
 ## Description
