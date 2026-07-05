@@ -22,7 +22,7 @@ export interface FieldDescriptor<T = unknown> {
 	/** Property name on the in-memory `Task` object. */
 	readonly tsName: keyof Task;
 	/** Coarse type tag (documentation / tooling aid). */
-	readonly type: "string" | "string[]" | "number" | "enum" | "dod" | "cap" | "log";
+	readonly type: "string" | "string[]" | "number" | "enum" | "dod" | "cap" | "log" | "object";
 	/** Read the value from raw parsed frontmatter. */
 	readonly parse: (frontmatter: Record<string, unknown>) => T;
 	/** Produce the YAML value for a present field. */
@@ -284,10 +284,10 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 	{
 		yamlKey: "provenance",
 		tsName: "provenance",
-		type: "string",
-		// Object-valued (not a plain string) but round-trips the same way every
-		// other presence-gated field does: parse straight from frontmatter,
-		// serialize straight back, omit the key when absent (BACK-603 603.2).
+		type: "object",
+		// Object-valued but round-trips the same way every other presence-gated
+		// field does: parse straight from frontmatter, serialize straight back,
+		// omit the key when absent (BACK-603 603.2).
 		parse: (fm) => {
 			const raw = fm.provenance as { spawned_from?: unknown } | undefined;
 			return raw && typeof raw.spawned_from === "string" ? { spawned_from: raw.spawned_from } : undefined;
