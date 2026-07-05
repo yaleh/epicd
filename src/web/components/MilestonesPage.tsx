@@ -4,6 +4,7 @@ import Fuse from "fuse.js";
 import { apiClient } from "../lib/api";
 import { buildMilestoneBuckets, collectArchivedMilestoneKeys, isDoneStatus, milestoneKey } from "../utils/milestones";
 import { type Milestone, type MilestoneBucket, type Task } from "../../types";
+import { getStatusBadgeClass } from "../lib/status-label";
 import MilestoneTaskRow from "./MilestoneTaskRow";
 import Modal from "./Modal";
 
@@ -424,17 +425,6 @@ const MilestonesPage: React.FC<MilestonesPageProps> = ({
 		}
 	};
 
-	const getStatusBadgeClass = (status?: string | null) => {
-		const normalized = (status ?? "").toLowerCase();
-		if (normalized.includes("done") || normalized.includes("complete")) {
-			return "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300";
-		}
-		if (normalized.includes("progress")) {
-			return "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300";
-		}
-		return "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300";
-	};
-
 	const getPriorityBadgeClass = (priority?: string) => {
 		switch (priority?.toLowerCase()) {
 			case "high":
@@ -628,7 +618,7 @@ const MilestonesPage: React.FC<MilestonesPageProps> = ({
 											key={task.id}
 											task={task}
 											isDone={isDoneStatus(task.status)}
-											statusBadgeClass={getStatusBadgeClass(task.status)}
+											statusBadgeClass={getStatusBadgeClass(task.status, task.phase, task.pipeline_id)}
 											priorityBadgeClass={getPriorityBadgeClass(task.priority)}
 											onEditTask={onEditTask}
 											onDragStart={handleDragStart}
@@ -711,7 +701,7 @@ const MilestonesPage: React.FC<MilestonesPageProps> = ({
 													key={task.id}
 													task={task}
 													isDone={isDoneStatus(task.status)}
-													statusBadgeClass={getStatusBadgeClass(task.status)}
+													statusBadgeClass={getStatusBadgeClass(task.status, task.phase, task.pipeline_id)}
 													priorityBadgeClass={getPriorityBadgeClass(task.priority)}
 													onEditTask={onEditTask}
 													onDragStart={handleDragStart}
