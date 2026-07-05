@@ -14,6 +14,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { rm } from "node:fs/promises";
 import { Core } from "../core/backlog.ts";
+import { label } from "../core/field-registry.ts";
 import type { CompletionResult } from "../engine/complete.ts";
 import { makeDecomposer, parseProposedChildren } from "../harness/decomposer.ts";
 import type { Task } from "../types/index.ts";
@@ -38,6 +39,17 @@ describe("makeDecomposer (integration, real Core)", () => {
 		projectRoot = createUniqueTestDir("engine-decompose");
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-decompose-test");
+
+		// Children are created with the engine-derived "Basic: Ready" status
+		// (label("primitive", "ready")) — add it to the configured statuses
+		// (mirroring this repo's own board, backlog/config.yml) so
+		// createTaskFromInput's canonical-status validation accepts it,
+		// alongside the default vocabulary createEpic's "To Do" needs.
+		const config = await core.filesystem.loadConfig();
+		if (config) {
+			config.statuses = [...(config.statuses ?? []), "Basic: Ready"];
+			await core.filesystem.saveConfig(config);
+		}
 	});
 
 	afterEach(async () => {
@@ -113,6 +125,63 @@ describe("makeDecomposer (integration, real Core)", () => {
 		expect(children.length).toBe(0);
 		const reloaded = await core.getTask(epic.id);
 		expect(reloaded?.phase).toBe("needs-human");
+	});
+
+	it("children-created transition sets both phase and status", async () => {
+		const epic = await createEpic(core, "Epic status sync on success");
+
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("awaiting-children");
+		expect(reloaded?.status).toBe(label("compound", "awaiting-children"));
+	});
+
+	it("no-children/failure transition sets both phase and status", async () => {
+		const epic = await createEpic(core, "Epic status sync on failure");
+
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: false, error: "worker crashed" });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("needs-human");
+		expect(reloaded?.status).toBe(label("compound", "needs-human"));
+	});
+
+	it("crash-recovery re-entry stabilisation sets both phase and status", async () => {
+		const epic = await createEpic(core, "Epic status sync on re-entry");
+
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot); // creates children, advances to awaiting-children
+
+		// Simulate crash-recovery: phase regressed/stale relative to children already on board.
+		const afterFirstRun = await core.getTask(epic.id);
+		if (!afterFirstRun) throw new Error("epic not found after first decompose run");
+		await core.updateTask({ ...afterFirstRun, phase: "decomposing" }, false);
+
+		await decompose(epic, projectRoot); // re-entry: children exist, phase differs → stabilise
+
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("awaiting-children");
+		expect(reloaded?.status).toBe(label("compound", "awaiting-children"));
+	});
+
+	it("created children get a status consistent with phase:ready", async () => {
+		const epic = await createEpic(core, "Epic children status");
+
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(2);
+		for (const child of children) {
+			expect(child.status).toBe(label("primitive", "ready"));
+		}
 	});
 });
 

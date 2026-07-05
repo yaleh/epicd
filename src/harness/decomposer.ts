@@ -19,9 +19,11 @@
  */
 
 import type { Core } from "../core/backlog.js";
+import { label } from "../core/field-registry.js";
 import type { CompletionResult } from "../engine/complete.js";
 import type { DecomposeHandler } from "../engine/driver.js";
 import type { Task } from "../types/index.js";
+import { roleOf } from "../types/index.js";
 
 /** Primitive that actually runs a worker (real spawn or test double). Returns the
  *  worker's stdout in `output` so the engine can parse the proposed children. */
@@ -107,7 +109,14 @@ export function makeDecomposer(spawnPrimitive: SpawnPrimitive, core: Core): Deco
 			// only when it actually differs — re-writing the same value is a wasteful no-op.
 			const current = await core.getTask(task.id);
 			if (current && current.phase !== "awaiting-children") {
-				await core.updateTask({ ...current, phase: "awaiting-children" }, false);
+				await core.updateTask(
+					{
+						...current,
+						phase: "awaiting-children",
+						status: label(roleOf(current), "awaiting-children"),
+					},
+					false,
+				);
 			}
 			return;
 		}
@@ -118,13 +127,12 @@ export function makeDecomposer(spawnPrimitive: SpawnPrimitive, core: Core): Deco
 		const children = parseProposedChildren(result.output);
 
 		if (!result.success || children.length === 0) {
-			await core.updateTask({ ...task, phase: "needs-human" }, false);
+			await core.updateTask({ ...task, phase: "needs-human", status: label(roleOf(task), "needs-human") }, false);
 			return;
 		}
 
 		// 3. Engine creates children with engine fields so the scan can see them.
-		//    Omit status → project default (createTaskFromInput rejects unknown statuses;
-		//    the engine drives on pipeline_id/phase, so status is cosmetic here).
+		//    Children created by decompose are always primitive/leaf tasks.
 		for (const child of children) {
 			await core.createTaskFromInput(
 				{
@@ -132,6 +140,7 @@ export function makeDecomposer(spawnPrimitive: SpawnPrimitive, core: Core): Deco
 					...(child.description ? { description: child.description } : {}),
 					pipeline_id: "execution",
 					phase: "ready",
+					status: label("primitive", "ready"),
 					parent_id: task.id,
 				},
 				false,
@@ -140,6 +149,9 @@ export function makeDecomposer(spawnPrimitive: SpawnPrimitive, core: Core): Deco
 
 		// 4. Explicit phase advance (ready → awaiting-children); awaiting-children actor=none
 		//    so the engine stops driving the epic.
-		await core.updateTask({ ...task, phase: "awaiting-children" }, false);
+		await core.updateTask(
+			{ ...task, phase: "awaiting-children", status: label(roleOf(task), "awaiting-children") },
+			false,
+		);
 	};
 }
