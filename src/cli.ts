@@ -4605,6 +4605,33 @@ engineCmd
 	});
 
 engineCmd
+	.command("backfill")
+	.description(
+		"one-time, in-place, idempotent backfill of engine structural fields (pipeline_id/phase/parent_id/role) on existing task files (BACK-601.5). dod/cap are never backfilled. Must not run while the old loop-backlog is holding the board.",
+	)
+	.action(async () => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { runBackfill } = await import("./core/engine-fields-backfill.ts");
+			const { withMergeLock } = await import("./engine/safety.ts");
+			const { realMergeLockFs } = await import("./harness/real-primitives.ts");
+
+			const core = new Core(cwd);
+			const { updated } = await withMergeLock(core.filesystem.backlogDir, () => runBackfill(core), realMergeLockFs);
+
+			if (updated.length === 0) {
+				console.log("no tasks needed backfill");
+			} else {
+				console.log(`backfilled ${updated.length} tasks: ${updated.join(", ")}`);
+			}
+		} catch (err) {
+			console.error("engine backfill failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
 	.command("stage2-gate")
 	.description("run the Stage 2 fixpoint gate against a rebuilt repo tree (suite-green AND drive-fixpoint)")
 	.requiredOption("--rebuilt <path>", "absolute path to the rebuilt repo tree")
