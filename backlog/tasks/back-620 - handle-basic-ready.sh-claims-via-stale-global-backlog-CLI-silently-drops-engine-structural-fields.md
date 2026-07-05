@@ -3,11 +3,11 @@ id: BACK-620
 title: >-
   handle-basic-ready.sh claims via stale global backlog CLI, silently drops
   engine structural fields
-status: 'Basic: Proposal'
+status: 'Basic: In Progress'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:09'
-updated_date: '2026-07-05 00:10'
+updated_date: '2026-07-05 00:26'
 labels:
   - 'kind:basic'
 dependencies: []
@@ -84,3 +84,9 @@ Point `handle-basic-ready.sh` at the repo's own dev CLI (`bun run cli` from `$RE
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-05T00:17:08Z
+<!-- SECTION:NOTES:END -->
