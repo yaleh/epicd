@@ -12,6 +12,15 @@ labels:
 dependencies: []
 ordinal: 31000
 phase: needs-human
+dod:
+  - text: >-
+      bun test src/test/engine-merge.test.ts src/test/engine-merge-wire.test.ts
+      src/test/epicd-run-wiring.test.ts
+    checked: false
+  - text: bunx tsc --noEmit
+    checked: false
+  - text: bun run check .
+    checked: false
 ---
 
 ## Description
