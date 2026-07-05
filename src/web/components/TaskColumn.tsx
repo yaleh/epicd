@@ -2,6 +2,7 @@ import React from 'react';
 import { type Task } from '../../types';
 import { sortByPriority } from '../../utils/task-sorting';
 import type { ReorderTaskPayload } from '../lib/api';
+import { getStatusBadgeClass } from '../lib/status-label';
 import TaskCard from './TaskCard';
 
 interface TaskColumnProps {
@@ -78,19 +79,12 @@ const TaskColumn: React.FC<TaskColumnProps> = ({
     setShowMenu(false);
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    const statusLower = status.toLowerCase();
-    if (statusLower.includes('done') || statusLower.includes('complete')) {
-      return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 transition-colors duration-200';
-    }
-    if (statusLower.includes('progress') || statusLower.includes('doing')) {
-      return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 transition-colors duration-200';
-    }
-    if (statusLower.includes('blocked') || statusLower.includes('stuck')) {
-      return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 transition-colors duration-200';
-    }
-    return 'bg-stone-100 dark:bg-stone-900 text-stone-800 dark:text-stone-200 transition-colors duration-200';
-  };
+  // Column-header count badge color (BACK-646 604.3 AC#5): converged `getStatusBadgeClass`
+  // instead of a separately-duplicated status heuristic. This column only knows its status
+  // string (`title`) directly; pass one representative task's phase/pipeline_id (tasks in a
+  // status column share the same displayed status, hence the same phase when engine-managed) so
+  // engine-managed columns get pipeline-data-driven color, with the string heuristic as fallback.
+  const columnBadgeClass = getStatusBadgeClass(title, tasks[0]?.phase, tasks[0]?.pipeline_id);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -187,7 +181,7 @@ const TaskColumn: React.FC<TaskColumnProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 transition-colors duration-200">{title}</h3>
-          <span className={`px-2 py-1 text-xs font-medium rounded-circle ${getStatusBadgeClass(title)}`}>
+          <span className={`px-2 py-1 text-xs font-medium rounded-circle ${columnBadgeClass}`}>
             {tasks.length}
           </span>
         </div>

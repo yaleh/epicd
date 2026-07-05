@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { computeDriverIndicator, getPhaseActor } from "./driver-indicator";
+import { computeApprovePhase, computeDriverIndicator, ESCALATE_TRANSITION, getPhaseActor } from "./driver-indicator";
 
 describe("computeDriverIndicator", () => {
 	// The (actor x claim) truth table from BACK-645:
@@ -60,5 +60,38 @@ describe("getPhaseActor", () => {
 		expect(getPhaseActor("execution", "unknown-phase")).toBeUndefined();
 		expect(getPhaseActor(undefined, "ready")).toBeUndefined();
 		expect(getPhaseActor("execution", undefined)).toBeUndefined();
+	});
+});
+
+describe("computeApprovePhase (BACK-646 604.3 inline gate-review: approve)", () => {
+	it("execution/needs-human wraps to 'ready' (last human phase before terminal 'done', no machine phase forward)", () => {
+		expect(computeApprovePhase("execution", "needs-human")).toBe("ready");
+	});
+
+	it("authoring/backlog (last state, no machine phase forward) wraps to 'draft'", () => {
+		expect(computeApprovePhase("authoring", "backlog")).toBe("draft");
+	});
+
+	it("finds the next machine-actor phase forward without wrapping when one exists", () => {
+		// execution: decomposing(machine) -> awaiting-children(none) -> evaluating(machine)
+		expect(computeApprovePhase("execution", "awaiting-children")).toBe("evaluating");
+	});
+
+	it("returns null for unknown pipeline_id, unknown phase, or missing inputs", () => {
+		expect(computeApprovePhase("unknown-pipeline", "needs-human")).toBeNull();
+		expect(computeApprovePhase("execution", "unknown-phase")).toBeNull();
+		expect(computeApprovePhase(undefined, "needs-human")).toBeNull();
+		expect(computeApprovePhase("execution", undefined)).toBeNull();
+	});
+
+	it("wraps back to the pipeline's single machine phase when advancing from its terminal state", () => {
+		// exploration: spike(machine) -> done(none) — no machine phase forward, wraps to "spike".
+		expect(computeApprovePhase("exploration", "done")).toBe("spike");
+	});
+});
+
+describe("ESCALATE_TRANSITION (BACK-646 604.3 inline gate-review: escalate)", () => {
+	it("is the fixed execution/needs-human target regardless of the row's current pipeline/phase", () => {
+		expect(ESCALATE_TRANSITION).toEqual({ pipeline_id: "execution", phase: "needs-human" });
 	});
 });

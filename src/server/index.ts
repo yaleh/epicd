@@ -945,6 +945,17 @@ export class BacklogServer {
 			updateInput.priority = updates.priority;
 		}
 
+		// Engine pipeline fields (BACK-646 604.3): the web-side inline gate-review action
+		// (TaskList.tsx approve/escalate) writes back a phase transition through this same
+		// PUT path other task-field mutations already use.
+		if ("pipeline_id" in updates && typeof updates.pipeline_id === "string") {
+			updateInput.pipeline_id = updates.pipeline_id;
+		}
+
+		if ("phase" in updates && typeof updates.phase === "string") {
+			updateInput.phase = updates.phase;
+		}
+
 		if ("milestone" in updates && (typeof updates.milestone === "string" || updates.milestone === null)) {
 			if (typeof updates.milestone === "string") {
 				updateInput.milestone = await this.resolveMilestoneInput(updates.milestone);

@@ -12,8 +12,16 @@ import { isTerminalStatus } from "../../utils/terminal-status.ts";
 import { collectArchivedMilestoneKeys, getMilestoneLabel, milestoneKey } from "../utils/milestones";
 import { formatStoredUtcDateForCompactDisplay, parseStoredUtcDate } from "../utils/date-display";
 import type { ClaimState } from "../lib/coordinator-claims";
-import { DRIVER_INDICATOR_ICON, DRIVER_INDICATOR_LABEL, computeDriverIndicator, getPhaseActor } from "../lib/driver-indicator";
+import {
+	DRIVER_INDICATOR_ICON,
+	DRIVER_INDICATOR_LABEL,
+	ESCALATE_TRANSITION,
+	computeApprovePhase,
+	computeDriverIndicator,
+	getPhaseActor,
+} from "../lib/driver-indicator";
 import { buildLanes, groupTasksByLaneAndStatus, groupTasksByPhase, type LaneMode } from "../lib/lanes";
+import { getStatusBadgeClass } from "../lib/status-label";
 import CleanupModal from "./CleanupModal";
 import LabelFilterDropdown from "./LabelFilterDropdown";
 import { SuccessToast } from "./SuccessToast";
@@ -492,16 +500,34 @@ const TaskList: React.FC<TaskListProps> = ({
 		}, 4000);
 	};
 
-	const getStatusColor = (status: string) => {
-		switch (status.toLowerCase()) {
-			case "to do":
-				return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
-			case "in progress":
-				return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200";
-			case "done":
-				return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200";
-			default:
-				return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
+	// Inline gate-review (BACK-646 604.3 AC#3): actor(phase)=human rows get an
+	// approve/reject/escalate action, writing back a phase transition (or archiving, for
+	// reject) through the same task-update API path other mutations already use. The
+	// existing WS `tasks-updated` broadcast (driven by the content-store file watcher —
+	// see server/index.ts) refreshes the row once the write lands; no local optimistic
+	// state or manual refresh is needed here.
+	const [gatePendingTaskId, setGatePendingTaskId] = useState<string | null>(null);
+
+	const runGateAction = async (task: Task, action: "approve" | "reject" | "escalate") => {
+		setGatePendingTaskId(task.id);
+		setError(null);
+		try {
+			if (action === "reject") {
+				await apiClient.archiveTask(task.id);
+			} else if (action === "escalate") {
+				await apiClient.updateTask(task.id, {
+					pipeline_id: ESCALATE_TRANSITION.pipeline_id,
+					phase: ESCALATE_TRANSITION.phase,
+				});
+			} else {
+				const nextPhase = computeApprovePhase(task.pipeline_id, task.phase);
+				if (!nextPhase) return;
+				await apiClient.updateTask(task.id, { phase: nextPhase });
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : `Failed to ${action} ${task.id}.`);
+		} finally {
+			setGatePendingTaskId(null);
 		}
 	};
 
@@ -642,10 +668,50 @@ const TaskList: React.FC<TaskListProps> = ({
 								{task.branch}
 							</span>
 						)}
+						{actor === "human" && (
+							<div
+								className="ml-auto flex shrink-0 items-center gap-1"
+								onClick={(event) => event.stopPropagation()}
+								onKeyDown={(event) => event.stopPropagation()}
+							>
+								<button
+									type="button"
+									disabled={gatePendingTaskId === task.id}
+									onClick={() => runGateAction(task, "approve")}
+									title={`Approve ${task.id} (advance past the human gate)`}
+									aria-label={`Approve ${task.id}`}
+									className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60"
+								>
+									✓
+								</button>
+								<button
+									type="button"
+									disabled={gatePendingTaskId === task.id}
+									onClick={() => runGateAction(task, "reject")}
+									title={`Reject ${task.id} (archive)`}
+									aria-label={`Reject ${task.id}`}
+									className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
+								>
+									✕
+								</button>
+								<button
+									type="button"
+									disabled={gatePendingTaskId === task.id}
+									onClick={() => runGateAction(task, "escalate")}
+									title={`Escalate ${task.id} (needs-human)`}
+									aria-label={`Escalate ${task.id}`}
+									className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
+								>
+									⚠
+								</button>
+							</div>
+						)}
 					</div>
 				</td>
 				<td className="px-3 py-2.5">
-					<span className={`inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getStatusColor(task.status)}`}>
+					<span
+						className={`inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getStatusBadgeClass(task.status, task.phase, task.pipeline_id)}`}
+					>
 						{task.status}
 					</span>
 				</td>
