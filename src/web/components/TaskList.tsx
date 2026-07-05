@@ -11,6 +11,8 @@ import { collectAvailableLabels } from "../../utils/label-filter.ts";
 import { isTerminalStatus } from "../../utils/terminal-status.ts";
 import { collectArchivedMilestoneKeys, getMilestoneLabel, milestoneKey } from "../utils/milestones";
 import { formatStoredUtcDateForCompactDisplay, parseStoredUtcDate } from "../utils/date-display";
+import type { ClaimState } from "../lib/coordinator-claims";
+import { DRIVER_INDICATOR_ICON, DRIVER_INDICATOR_LABEL, computeDriverIndicator, getPhaseActor } from "../lib/driver-indicator";
 import { buildLanes, groupTasksByLaneAndStatus, groupTasksByPhase, type LaneMode } from "../lib/lanes";
 import CleanupModal from "./CleanupModal";
 import LabelFilterDropdown from "./LabelFilterDropdown";
@@ -122,6 +124,25 @@ const TaskList: React.FC<TaskListProps> = ({
 		return parseLaneMode(storedLane) ?? "none";
 	});
 	const [collapsedLanes, setCollapsedLanes] = useState<Record<string, boolean>>({});
+	// Driver indicator (BACK-645): Coordinator claim state, refetched whenever `tasks`
+	// changes — including the WS `tasks-updated` refresh path already driven from App.tsx,
+	// since that swaps in a new `tasks` array reference.
+	const [claimStates, setClaimStates] = useState<Record<string, ClaimState>>({});
+	useEffect(() => {
+		let cancelled = false;
+		apiClient
+			.fetchCoordinatorClaims()
+			.then((claims) => {
+				if (!cancelled) setClaimStates(claims);
+			})
+			.catch(() => {
+				// Read-only best-effort adapter: on failure just leave prior state
+				// (rows fall back to "unclaimed"/queued derivation).
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [tasks]);
 	const tableHeaderScrollRef = useRef<HTMLDivElement | null>(null);
 	const tableBodyScrollRef = useRef<HTMLDivElement | null>(null);
 	const isSyncingTableScrollRef = useRef(false);
@@ -575,6 +596,9 @@ const TaskList: React.FC<TaskListProps> = ({
 		const assigneeOverflow = Math.max(task.assignee.length - visibleAssignees.length, 0);
 		const milestoneLabel = task.milestone ? getMilestoneLabel(task.milestone, milestoneEntities) : "—";
 		const createdLabel = formatStoredUtcDateForCompactDisplay(task.createdDate ?? "");
+		const actor = getPhaseActor(task.pipeline_id, task.phase);
+		const claimState: ClaimState = claimStates[task.id] ?? "unclaimed";
+		const driverIndicator = computeDriverIndicator(actor, claimState);
 
 		return (
 			<tr
@@ -587,7 +611,18 @@ const TaskList: React.FC<TaskListProps> = ({
 				}`}
 			>
 				<td className="px-3 py-2.5 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">
-					{task.id}
+					<span className="inline-flex items-center gap-1.5">
+						{driverIndicator && (
+							<span
+								className="shrink-0 text-[13px] leading-none"
+								title={DRIVER_INDICATOR_LABEL[driverIndicator]}
+								aria-label={DRIVER_INDICATOR_LABEL[driverIndicator]}
+							>
+								{DRIVER_INDICATOR_ICON[driverIndicator]}
+							</span>
+						)}
+						{task.id}
+					</span>
 				</td>
 				<td className="px-3 py-2.5">
 					<div className="flex items-center gap-2 min-w-0">

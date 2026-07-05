@@ -20,6 +20,7 @@ import {
 import { watchConfig } from "../utils/config-watcher.ts";
 import { resolveMilestoneInputForStorage } from "../utils/milestone-storage.ts";
 import { getVersion } from "../utils/version.ts";
+import { getCoordinatorClaimStates } from "../web/lib/coordinator-claims.ts";
 
 // Regex pattern to match any prefix (letters followed by dash)
 const PREFIX_PATTERN = /^[a-zA-Z]+-/i;
@@ -408,6 +409,9 @@ export class BacklogServer {
 					},
 					"/api/gate-events": {
 						GET: async (req: Request) => await this.handleListGateEvents(req),
+					},
+					"/api/coordinator-claims": {
+						GET: async () => await this.handleGetCoordinatorClaims(),
 					},
 					"/sequences": {
 						GET: async () => await this.handleGetSequences(),
@@ -823,6 +827,23 @@ export class BacklogServer {
 		} catch (error) {
 			console.error("Error listing gate events:", error);
 			return Response.json([]);
+		}
+	}
+
+	/**
+	 * Read-only Coordinator claim state for the per-row driver indicator
+	 * (BACK-604 §AC#2 / BACK-645). Thin forwarder onto the baime soak-period
+	 * `.active-agents`/`.caps` adapter — returns a map of taskId -> "claimed" |
+	 * "stale" for every id currently present in `.active-agents`; ids absent
+	 * from the map are implicitly "unclaimed".
+	 */
+	private async handleGetCoordinatorClaims(): Promise<Response> {
+		try {
+			const claims = getCoordinatorClaimStates(this.core.filesystem.backlogDir);
+			return Response.json(claims);
+		} catch (error) {
+			console.error("Error reading coordinator claim state:", error);
+			return Response.json({});
 		}
 	}
 
