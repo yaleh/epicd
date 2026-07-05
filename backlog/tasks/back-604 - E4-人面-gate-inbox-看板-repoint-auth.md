@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 17:13'
+updated_date: '2026-07-05 17:23'
 labels:
   - 'kind:epic'
   - 'epicd:E4'
@@ -54,13 +54,13 @@ phase: done
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 多车道 issue-list 为主视图：按 pipeline_id 分可折叠 swimlane（复用 lanes.ts，新增 LaneMode=pipeline），车道内按 phase 分列、priority 排序，label 正交 OR 过滤
-- [ ] #2 每行驱动者指示（👤/🤖/⏳/⚠️）由 actor(phase)（从 pipeline-data 查，非 per-task 字段）⨝ Coordinator claim 得出，经现有 WS tasks-updated 实时刷新；soak 期 claim 来自 baime .active-agents/.caps 适配器
-- [ ] #3 gate-inbox 融入 issue-list：actor(phase)=human 行内联 approve/reject/escalate 写回 phase（promote→Backlog / 重开→机器 phase / 拒→归档），不另设独立页
-- [ ] #4 kanban 降为 deprecated 桌面总览：导航隐藏、列由 pipeline phase 派生（不硬编码 Basic/Epic）、零功能回归；不再是主面
-- [ ] #5 状态显示收敛：现有重复 ~4 处 status 启发式收敛为单一 label(role, phase) 单向投影（渲染边界；engine 读 phase key 查 pipeline-data，不解读显示串）
-- [ ] #6 auth 引擎自有中间件接入（包住 issue-list + 桌面总览）；通用 UI/auth/lanes 扩展部分可回馈上游
-- [ ] #7 e2e（@playwright/test 独立 job）覆盖：多车道加载/折叠/切换、内联 gate-review、驱动者指示随 WS 刷新、kanban(deprecated) 回归
+- [x] #1 多车道 issue-list 为主视图：按 pipeline_id 分可折叠 swimlane（复用 lanes.ts，新增 LaneMode=pipeline），车道内按 phase 分列、priority 排序，label 正交 OR 过滤
+- [x] #2 每行驱动者指示（👤/🤖/⏳/⚠️）由 actor(phase)（从 pipeline-data 查，非 per-task 字段）⨝ Coordinator claim 得出，经现有 WS tasks-updated 实时刷新；soak 期 claim 来自 baime .active-agents/.caps 适配器
+- [x] #3 gate-inbox 融入 issue-list：actor(phase)=human 行内联 approve/reject/escalate 写回 phase（promote→Backlog / 重开→机器 phase / 拒→归档），不另设独立页
+- [x] #4 kanban 降为 deprecated 桌面总览：导航隐藏、列由 pipeline phase 派生（不硬编码 Basic/Epic）、零功能回归；不再是主面
+- [x] #5 状态显示收敛：现有重复 ~4 处 status 启发式收敛为单一 label(role, phase) 单向投影（渲染边界；engine 读 phase key 查 pipeline-data，不解读显示串）
+- [x] #6 auth 引擎自有中间件接入（包住 issue-list + 桌面总览）；通用 UI/auth/lanes 扩展部分可回馈上游
+- [x] #7 e2e（@playwright/test 独立 job）覆盖：多车道加载/折叠/切换、内联 gate-review、驱动者指示随 WS 刷新、kanban(deprecated) 回归
 - [ ] #8 自观察反馈闭环：一个 agent 经 web API + Playwright 观察运行中的板，把异常（status/phase desync、stale claim、空 worktree 孤儿）自动经 backlog CLI 建 task 并链接来源；至少演示一次真实检出→建 task
 - [ ] #9 本面的子任务经 engine decompose-apply 创建（由 agent 撰写的 JSON 子任务数组喂入，而非手工 backlog task create），dispatch/complete 走既有 scan-loop 反应式机制（Monitor + scan-loop.cjs）；每个 child 至少一条 gcl-events.jsonl 记录引用其实际执行的 engine dispatch <id> payload 作为证据。完全无人值守的自主 decompose 推迟到未来 epic（待 LLM 驱动的 decompose-proposal 步骤验证后）
 <!-- AC:END -->
@@ -152,6 +152,42 @@ Proposed softened AC#8: "BACK-604's children are created via `engine decompose-a
 - 历史强耦合 "604.3 - inline gate-review + status-label convergence" ↔ "604.4 - kanban deprecation + auth middleware": src/web/components/TaskColumn.tsx , src/web/components/Board.tsx（共变 10 次）
 - 历史强耦合 "604.3 - inline gate-review + status-label convergence" ↔ "604.4 - kanban deprecation + auth middleware": src/web/components/TaskColumn.tsx , src/web/App.tsx（共变 5 次）
 - 历史强耦合 "604.3 - inline gate-review + status-label convergence" ↔ "604.4 - kanban deprecation + auth middleware": src/web/components/TaskColumn.tsx , src/server/index.ts（共变 11 次）
+
+Independent audit round 1 (2026-07-05) findings and disposition:
+
+AC#1-7: verified against real code (not just child Implementation Notes) -
+checked. Gates re-run personally: tsc clean, biome clean (11 pre-existing
+warnings, untouched files), bun test 1901 pass/2 skip/0 fail, playwright
+e2e 6/6 pass (38.7s) - first-ever Playwright-as-DoD-gate exercise in this
+repo, confirmed working end to end.
+
+AC#8 (self-observation feedback loop): left unchecked. Decompose never
+assigned it to any of the 5 children - genuine gap, not just missing
+evidence. Filed as follow-up BACK-650.
+
+AC#9 (gcl-events.jsonl per-child engine-dispatch evidence): left unchecked.
+This epic was executed via main-session direct `engine complete --worktree`
+calls (per context-isolation-plan.md's two-layer LFDD model), not through
+scan-loop.cjs's reactive dispatch loop - so no gcl-events.jsonl entries were
+ever produced for BACK-644..648. The decompose-apply-not-manual-create half
+of AC#9 is satisfied (commit 8274600), but the falsifiable dispatch-log
+evidence half is not, and cannot be retrofitted without re-running this
+epic through the scan-loop mechanism. This is a real structural finding
+about the current LFDD execution mechanism's scope, not a BACK-604-specific
+defect - noted for the baime-fixpoint-convergence iteration report.
+
+Additional findings from audit, fixed or filed:
+- FIXED directly: /api/coordinator-claims was left unguarded by BACK-647's
+  auth middleware while /api/tasks* was gated - now gated too (commit
+  0b09177), test added.
+- Filed BACK-651: webAuthToken has no client-side wiring; enabling it would
+  401 the entire web UI with no login/token UI and no documentation of the
+  consequence.
+- Filed BACK-652: multi-lane-board.spec.ts mutates real repo task data
+  (creates/archives real task IDs) instead of using an isolated fixture
+  project dir.
+- No lanes.ts/Board.tsx duplication found - Board.tsx correctly reuses
+  buildPhaseColumns from lanes.ts rather than re-implementing it.
 <!-- SECTION:NOTES:END -->
 
 ## Comments
