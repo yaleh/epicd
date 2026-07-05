@@ -11,7 +11,10 @@
  *   3. bun test <tracerEntry> (cwd = rebuiltRepoPath, isolated)    → else "drive-failed"
  *   4. All pass                                                     → { passed: true }
  *
- * recordStage2Gate(result, appendLine) appends one structured JSON line to a log.
+ * recordStage2Gate(result, rebuiltRepoPath, path, ids) appends one GateEvent
+ * (BACK-602/632's `src/core/gate-event-store.ts`) to the shared gate-event
+ * log — gate="stage2", verdict=passed?"pass":"fail",
+ * payload={reason,failures,rebuiltRepoPath}, actor="machine".
  *
  * The gate is parameterized to support:
  *   - toy fixtures in self-proof tests (Phase B anti-stub validation)
@@ -20,6 +23,7 @@
 
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { appendGateEvent, type GateEventStoreFs, realGateEventStoreFs } from "../core/gate-event-store.ts";
 
 export type Stage2Reason = "missing-source" | "suite-failed" | "drive-failed";
 
@@ -104,32 +108,42 @@ export async function runStage2Fixpoint(opts: Stage2GateOptions): Promise<Stage2
 	return { passed: true };
 }
 
-export interface Stage2GateRecord {
-	gate_type: "stage2";
-	timestamp: string;
-	passed: boolean;
-	reason?: Stage2Reason;
-	failures?: string;
-	rebuiltRepoPath: string;
+/** Identifying info for a recorded Stage 2 GateEvent (see GateEvent in gate-event-store.ts). */
+export interface Stage2GateIds {
+	id: string;
+	itemId: string;
+	pipelineId: string;
 }
 
 /**
- * Record a Stage 2 gate result as a single structured JSON line.
- * appendLine is injectable for testing (avoids real file I/O in unit tests).
+ * Record a Stage 2 gate result as a GateEvent, appended to the log at `path`
+ * via `appendGateEvent` (src/core/gate-event-store.ts). `fs` is injectable
+ * for testing (avoids real file I/O in unit tests).
  */
 export function recordStage2Gate(
 	result: Stage2Result,
 	rebuiltRepoPath: string,
-	appendLine: (line: string) => void,
+	path: string,
+	ids: Stage2GateIds,
+	fs: GateEventStoreFs = realGateEventStoreFs,
 	now = new Date().toISOString(),
 ): void {
-	const record: Stage2GateRecord = {
-		gate_type: "stage2",
-		timestamp: now,
-		passed: result.passed,
-		...(result.reason !== undefined ? { reason: result.reason } : {}),
-		...(result.failures !== undefined ? { failures: result.failures } : {}),
-		rebuiltRepoPath,
-	};
-	appendLine(JSON.stringify(record));
+	appendGateEvent(
+		path,
+		{
+			id: ids.id,
+			item_id: ids.itemId,
+			pipeline_id: ids.pipelineId,
+			gate: "stage2",
+			actor: "machine",
+			verdict: result.passed ? "pass" : "fail",
+			timestamp: now,
+			payload: {
+				...(result.reason !== undefined ? { reason: result.reason } : {}),
+				...(result.failures !== undefined ? { failures: result.failures } : {}),
+				rebuiltRepoPath,
+			},
+		},
+		fs,
+	);
 }

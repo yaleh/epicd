@@ -4800,14 +4800,15 @@ engineCmd
 	.command("stage2-gate")
 	.description("run the Stage 2 fixpoint gate against a rebuilt repo tree (suite-green AND drive-fixpoint)")
 	.requiredOption("--rebuilt <path>", "absolute path to the rebuilt repo tree")
-	.option("--record <file>", "path to append the JSON gate record (default: docs/research/gcl-events.jsonl)")
+	.option("--record <file>", "path to append the GateEvent JSON line (default: docs/research/gcl-events.jsonl)")
+	.option("--item-id <id>", "item id to attribute the gate event to (default: derived from --rebuilt)")
+	.option("--pipeline-id <id>", "pipeline id to attribute the gate event to (default: stage2-gate)")
 	.action(async (options) => {
 		try {
 			const { runStage2Fixpoint, recordStage2Gate } = await import("./harness/stage2-gate.ts");
 			const { MVD_SOURCE_FILES, MVD_TEST_FILES } = await import("./engine/mvd-manifest.ts");
-			const { appendFileSync, mkdirSync } = await import("node:fs");
-			const { dirname, resolve } = await import("node:path");
-			const { existsSync } = await import("node:fs");
+			const { resolve, basename } = await import("node:path");
+			const { randomUUID } = await import("node:crypto");
 
 			const rebuiltRepoPath = resolve(options.rebuilt);
 			const cwd = process.cwd();
@@ -4823,14 +4824,12 @@ engineCmd
 				tracerEntry,
 			});
 
-			// Record to log file
+			// Record as a GateEvent to the shared gate-event log
 			const recordFile = options.record ?? `${cwd}/docs/research/gcl-events.jsonl`;
-			const dir = dirname(recordFile);
-			if (!existsSync(dir)) {
-				mkdirSync(dir, { recursive: true });
-			}
-			recordStage2Gate(result, rebuiltRepoPath, (line) => {
-				appendFileSync(recordFile, `${line}\n`);
+			recordStage2Gate(result, rebuiltRepoPath, recordFile, {
+				id: randomUUID(),
+				itemId: options.itemId ?? basename(rebuiltRepoPath),
+				pipelineId: options.pipelineId ?? "stage2-gate",
 			});
 
 			if (result.passed) {
