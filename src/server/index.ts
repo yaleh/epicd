@@ -310,6 +310,7 @@ export class BacklogServer {
 					"/decisions": spaIndexHtml,
 					"/decisions/*": spaIndexHtml,
 					"/statistics": spaIndexHtml,
+					"/gate-inbox": spaIndexHtml,
 					"/settings": spaIndexHtml,
 
 					// API Routes using Bun's native route syntax
@@ -404,6 +405,9 @@ export class BacklogServer {
 					},
 					"/api/search": {
 						GET: async (req: Request) => await this.handleSearch(req),
+					},
+					"/api/gate-events": {
+						GET: async (req: Request) => await this.handleListGateEvents(req),
 					},
 					"/sequences": {
 						GET: async () => await this.handleGetSequences(),
@@ -794,6 +798,31 @@ export class BacklogServer {
 		} catch (error) {
 			console.error("Error performing search:", error);
 			return Response.json({ error: "Search failed" }, { status: 500 });
+		}
+	}
+
+	/**
+	 * Read-only GateEvent listing for the Web `GateInboxPage` (BACK-605.10).
+	 * Thin forwarder onto the same `runGateLogQuery` used by `engine gate-log`
+	 * (src/engine/gate-log.ts) — do not re-implement the query wrapper here.
+	 */
+	private async handleListGateEvents(req: Request): Promise<Response> {
+		try {
+			const { runGateLogQuery } = await import("../engine/gate-log.ts");
+			const url = new URL(req.url);
+			const events = runGateLogQuery(this.core.filesystem.rootDir, {
+				pipelineId: url.searchParams.get("pipelineId") ?? undefined,
+				gate: url.searchParams.get("gate") ?? undefined,
+				actor: url.searchParams.get("actor") ?? undefined,
+				since: url.searchParams.get("since") ?? undefined,
+				until: url.searchParams.get("until") ?? undefined,
+				limit: url.searchParams.get("limit") ?? undefined,
+				offset: url.searchParams.get("offset") ?? undefined,
+			});
+			return Response.json(events);
+		} catch (error) {
+			console.error("Error listing gate events:", error);
+			return Response.json([]);
 		}
 	}
 
