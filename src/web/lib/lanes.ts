@@ -1,3 +1,4 @@
+import { executionPipeline } from "../../engine/pipeline";
 import type { Milestone, Task } from "../../types";
 import { getMilestoneLabel, milestoneKey, normalizeMilestoneName } from "../utils/milestones";
 
@@ -297,6 +298,57 @@ export function groupTasksByPhase(tasks: Task[]): PhaseGroup[] {
 	return result;
 }
 
+// BACK-647 604.4: kanban Board column derivation, reusing the same NO_PHASE
+// fallback used above for TaskList's phase grouping so a task missing a phase
+// (no pipeline_id, or a legacy status-only task) never silently disappears.
+const PIPELINE_PHASE_ORDER: string[] = executionPipeline.states.map((state) => state.name);
+export const PIPELINE_TERMINAL_PHASE = PIPELINE_PHASE_ORDER[PIPELINE_PHASE_ORDER.length - 1] ?? NO_PHASE_KEY;
+
+/** Column-bucket key for a task: its `phase` when set, else the shared `NO_PHASE_KEY` fallback. */
+export function phaseKeyOf(task: Task): string {
+	const phase = (task.phase ?? "").trim();
+	return phase.length > 0 ? phase : NO_PHASE_KEY;
+}
+
+/** Human label for a phase-bucket key produced by `phaseKeyOf`/`buildPhaseColumns`. */
+export function phaseColumnLabel(phaseKey: string): string {
+	if (phaseKey === NO_PHASE_KEY) return NO_PHASE_LABEL;
+	return phaseKey
+		.split("-")
+		.filter(Boolean)
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(" ");
+}
+
+/**
+ * The Board's kanban columns: always the execution pipeline's phase set, in
+ * pipeline order (its source of truth per AC#4 - see `engine/pipeline.ts`),
+ * plus any other phase actually present on a task (sorted after, for other
+ * pipelines e.g. authoring/exploration), plus a trailing `NO_PHASE_KEY`
+ * column when at least one task has no phase (no pipeline_id, or a legacy
+ * status-only task) so it still renders instead of being dropped.
+ */
+export function buildPhaseColumns(tasks: Task[]): string[] {
+	const baseline = new Set(PIPELINE_PHASE_ORDER);
+	const extra = new Set<string>();
+	let hasNoPhase = false;
+	for (const task of tasks) {
+		const phase = (task.phase ?? "").trim();
+		if (!phase) {
+			hasNoPhase = true;
+			continue;
+		}
+		if (!baseline.has(phase)) {
+			extra.add(phase);
+		}
+	}
+	const columns = [...PIPELINE_PHASE_ORDER, ...Array.from(extra).sort((a, b) => a.localeCompare(b))];
+	if (hasNoPhase) {
+		columns.push(NO_PHASE_KEY);
+	}
+	return columns;
+}
+
 export function sortTasksForStatus(tasks: Task[], status: string): Task[] {
 	const isDoneStatus = status.toLowerCase().includes("done") || status.toLowerCase().includes("complete");
 
@@ -426,6 +478,10 @@ export function groupTasksByLaneAndStatus(
 	statuses: string[],
 	tasks: Task[],
 	options?: { archivedMilestoneIds?: string[]; milestoneEntities?: Milestone[]; archivedMilestones?: Milestone[] },
+	/** Column-bucket key extractor. Defaults to `task.status`; pass a different extractor
+	 *  (e.g. phase-derived, see `phaseKeyOf`) to bucket by another field without duplicating
+	 *  the lane/milestone-canonicalization logic below. */
+	keyOf: (task: Task) => string = (task) => task.status ?? "",
 ): Map<string, Map<string, Task[]>> {
 	const result = new Map<string, Map<string, Task[]>>();
 	const archivedKeys = new Set((options?.archivedMilestoneIds ?? []).map((id) => milestoneKey(id)));
@@ -461,7 +517,7 @@ export function groupTasksByLaneAndStatus(
 	}
 
 	for (const task of normalizedTasks) {
-		const statusKey = task.status ?? "";
+		const statusKey = keyOf(task);
 		const laneKey =
 			mode === "milestone"
 				? laneKeyFromMilestone(task.milestone)

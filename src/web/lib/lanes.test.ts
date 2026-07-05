@@ -2,13 +2,18 @@ import { describe, expect, it } from "bun:test";
 import type { Task } from "../../types";
 import {
 	buildLanes,
+	buildPhaseColumns,
 	DEFAULT_LANE_KEY,
 	groupTasksByLaneAndStatus,
 	groupTasksByPhase,
 	laneKeyFromMilestone,
 	laneKeyFromPipeline,
+	NO_PHASE_KEY,
 	NO_PHASE_LABEL,
 	NO_PIPELINE_LABEL,
+	PIPELINE_TERMINAL_PHASE,
+	phaseColumnLabel,
+	phaseKeyOf,
 	sortTasksForStatus,
 } from "./lanes";
 
@@ -251,6 +256,96 @@ describe("groupTasksByPhase", () => {
 
 	it("returns an empty array for an empty task list without crashing", () => {
 		expect(groupTasksByPhase([])).toEqual([]);
+	});
+});
+
+describe("phaseKeyOf", () => {
+	it("returns the task's phase when set", () => {
+		expect(phaseKeyOf(makeTask({ phase: "evaluating" }))).toBe("evaluating");
+	});
+
+	it("falls back to NO_PHASE_KEY when phase is missing or blank", () => {
+		expect(phaseKeyOf(makeTask({}))).toBe(NO_PHASE_KEY);
+		expect(phaseKeyOf(makeTask({ phase: "" }))).toBe(NO_PHASE_KEY);
+		expect(phaseKeyOf(makeTask({ phase: "   " }))).toBe(NO_PHASE_KEY);
+	});
+});
+
+describe("phaseColumnLabel", () => {
+	it("title-cases hyphenated phase keys", () => {
+		expect(phaseColumnLabel("awaiting-children")).toBe("Awaiting Children");
+		expect(phaseColumnLabel("done")).toBe("Done");
+	});
+
+	it("returns the shared No phase label for NO_PHASE_KEY", () => {
+		expect(phaseColumnLabel(NO_PHASE_KEY)).toBe(NO_PHASE_LABEL);
+	});
+});
+
+describe("buildPhaseColumns", () => {
+	it("returns the execution pipeline's phases in pipeline order (AC#4), not hardcoded status names", () => {
+		const columns = buildPhaseColumns([]);
+		expect(columns).toEqual(["ready", "decomposing", "awaiting-children", "evaluating", "needs-human", "done"]);
+	});
+
+	it("ends in the pipeline's terminal phase", () => {
+		const columns = buildPhaseColumns([]);
+		expect(columns.at(-1)).toBe(PIPELINE_TERMINAL_PHASE);
+		expect(PIPELINE_TERMINAL_PHASE).toBe("done");
+	});
+
+	it("appends other pipelines' phases (e.g. authoring/exploration) sorted after the execution pipeline", () => {
+		const tasks = [makeTask({ id: "task-1", phase: "refining" }), makeTask({ id: "task-2", phase: "spike" })];
+		const columns = buildPhaseColumns(tasks);
+		expect(columns.slice(0, 6)).toEqual([
+			"ready",
+			"decomposing",
+			"awaiting-children",
+			"evaluating",
+			"needs-human",
+			"done",
+		]);
+		expect(columns.slice(6)).toEqual(["refining", "spike"]);
+	});
+
+	it("appends a trailing No phase column only when at least one task has no phase", () => {
+		const withNoPhase = buildPhaseColumns([makeTask({ id: "task-1" }), makeTask({ id: "task-2", phase: "done" })]);
+		expect(withNoPhase.at(-1)).toBe(NO_PHASE_KEY);
+
+		const withoutNoPhase = buildPhaseColumns([makeTask({ id: "task-1", phase: "done" })]);
+		expect(withoutNoPhase).not.toContain(NO_PHASE_KEY);
+	});
+});
+
+describe("groupTasksByLaneAndStatus with a custom keyOf extractor", () => {
+	it("buckets tasks by phase instead of status when phaseKeyOf is passed", () => {
+		const tasks = [
+			makeTask({ id: "task-1", status: "To Do", phase: "ready" }),
+			makeTask({ id: "task-2", status: "In Progress", phase: "evaluating" }),
+			makeTask({ id: "task-3", status: "Done" }),
+		];
+		const lanes = buildLanes("none", tasks, []);
+		const columns = buildPhaseColumns(tasks);
+		const grouped = groupTasksByLaneAndStatus("none", lanes, columns, tasks, undefined, phaseKeyOf);
+
+		expect(
+			grouped
+				.get(DEFAULT_LANE_KEY)
+				?.get("ready")
+				?.map((t) => t.id),
+		).toEqual(["task-1"]);
+		expect(
+			grouped
+				.get(DEFAULT_LANE_KEY)
+				?.get("evaluating")
+				?.map((t) => t.id),
+		).toEqual(["task-2"]);
+		expect(
+			grouped
+				.get(DEFAULT_LANE_KEY)
+				?.get(NO_PHASE_KEY)
+				?.map((t) => t.id),
+		).toEqual(["task-3"]);
 	});
 });
 
