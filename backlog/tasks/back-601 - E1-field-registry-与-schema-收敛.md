@@ -1,10 +1,10 @@
 ---
 id: BACK-601
 title: 'E1: field-registry 与 schema 收敛'
-status: 'Epic: Needs Human'
+status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 07:01'
+updated_date: '2026-07-05 08:48'
 labels:
   - 'kind:epic'
   - 'epicd:E1'
@@ -12,7 +12,7 @@ dependencies:
   - BACK-600
 ordinal: 2000
 pipeline_id: execution
-phase: needs-human
+phase: done
 role: compound
 ---
 
@@ -175,4 +175,6 @@ Sub-Task Decomposition refined via feature-to-backlog (drafter + independent arc
 2026-07-05 verification (BACK-628.1 点火): children BACK-609/610/611/612 全 Basic:Done。独立复核(非自证)：src/core/field-registry.ts 存在,含 FIELD_DESCRIPTORS/parseFields/serializeFields/label()/displayStatus() 真实实现(非 stub);bun test src/test/field-registry* 42/42 pass;bunx tsc --noEmit 干净;search-service.ts 含 pipeline_id/phase 过滤;refine_log 字段存在。AC#1/2/3/5/6 核实满足并勾选。AC#4(通用部分回馈上游)未做,已拆分为独立低优先级任务(不阻塞本 epic 收口)。
 
 2026-07-05: phase corrected done→ (via BACK-628.1). Prior 'needs-human' was leftover bookkeeping from the BACK-622 decomposer status/phase desync bug (already fixed, see commit c6391a3's own note: 'escalated to needs-human by hand pending BACK-622's fix'). Since BACK-622 is Done and children verified Done+working, epic closed.
+
+2026-07-05 收口：先前的 'Epic: Needs Human' 是 BACK-622 bug（decomposer status/phase 脱节）修复前的历史性人工修正（commit c6391a3），发生在 601.1/609-612 完成之前。现全部 5 个 child（601.1/609/610/611/612）均 Basic: Done；用 bun run cli engine evaluate BACK-601 走真实引擎聚合（非手工改 phase）重新求值 → phase=done，status 经 BACK-627 的派生逻辑自动同步为 'Epic: Done'。E1 收口。
 <!-- SECTION:NOTES:END -->
