@@ -311,6 +311,15 @@ export class ApiClient {
 		return response.json();
 	}
 
+	/** Coordinator claim state for the driver indicator (BACK-645): taskId -> "claimed" | "stale"; absent ids are "unclaimed". */
+	async fetchCoordinatorClaims(): Promise<Record<string, "claimed" | "stale">> {
+		const response = await fetch(`${API_BASE}/coordinator-claims`);
+		if (!response.ok) {
+			throw new Error("Failed to fetch coordinator claims");
+		}
+		return response.json();
+	}
+
 	async fetchConfig(): Promise<BacklogConfig> {
 		const response = await fetch(`${API_BASE}/config`);
 		if (!response.ok) {

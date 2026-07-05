@@ -173,6 +173,12 @@ describe("TaskList labels filter menu", () => {
 		const fetchCalls: string[] = [];
 		globalThis.fetch = (async (input: RequestInfo | URL) => {
 			const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+			// TaskList also fires an unrelated background fetch for the driver-indicator
+			// Coordinator claim state (BACK-645) on every `tasks` change; that request isn't
+			// part of what this test exercises, so answer it benignly without counting it.
+			if (!url.includes("/api/search")) {
+				return { ok: true, status: 200, statusText: "OK", json: async () => ({}) } as Response;
+			}
 			fetchCalls.push(url);
 			expect(url).toContain("/api/search");
 			expect(url).toContain("label=bug");
@@ -208,6 +214,9 @@ describe("TaskList labels filter menu", () => {
 		const fetchCalls: string[] = [];
 		globalThis.fetch = (async (input: RequestInfo | URL) => {
 			const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+			if (!url.includes("/api/search")) {
+				return { ok: true, status: 200, statusText: "OK", json: async () => ({}) } as Response;
+			}
 			fetchCalls.push(url);
 			expect(url).toContain("/api/search");
 			expect(url).toContain("status=Closed");
@@ -234,6 +243,9 @@ describe("TaskList labels filter menu", () => {
 		const fetchCalls: string[] = [];
 		globalThis.fetch = (async (input: RequestInfo | URL) => {
 			const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+			if (!url.includes("/api/search")) {
+				return { ok: true, status: 200, statusText: "OK", json: async () => ({}) } as Response;
+			}
 			fetchCalls.push(url);
 			expect(url).toContain("/api/search");
 			expect(url).toContain("status=Review");
