@@ -11,6 +11,7 @@ import { collectAvailableLabels } from "../../utils/label-filter.ts";
 import { isTerminalStatus } from "../../utils/terminal-status.ts";
 import { collectArchivedMilestoneKeys, getMilestoneLabel, milestoneKey } from "../utils/milestones";
 import { formatStoredUtcDateForCompactDisplay, parseStoredUtcDate } from "../utils/date-display";
+import { buildLanes, groupTasksByLaneAndStatus, groupTasksByPhase, type LaneMode } from "../lib/lanes";
 import CleanupModal from "./CleanupModal";
 import LabelFilterDropdown from "./LabelFilterDropdown";
 import { SuccessToast } from "./SuccessToast";
@@ -109,6 +110,18 @@ const TaskList: React.FC<TaskListProps> = ({
 	const [cleanupSuccessMessage, setCleanupSuccessMessage] = useState<string | null>(null);
 	const [sortColumn, setSortColumn] = useState<TaskSortColumn>("id");
 	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+	const laneStorageKey = "backlog.taskList.lane";
+	const parseLaneMode = (value: string | null): LaneMode | null => {
+		if (value === "milestone" || value === "pipeline" || value === "none") return value;
+		return null;
+	};
+	const [laneMode, setLaneModeState] = useState<LaneMode>(() => {
+		const paramLane = parseLaneMode(searchParams.get("lane"));
+		if (paramLane) return paramLane;
+		const storedLane = typeof window !== "undefined" ? window.localStorage.getItem(laneStorageKey) : null;
+		return parseLaneMode(storedLane) ?? "none";
+	});
+	const [collapsedLanes, setCollapsedLanes] = useState<Record<string, boolean>>({});
 	const tableHeaderScrollRef = useRef<HTMLDivElement | null>(null);
 	const tableBodyScrollRef = useRef<HTMLDivElement | null>(null);
 	const isSyncingTableScrollRef = useRef(false);
@@ -283,6 +296,10 @@ const TaskList: React.FC<TaskListProps> = ({
 		if (normalizedLabels.join("|") !== labelFilter.join("|")) {
 			setLabelFilter(normalizedLabels);
 		}
+		const paramLane = parseLaneMode(searchParams.get("lane"));
+		if (paramLane && paramLane !== laneMode) {
+			setLaneModeState(paramLane);
+		}
 	}, [searchParams]);
 
 	useEffect(() => {
@@ -407,6 +424,28 @@ const TaskList: React.FC<TaskListProps> = ({
 		syncUrl(statusFilter, priorityFilter, labelFilter, value);
 	};
 
+	const handleLaneChange = (mode: LaneMode) => {
+		setLaneModeState(mode);
+		if (typeof window !== "undefined") {
+			window.localStorage.setItem(laneStorageKey, mode);
+		}
+		setSearchParams(
+			(params) => {
+				if (mode === "none") {
+					params.delete("lane");
+				} else {
+					params.set("lane", mode);
+				}
+				return params;
+			},
+			{ replace: true },
+		);
+	};
+
+	const toggleLaneCollapse = (laneKey: string) => {
+		setCollapsedLanes((prev) => ({ ...prev, [laneKey]: !prev[laneKey] }));
+	};
+
 	const handleClearFilters = () => {
 		setStatusFilter("");
 		setPriorityFilter("");
@@ -515,6 +554,136 @@ const TaskList: React.FC<TaskListProps> = ({
 		</colgroup>
 	);
 
+	const renderHeaderRow = () => (
+		<tr className="text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+			{renderSortableHeader("ID", "id")}
+			{renderSortableHeader("Title", "title")}
+			{renderSortableHeader("Status", "status")}
+			{renderSortableHeader("Priority", "priority")}
+			<th className="px-3 py-2">Labels</th>
+			<th className="px-3 py-2">Assignee</th>
+			{renderSortableHeader("Milestone", "milestone")}
+			{renderSortableHeader("Created", "created")}
+		</tr>
+	);
+
+	const renderTaskRow = (task: Task) => {
+		const isFromOtherBranch = Boolean(task.branch);
+		const visibleLabels = task.labels.slice(0, 2);
+		const labelOverflow = Math.max(task.labels.length - visibleLabels.length, 0);
+		const visibleAssignees = task.assignee.slice(0, 2);
+		const assigneeOverflow = Math.max(task.assignee.length - visibleAssignees.length, 0);
+		const milestoneLabel = task.milestone ? getMilestoneLabel(task.milestone, milestoneEntities) : "—";
+		const createdLabel = formatStoredUtcDateForCompactDisplay(task.createdDate ?? "");
+
+		return (
+			<tr
+				key={task.id}
+				onClick={() => onEditTask(task)}
+				className={`cursor-pointer transition-colors ${
+					isFromOtherBranch
+						? "bg-amber-50/50 hover:bg-amber-100/70 dark:bg-amber-900/10 dark:hover:bg-amber-900/20"
+						: "bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/50"
+				}`}
+			>
+				<td className="px-3 py-2.5 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">
+					{task.id}
+				</td>
+				<td className="px-3 py-2.5">
+					<div className="flex items-center gap-2 min-w-0">
+						<span
+							className={`block truncate text-sm ${
+								isFromOtherBranch ? "text-gray-600 dark:text-gray-300" : "text-gray-900 dark:text-gray-100"
+							}`}
+							title={task.title}
+						>
+							{task.title}
+						</span>
+						{isFromOtherBranch && task.branch && (
+							<span
+								className="inline-flex shrink-0 items-center rounded-circle bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+								title={`Read-only task from ${task.branch} branch`}
+							>
+								{task.branch}
+							</span>
+						)}
+					</div>
+				</td>
+				<td className="px-3 py-2.5">
+					<span className={`inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getStatusColor(task.status)}`}>
+						{task.status}
+					</span>
+				</td>
+				<td className="px-3 py-2.5">
+					{task.priority ? (
+						<span className={`inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getPriorityColor(task.priority)}`}>
+							{task.priority}
+						</span>
+					) : (
+						<span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+					)}
+				</td>
+				<td className="px-3 py-2.5">
+					{visibleLabels.length > 0 ? (
+						<div className="flex items-center gap-1 min-w-0">
+							{visibleLabels.map((label) => (
+								<span
+									key={label}
+									className="inline-flex max-w-[7rem] truncate rounded-circle bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+									title={label}
+								>
+									{label}
+								</span>
+							))}
+							{labelOverflow > 0 && (
+								<span className="text-[11px] text-gray-500 dark:text-gray-400">+{labelOverflow}</span>
+							)}
+						</div>
+					) : (
+						<span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+					)}
+				</td>
+				<td className="px-3 py-2.5">
+					{visibleAssignees.length > 0 ? (
+						<div className="flex items-center gap-1.5">
+							{visibleAssignees.map((assignee) => (
+								<span
+									key={assignee}
+									title={assignee}
+									className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-blue-100 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-200"
+								>
+									{getAssigneeInitials(assignee)}
+								</span>
+							))}
+							{assigneeOverflow > 0 && (
+								<span className="text-[11px] text-gray-500 dark:text-gray-400">+{assigneeOverflow}</span>
+							)}
+						</div>
+					) : (
+						<span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+					)}
+				</td>
+				<td className="px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 truncate" title={milestoneLabel}>
+					{milestoneLabel}
+				</td>
+				<td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{createdLabel}</td>
+			</tr>
+		);
+	};
+
+	// Simple (non-sticky-header) table used to render a lane's or phase group's
+	// tasks inside a swimlane. The top-level flat view keeps its own
+	// sticky/scroll-synced table further below.
+	const renderLaneTable = (list: Task[]) => (
+		<div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+			<table className="w-full min-w-[1100px] table-fixed border-collapse">
+				{renderColumnGroup()}
+				<thead className="bg-gray-50 dark:bg-gray-700/60">{renderHeaderRow()}</thead>
+				<tbody className="divide-y divide-gray-200 dark:divide-gray-700">{list.map((task) => renderTaskRow(task))}</tbody>
+			</table>
+		</div>
+	);
+
 	const sortedDisplayTasks = useMemo(() => {
 		const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 		const compareText = (a: string, b: string) => collator.compare(a, b);
@@ -570,6 +739,62 @@ const TaskList: React.FC<TaskListProps> = ({
 
 	const currentCount = sortedDisplayTasks.length;
 
+	const archivedMilestoneIdsArray = useMemo(() => Array.from(archivedMilestoneKeys), [archivedMilestoneKeys]);
+
+	const hasTasksWithMilestones = useMemo(
+		() => tasks.some((task) => Boolean(task.milestone && task.milestone.trim() !== "")),
+		[tasks],
+	);
+	const hasTasksWithPipelines = useMemo(
+		() => tasks.some((task) => Boolean(task.pipeline_id && task.pipeline_id.trim() !== "")),
+		[tasks],
+	);
+
+	// Lanes are built from the full (unfiltered) task set so lane presence stays stable
+	// while the active filters only narrow which tasks show up inside each lane.
+	const lanes = useMemo(
+		() =>
+			buildLanes(laneMode, sortedBaseTasks, milestoneOptions, milestoneEntities, {
+				archivedMilestoneIds: archivedMilestoneIdsArray,
+				archivedMilestones,
+			}),
+		[laneMode, sortedBaseTasks, milestoneOptions, milestoneEntities, archivedMilestoneIdsArray, archivedMilestones],
+	);
+
+	const tasksByLane = useMemo(
+		() =>
+			groupTasksByLaneAndStatus(laneMode, lanes, availableStatuses, sortedDisplayTasks, {
+				archivedMilestoneIds: archivedMilestoneIdsArray,
+				milestoneEntities,
+				archivedMilestones,
+			}),
+		[laneMode, lanes, availableStatuses, sortedDisplayTasks, archivedMilestoneIdsArray, milestoneEntities, archivedMilestones],
+	);
+
+	const getLaneTasks = (laneKey: string): Task[] => {
+		const statusMap = tasksByLane.get(laneKey);
+		if (!statusMap) return [];
+		const combined: Task[] = [];
+		for (const status of availableStatuses) {
+			combined.push(...(statusMap.get(status) ?? []));
+		}
+		return combined;
+	};
+
+	const visibleLanes = useMemo(() => {
+		if (laneMode === "none") return [];
+		return lanes.filter((lane) => getLaneTasks(lane.key).length > 0);
+	}, [laneMode, lanes, tasksByLane]);
+
+	const shouldShowLaneHeaders = visibleLanes.length > 1;
+
+	const getLaneLabel = (lane: (typeof lanes)[number]): string => {
+		if (laneMode === "milestone" && (lane.isNoMilestone || !lane.milestone)) {
+			return "Unassigned";
+		}
+		return lane.label;
+	};
+
 	useEffect(() => {
 		const headerEl = tableHeaderScrollRef.current;
 		const bodyEl = tableBodyScrollRef.current;
@@ -605,6 +830,50 @@ const TaskList: React.FC<TaskListProps> = ({
 							onClick={onNewTask}
 						>
 							+ New Task
+					</button>
+				</div>
+
+				<div className="inline-flex self-start rounded-lg border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-800/50 transition-colors duration-200" role="toolbar" aria-label="Task list lane controls">
+					<button
+						type="button"
+						onClick={() => handleLaneChange("none")}
+						className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+							laneMode === "none"
+								? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+								: "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+						}`}
+					>
+						All Tasks
+					</button>
+					<button
+						type="button"
+						onClick={() => handleLaneChange("milestone")}
+						disabled={!hasTasksWithMilestones}
+						title={!hasTasksWithMilestones ? "No tasks have milestones. Assign milestones to tasks first." : "Group tasks by milestone"}
+						className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+							!hasTasksWithMilestones
+								? "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+								: laneMode === "milestone"
+									? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+									: "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+						}`}
+					>
+						Milestone
+					</button>
+					<button
+						type="button"
+						onClick={() => handleLaneChange("pipeline")}
+						disabled={!hasTasksWithPipelines}
+						title={!hasTasksWithPipelines ? "No tasks have a pipeline_id. Engine-managed tasks set this automatically." : "Group tasks by pipeline"}
+						className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ${
+							!hasTasksWithPipelines
+								? "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+								: laneMode === "pipeline"
+									? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+									: "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+						}`}
+					>
+						Pipeline
 					</button>
 				</div>
 
@@ -712,24 +981,13 @@ const TaskList: React.FC<TaskListProps> = ({
 							: "Get started by creating a new task."}
 					</p>
 				</div>
-			) : (
+			) : laneMode === "none" ? (
 				<div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
 					<div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/90 supports-[backdrop-filter]:dark:bg-gray-700/85">
 						<div ref={tableHeaderScrollRef} className="overflow-x-auto" style={{ overflowY: "hidden" }}>
 							<table className="w-full min-w-[1100px] table-fixed border-collapse">
 								{renderColumnGroup()}
-								<thead>
-									<tr className="text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
-										{renderSortableHeader("ID", "id")}
-										{renderSortableHeader("Title", "title")}
-										{renderSortableHeader("Status", "status")}
-										{renderSortableHeader("Priority", "priority")}
-										<th className="px-3 py-2">Labels</th>
-										<th className="px-3 py-2">Assignee</th>
-										{renderSortableHeader("Milestone", "milestone")}
-										{renderSortableHeader("Created", "created")}
-									</tr>
-								</thead>
+								<thead>{renderHeaderRow()}</thead>
 							</table>
 						</div>
 					</div>
@@ -737,118 +995,66 @@ const TaskList: React.FC<TaskListProps> = ({
 						<table className="w-full min-w-[1100px] table-fixed border-collapse">
 							{renderColumnGroup()}
 							<tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-								{sortedDisplayTasks.map((task) => {
-									const isFromOtherBranch = Boolean(task.branch);
-									const visibleLabels = task.labels.slice(0, 2);
-									const labelOverflow = Math.max(task.labels.length - visibleLabels.length, 0);
-									const visibleAssignees = task.assignee.slice(0, 2);
-									const assigneeOverflow = Math.max(task.assignee.length - visibleAssignees.length, 0);
-									const milestoneLabel = task.milestone ? getMilestoneLabel(task.milestone, milestoneEntities) : "—";
-									const createdLabel = formatStoredUtcDateForCompactDisplay(task.createdDate ?? "");
-
-									return (
-										<tr
-											key={task.id}
-											onClick={() => onEditTask(task)}
-											className={`cursor-pointer transition-colors ${
-												isFromOtherBranch
-													? "bg-amber-50/50 hover:bg-amber-100/70 dark:bg-amber-900/10 dark:hover:bg-amber-900/20"
-													: "bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/50"
-											}`}
-										>
-											<td className="px-3 py-2.5 text-xs font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">
-												{task.id}
-											</td>
-											<td className="px-3 py-2.5">
-												<div className="flex items-center gap-2 min-w-0">
-													<span
-														className={`block truncate text-sm ${
-															isFromOtherBranch
-																? "text-gray-600 dark:text-gray-300"
-																: "text-gray-900 dark:text-gray-100"
-														}`}
-														title={task.title}
-													>
-														{task.title}
-													</span>
-													{isFromOtherBranch && task.branch && (
-														<span
-															className="inline-flex shrink-0 items-center rounded-circle bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-															title={`Read-only task from ${task.branch} branch`}
-														>
-															{task.branch}
-														</span>
-													)}
-												</div>
-											</td>
-											<td className="px-3 py-2.5">
-												<span className={`inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getStatusColor(task.status)}`}>
-													{task.status}
-												</span>
-											</td>
-											<td className="px-3 py-2.5">
-												{task.priority ? (
-													<span
-														className={`inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getPriorityColor(task.priority)}`}
-													>
-														{task.priority}
-													</span>
-												) : (
-													<span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-												)}
-											</td>
-											<td className="px-3 py-2.5">
-												{visibleLabels.length > 0 ? (
-													<div className="flex items-center gap-1 min-w-0">
-														{visibleLabels.map((label) => (
-															<span
-																key={label}
-																className="inline-flex max-w-[7rem] truncate rounded-circle bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700 dark:bg-gray-700 dark:text-gray-200"
-																title={label}
-															>
-																{label}
-															</span>
-														))}
-														{labelOverflow > 0 && (
-															<span className="text-[11px] text-gray-500 dark:text-gray-400">+{labelOverflow}</span>
-														)}
-													</div>
-												) : (
-													<span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-												)}
-											</td>
-											<td className="px-3 py-2.5">
-												{visibleAssignees.length > 0 ? (
-													<div className="flex items-center gap-1.5">
-														{visibleAssignees.map((assignee) => (
-															<span
-																key={assignee}
-																title={assignee}
-																className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-blue-100 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-200"
-															>
-																{getAssigneeInitials(assignee)}
-															</span>
-														))}
-														{assigneeOverflow > 0 && (
-															<span className="text-[11px] text-gray-500 dark:text-gray-400">+{assigneeOverflow}</span>
-														)}
-													</div>
-												) : (
-													<span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-												)}
-											</td>
-											<td className="px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 truncate" title={milestoneLabel}>
-												{milestoneLabel}
-											</td>
-											<td className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-												{createdLabel}
-											</td>
-										</tr>
-									);
-								})}
+								{sortedDisplayTasks.map((task) => renderTaskRow(task))}
 							</tbody>
 						</table>
 					</div>
+				</div>
+			) : (
+				<div className="space-y-4">
+					{visibleLanes.map((lane) => {
+						const laneTasks = getLaneTasks(lane.key);
+						const isCollapsed = collapsedLanes[lane.key] ?? false;
+						const phaseGroups = laneMode === "pipeline" ? groupTasksByPhase(laneTasks) : null;
+
+						return (
+							<div
+								key={lane.key}
+								className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/20 overflow-hidden"
+							>
+								{shouldShowLaneHeaders && (
+									<button
+										type="button"
+										onClick={() => toggleLaneCollapse(lane.key)}
+										className={`w-full flex items-center gap-3 px-4 py-3 bg-gray-100/80 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 ${
+											!isCollapsed ? "border-b border-gray-200 dark:border-gray-700" : ""
+										}`}
+									>
+										<svg
+											className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isCollapsed ? "" : "rotate-90"}`}
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+										</svg>
+										<h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
+											{getLaneLabel(lane)}
+										</h3>
+										<span className="shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+											{laneTasks.length}
+										</span>
+									</button>
+								)}
+
+								{!isCollapsed && (
+									<div className="p-4 space-y-4">
+										{phaseGroups
+											? phaseGroups.map((group) => (
+													<div key={group.phase}>
+														<h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+															{group.label}{" "}
+															<span className="ml-1 text-gray-400 dark:text-gray-500">({group.tasks.length})</span>
+														</h4>
+														{renderLaneTable(group.tasks)}
+													</div>
+												))
+											: renderLaneTable(laneTasks)}
+									</div>
+								)}
+							</div>
+						);
+					})}
 				</div>
 			)}
 

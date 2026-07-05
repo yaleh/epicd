@@ -1,21 +1,29 @@
 import type { Milestone, Task } from "../../types";
 import { getMilestoneLabel, milestoneKey, normalizeMilestoneName } from "../utils/milestones";
 
-export type LaneMode = "none" | "milestone";
+export type LaneMode = "none" | "milestone" | "pipeline";
 
 export interface LaneDefinition {
 	key: string;
 	label: string;
 	milestone?: string;
+	pipelineId?: string;
+	/** True for the fallback/ungrouped lane (no milestone, or no pipeline_id). */
 	isNoMilestone?: boolean;
 }
 
 export const DEFAULT_LANE_KEY = "lane:none";
 export const NO_MILESTONE_LABEL = "No milestone";
+export const NO_PIPELINE_LABEL = "No pipeline";
 
 export const laneKeyFromMilestone = (milestone?: string | null): string => {
 	const key = milestoneKey(milestone);
 	return key.length > 0 ? `lane:milestone:${key}` : "lane:milestone:__none";
+};
+
+export const laneKeyFromPipeline = (pipelineId?: string | null): string => {
+	const trimmed = (pipelineId ?? "").trim();
+	return trimmed.length > 0 ? `lane:pipeline:${trimmed}` : "lane:pipeline:__none";
 };
 
 function buildMilestoneAliasMap(
@@ -156,6 +164,10 @@ export function buildLanes(
 	milestoneEntities: Milestone[] = [],
 	options?: { archivedMilestoneIds?: string[]; archivedMilestones?: Milestone[] },
 ): LaneDefinition[] {
+	if (mode === "pipeline") {
+		return buildPipelineLanes(tasks);
+	}
+
 	if (mode !== "milestone") {
 		return [
 			{
@@ -200,6 +212,89 @@ export function buildLanes(
 			isNoMilestone: false,
 		})),
 	];
+}
+
+function buildPipelineLanes(tasks: Task[]): LaneDefinition[] {
+	const pipelineIds = new Map<string, string>();
+	for (const task of tasks) {
+		const trimmed = (task.pipeline_id ?? "").trim();
+		if (trimmed && !pipelineIds.has(trimmed)) {
+			pipelineIds.set(trimmed, trimmed);
+		}
+	}
+	const sortedIds = Array.from(pipelineIds.values()).sort((a, b) => a.localeCompare(b));
+
+	return [
+		{
+			key: laneKeyFromPipeline(undefined),
+			label: NO_PIPELINE_LABEL,
+			isNoMilestone: true,
+		},
+		...sortedIds.map((pipelineId) => ({
+			key: laneKeyFromPipeline(pipelineId),
+			label: pipelineId,
+			pipelineId,
+			isNoMilestone: false,
+		})),
+	];
+}
+
+const PRIORITY_RANK: Record<string, number> = {
+	high: 3,
+	medium: 2,
+	low: 1,
+};
+
+function sortTasksByPriority(tasks: Task[]): Task[] {
+	return tasks.slice().sort((a, b) => {
+		const rankA = PRIORITY_RANK[(a.priority ?? "").toLowerCase()] ?? 0;
+		const rankB = PRIORITY_RANK[(b.priority ?? "").toLowerCase()] ?? 0;
+		if (rankA !== rankB) return rankB - rankA;
+		return a.id.localeCompare(b.id, undefined, { sensitivity: "base", numeric: true });
+	});
+}
+
+export const NO_PHASE_KEY = "__none";
+export const NO_PHASE_LABEL = "No phase";
+
+export interface PhaseGroup {
+	phase: string;
+	label: string;
+	tasks: Task[];
+}
+
+/**
+ * Groups tasks (typically the contents of a single pipeline lane) into
+ * phase-ordered columns, sorted by priority within each phase. Tasks with
+ * no `phase` set fall into a single trailing "No phase" group instead of
+ * being dropped or causing an error.
+ */
+export function groupTasksByPhase(tasks: Task[]): PhaseGroup[] {
+	const groups = new Map<string, Task[]>();
+	for (const task of tasks) {
+		const phase = (task.phase ?? "").trim();
+		const key = phase.length > 0 ? phase : NO_PHASE_KEY;
+		const bucket = groups.get(key) ?? [];
+		bucket.push(task);
+		groups.set(key, bucket);
+	}
+
+	const orderedPhases = Array.from(groups.keys())
+		.filter((key) => key !== NO_PHASE_KEY)
+		.sort((a, b) => a.localeCompare(b));
+
+	const result: PhaseGroup[] = orderedPhases.map((phase) => ({
+		phase,
+		label: phase,
+		tasks: sortTasksByPriority(groups.get(phase) ?? []),
+	}));
+
+	const noPhaseTasks = groups.get(NO_PHASE_KEY);
+	if (noPhaseTasks && noPhaseTasks.length > 0) {
+		result.push({ phase: NO_PHASE_KEY, label: NO_PHASE_LABEL, tasks: sortTasksByPriority(noPhaseTasks) });
+	}
+
+	return result;
 }
 
 export function sortTasksForStatus(tasks: Task[], status: string): Task[] {
@@ -367,7 +462,12 @@ export function groupTasksByLaneAndStatus(
 
 	for (const task of normalizedTasks) {
 		const statusKey = task.status ?? "";
-		const laneKey = mode === "milestone" ? laneKeyFromMilestone(task.milestone) : DEFAULT_LANE_KEY;
+		const laneKey =
+			mode === "milestone"
+				? laneKeyFromMilestone(task.milestone)
+				: mode === "pipeline"
+					? laneKeyFromPipeline(task.pipeline_id)
+					: DEFAULT_LANE_KEY;
 		const statusMap = ensureStatusMap(laneKey);
 
 		let bucket = statusMap.get(statusKey);

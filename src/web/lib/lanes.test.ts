@@ -4,7 +4,11 @@ import {
 	buildLanes,
 	DEFAULT_LANE_KEY,
 	groupTasksByLaneAndStatus,
+	groupTasksByPhase,
 	laneKeyFromMilestone,
+	laneKeyFromPipeline,
+	NO_PHASE_LABEL,
+	NO_PIPELINE_LABEL,
 	sortTasksForStatus,
 } from "./lanes";
 
@@ -107,6 +111,25 @@ describe("buildLanes", () => {
 	});
 });
 
+describe("buildLanes (pipeline mode)", () => {
+	it("creates pipeline lanes including No pipeline and task-discovered pipeline_ids, sorted alphabetically", () => {
+		const tasks = [
+			makeTask({ id: "task-1", pipeline_id: "epicd" }),
+			makeTask({ id: "task-2", pipeline_id: "backlog" }),
+			makeTask({ id: "task-3" }),
+		];
+		const lanes = buildLanes("pipeline", tasks, []);
+		expect(lanes.map((lane) => lane.label)).toEqual([NO_PIPELINE_LABEL, "backlog", "epicd"]);
+		expect(lanes.map((lane) => lane.pipelineId)).toEqual([undefined, "backlog", "epicd"]);
+	});
+
+	it("does not duplicate lanes for tasks sharing the same pipeline_id", () => {
+		const tasks = [makeTask({ id: "task-1", pipeline_id: "epicd" }), makeTask({ id: "task-2", pipeline_id: "epicd" })];
+		const lanes = buildLanes("pipeline", tasks, []);
+		expect(lanes.map((lane) => lane.label)).toEqual([NO_PIPELINE_LABEL, "epicd"]);
+	});
+});
+
 describe("groupTasksByLaneAndStatus", () => {
 	const tasks = [
 		makeTask({ id: "task-1", status: "To Do", milestone: "M1" }),
@@ -163,6 +186,71 @@ describe("groupTasksByLaneAndStatus", () => {
 		});
 		expect((grouped.get(laneKeyFromMilestone("m-1"))?.get("To Do") ?? []).map((task) => task.id)).toEqual(["task-1"]);
 		expect((grouped.get(laneKeyFromMilestone("m-2"))?.get("To Do") ?? []).map((task) => task.id) ?? []).toHaveLength(0);
+	});
+
+	it("groups tasks under their pipeline_id lanes", () => {
+		const pipelineTasks = [
+			makeTask({ id: "task-1", status: "To Do", pipeline_id: "epicd" }),
+			makeTask({ id: "task-2", status: "In Progress", pipeline_id: "backlog" }),
+			makeTask({ id: "task-3", status: "To Do" }),
+		];
+		const lanes = buildLanes("pipeline", pipelineTasks, []);
+		const grouped = groupTasksByLaneAndStatus("pipeline", lanes, ["To Do", "In Progress"], pipelineTasks);
+
+		expect((grouped.get(laneKeyFromPipeline("epicd"))?.get("To Do") ?? []).map((t) => t.id)).toEqual(["task-1"]);
+		expect((grouped.get(laneKeyFromPipeline("backlog"))?.get("In Progress") ?? []).map((t) => t.id)).toEqual([
+			"task-2",
+		]);
+		expect((grouped.get(laneKeyFromPipeline(undefined))?.get("To Do") ?? []).map((t) => t.id)).toEqual(["task-3"]);
+	});
+
+	it("falls back tasks with no pipeline_id into the No pipeline lane", () => {
+		const pipelineTasks = [
+			makeTask({ id: "task-1", status: "To Do" }),
+			makeTask({ id: "task-2", status: "To Do", pipeline_id: "" }),
+		];
+		const lanes = buildLanes("pipeline", pipelineTasks, []);
+		const grouped = groupTasksByLaneAndStatus("pipeline", lanes, ["To Do"], pipelineTasks);
+
+		expect((grouped.get(laneKeyFromPipeline(undefined))?.get("To Do") ?? []).map((t) => t.id)).toEqual([
+			"task-1",
+			"task-2",
+		]);
+	});
+});
+
+describe("groupTasksByPhase", () => {
+	it("orders phases alphabetically and sorts tasks by priority within each phase", () => {
+		const tasks = [
+			makeTask({ id: "task-1", phase: "Execution", priority: "low" }),
+			makeTask({ id: "task-2", phase: "Execution", priority: "high" }),
+			makeTask({ id: "task-3", phase: "Design", priority: "medium" }),
+			makeTask({ id: "task-4", phase: "Design" }),
+		];
+
+		const groups = groupTasksByPhase(tasks);
+
+		expect(groups.map((g) => g.phase)).toEqual(["Design", "Execution"]);
+		expect(groups[0]?.tasks.map((t) => t.id)).toEqual(["task-3", "task-4"]);
+		expect(groups[1]?.tasks.map((t) => t.id)).toEqual(["task-2", "task-1"]);
+	});
+
+	it("falls back tasks with no phase into a single trailing No phase group instead of crashing", () => {
+		const tasks = [
+			makeTask({ id: "task-1", phase: "Execution" }),
+			makeTask({ id: "task-2" }),
+			makeTask({ id: "task-3", phase: "" }),
+		];
+
+		const groups = groupTasksByPhase(tasks);
+
+		expect(groups.map((g) => g.phase)).toEqual(["Execution", "__none"]);
+		expect(groups[1]?.label).toBe(NO_PHASE_LABEL);
+		expect(groups[1]?.tasks.map((t) => t.id)).toEqual(["task-2", "task-3"]);
+	});
+
+	it("returns an empty array for an empty task list without crashing", () => {
+		expect(groupTasksByPhase([])).toEqual([]);
 	});
 });
 
