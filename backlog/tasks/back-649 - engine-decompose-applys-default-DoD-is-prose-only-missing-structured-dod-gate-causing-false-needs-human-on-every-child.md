@@ -3,16 +3,16 @@ id: BACK-649
 title: >-
   engine decompose-apply's default DoD is prose-only, missing structured
   --dod-gate, causing false needs-human on every child
-status: 'Basic: Ready'
+status: 'Basic: Needs Human'
 assignee:
   - '@claude'
 created_date: '2026-07-05 15:19'
-updated_date: '2026-07-05 18:00'
+updated_date: '2026-07-05 18:02'
 labels: []
 dependencies: []
 ordinal: 69000
 pipeline_id: execution
-phase: ready
+phase: needs-human
 dod:
   - text: bunx tsc --noEmit
     checked: false
