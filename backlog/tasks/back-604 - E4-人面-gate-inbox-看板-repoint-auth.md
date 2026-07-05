@@ -4,7 +4,7 @@ title: 'E4: 人面 — 多车道 issue-list（主面）+ 内联 gate + auth'
 status: 'Epic: Proposal'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 02:18'
+updated_date: '2026-07-05 06:06'
 labels:
   - 'kind:epic'
   - 'epicd:E4'
@@ -12,6 +12,7 @@ dependencies:
   - BACK-601
   - BACK-602
   - BACK-603
+  - BACK-628
 ordinal: 5000
 ---
 
@@ -57,6 +58,8 @@ ordinal: 5000
 - [ ] #5 状态显示收敛：现有重复 ~4 处 status 启发式收敛为单一 label(role, phase) 单向投影（渲染边界；engine 读 phase key 查 pipeline-data，不解读显示串）
 - [ ] #6 auth 引擎自有中间件接入（包住 issue-list + 桌面总览）；通用 UI/auth/lanes 扩展部分可回馈上游
 - [ ] #7 e2e（@playwright/test 独立 job）覆盖：多车道加载/折叠/切换、内联 gate-review、驱动者指示随 WS 刷新、kanban(deprecated) 回归
+- [ ] #8 本面由 epicd 自举环自身分解并驱动交付（非手工搭建），作为自托管后第一个真功能 dogfood；证据记入 docs/research/gcl-events.jsonl
+- [ ] #9 自观察反馈闭环：一个 agent 经 web API + Playwright 观察运行中的板，把异常（status/phase desync、stale claim、空 worktree 孤儿）自动经 backlog CLI 建 task 并链接来源；至少演示一次真实检出→建 task
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -64,3 +67,13 @@ ordinal: 5000
 <!-- SECTION:NOTES:BEGIN -->
 2026-07-04 终版对齐：驱动者指示的“waiting_on”一律理解为 actor(phase)——turn 不 per-task 存，由 pipelineDef[phase].actor 派生（proposal §2.3 终版）。本面只读 phase + 查 pipeline-data 得 actor，再 ⨝ claim；无需 join 任何 waiting_on 字段。gate 裁决写回的是 phase。
 <!-- SECTION:NOTES:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+author: @claude
+created: 2026-07-05 06:06
+---
+归并 BACK-629（自观察闭环）入本 E4：其两点新意——(1) 由自举环交付 (2) observe→task 传感器——已作为 AC#8/#9 加入本面，退掉平行车道（避免过度分解）。新增依赖 BACK-628（须先自托管才能'由环交付'）。BACK-629 已 archive。
+---
+<!-- COMMENTS:END -->
