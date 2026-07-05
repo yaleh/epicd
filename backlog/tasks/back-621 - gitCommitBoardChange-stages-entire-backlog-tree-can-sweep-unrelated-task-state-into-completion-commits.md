@@ -3,20 +3,15 @@ id: BACK-621
 title: >-
   gitCommitBoardChange stages entire backlog tree, can sweep unrelated task
   state into completion commits
-status: 'Basic: Proposal'
+status: 'Basic: In Progress'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:09'
-updated_date: '2026-07-05 00:10'
+updated_date: '2026-07-05 00:17'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 33000
-dod:
-  - text: bun test src/test/engine-merge.test.ts src/test/engine-merge-wire.test.ts
-    checked: false
-  - text: bunx tsc --noEmit
-    checked: false
 ---
 
 ## Description
@@ -85,3 +80,9 @@ Scope the `git add` to the specific task's board file glob (the same `backlog/ta
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-05T00:17:08Z
+<!-- SECTION:NOTES:END -->

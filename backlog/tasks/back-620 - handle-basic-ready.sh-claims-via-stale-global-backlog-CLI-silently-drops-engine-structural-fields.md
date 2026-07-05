@@ -3,15 +3,16 @@ id: BACK-620
 title: >-
   handle-basic-ready.sh claims via stale global backlog CLI, silently drops
   engine structural fields
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:09'
-updated_date: '2026-07-05 00:26'
+updated_date: '2026-07-05 00:27'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 32000
+phase: done
 dod:
   - text: bun test src/test/handle-basic-ready-wiring.test.ts
     checked: false
