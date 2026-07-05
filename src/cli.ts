@@ -4800,7 +4800,7 @@ engineCmd
 	.command("stage2-gate")
 	.description("run the Stage 2 fixpoint gate against a rebuilt repo tree (suite-green AND drive-fixpoint)")
 	.requiredOption("--rebuilt <path>", "absolute path to the rebuilt repo tree")
-	.option("--record <file>", "path to append the GateEvent JSON line (default: docs/research/gcl-events.jsonl)")
+	.option("--record <file>", "path to append the GateEvent JSON line (default: docs/research/gate-events.jsonl)")
 	.option("--item-id <id>", "item id to attribute the gate event to (default: derived from --rebuilt)")
 	.option("--pipeline-id <id>", "pipeline id to attribute the gate event to (default: stage2-gate)")
 	.action(async (options) => {
@@ -4825,7 +4825,7 @@ engineCmd
 			});
 
 			// Record as a GateEvent to the shared gate-event log
-			const recordFile = options.record ?? `${cwd}/docs/research/gcl-events.jsonl`;
+			const recordFile = options.record ?? `${cwd}/docs/research/gate-events.jsonl`;
 			recordStage2Gate(result, rebuiltRepoPath, recordFile, {
 				id: randomUUID(),
 				itemId: options.itemId ?? basename(rebuiltRepoPath),

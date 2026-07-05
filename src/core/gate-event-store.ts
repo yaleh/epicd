@@ -13,7 +13,7 @@
  *
  * Storage: JSONL, one GateEvent per line, written with `appendFileSync`
  * (the same primitive `src/harness/stage2-gate.ts` / `engine stage2-gate`
- * already uses for `docs/research/gcl-events.jsonl`). The fs primitive is
+ * already uses for `docs/research/gate-events.jsonl`). The fs primitive is
  * injected via `GateEventStoreFs` so tests can exercise real file I/O
  * against a tmp path without hardcoding a location — the same "real
  * primitive injection" convention as `MergeLockFs` / `WorktreeRunner` in
@@ -52,7 +52,7 @@ export const realGateEventStoreFs: GateEventStoreFs = {
 			mkdirSync(dir, { recursive: true });
 		}
 		// O_APPEND write of a single line is the same atomicity primitive the
-		// existing gcl-events.jsonl writer relies on (stage2-gate / cli.ts).
+		// gate-events.jsonl writer relies on (stage2-gate / cli.ts).
 		appendFileSync(path, `${line}\n`);
 	},
 	readLines(path: string): string[] {

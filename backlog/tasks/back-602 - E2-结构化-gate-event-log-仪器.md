@@ -1,10 +1,10 @@
 ---
 id: BACK-602
 title: 'E2: 结构化 gate-event log（仪器）'
-status: 'Epic: Awaiting Children'
+status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 09:05'
+updated_date: '2026-07-05 09:55'
 labels:
   - 'kind:epic'
   - 'epicd:E2'
@@ -12,7 +12,7 @@ dependencies:
   - BACK-600
 ordinal: 3000
 pipeline_id: execution
-phase: awaiting-children
+phase: done
 role: compound
 ---
 
@@ -40,11 +40,12 @@ role: compound
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
-
-- [ ] `GateEvent` 通用 schema + append-only 存储（JSONL/SQLite）
-- [ ] 读写 API（引擎给基质，不解释 payload）
-- [ ] baime GCL 管线可从 log 读取并解释 payload 中的 E/C/H
-- [ ] 引擎 core 不含任何 E/C/H/GCL 硬编码
+<!-- AC:BEGIN -->
+- [x] #1 `GateEvent` 通用 schema + append-only 存储（JSONL/SQLite）
+- [x] #2 读写 API（引擎给基质，不解释 payload）
+- [x] #3 baime GCL 管线可从 log 读取并解释 payload 中的 E/C/H
+- [x] #4 引擎 core 不含任何 E/C/H/GCL 硬编码
+<!-- AC:END -->
 
 ## Implementation Plan
 
@@ -136,3 +137,13 @@ role: compound
 - **无 UI**：E2 只交付读 API；E4 消费，本 epic 不建 web/board 渲染。
 - **存储选型已锁定为 JSONL**（见上），不在实现阶段重新讨论。
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Fresh-context audit (post-evaluate) round 1 findings + resolutions:
+- Finding 1 (HIGH, fixed): engine stage2-gate's default --record path collided with the pre-existing legacy baime-GCL-schema file docs/research/gcl-events.jsonl (18 real historical rows, different schema than GateEvent). Fixed by pointing the default to a new docs/research/gate-events.jsonl (src/cli.ts), leaving the legacy file untouched per the epic's own "不删除/不移动" constraint. Verified: tsc/check/bun test --parallel all green (1820 pass/0 fail).
+- Finding 2 (MEDIUM, filed as follow-up BACK-635): queryGateEvents does an unvalidated JSON.parse(line) as GateEvent cast; risk substantially reduced now that new writes go to a clean file, but still worth a minimal shape check.
+- Finding 3 (nitpick, fixed): epic-level ACs #1-4 checked off to reflect genuinely Done children.
+- Deferred: BACK-636 filed for the originally-scoped one-shot migration of the 18 legacy rows into the GateEvent store — no longer required to prevent corruption (writer collision resolved), scope/need to be re-decided independently.
+<!-- SECTION:NOTES:END -->
