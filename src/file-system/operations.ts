@@ -1426,6 +1426,10 @@ ${description || `Milestone: ${title}`}`,
 				case "backlogDirectory":
 					config.backlogDirectory = value.replace(/['"]/g, "");
 					break;
+				case "web_auth_token":
+				case "webAuthToken":
+					config.webAuthToken = value.replace(/['"]/g, "");
+					break;
 			}
 		}
 
@@ -1452,6 +1456,7 @@ ${description || `Milestone: ${title}`}`,
 			onStatusChange: config.onStatusChange,
 			prefixes: config.prefixes,
 			backlogDirectory: config.backlogDirectory,
+			webAuthToken: config.webAuthToken,
 		};
 	}
 
@@ -1484,6 +1489,7 @@ ${description || `Milestone: ${title}`}`,
 			...(config.onStatusChange ? [`onStatusChange: '${config.onStatusChange}'`] : []),
 			...(config.prefixes?.task ? [`task_prefix: "${config.prefixes.task}"`] : []),
 			...(config.backlogDirectory ? [`backlog_directory: "${config.backlogDirectory}"`] : []),
+			...(config.webAuthToken ? [`web_auth_token: "${config.webAuthToken}"`] : []),
 		];
 
 		return `${lines.join("\n")}\n`;

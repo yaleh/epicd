@@ -21,6 +21,7 @@ import { watchConfig } from "../utils/config-watcher.ts";
 import { resolveMilestoneInputForStorage } from "../utils/milestone-storage.ts";
 import { getVersion } from "../utils/version.ts";
 import { getCoordinatorClaimStates } from "../web/lib/coordinator-claims.ts";
+import { checkBearerAuth } from "./auth.ts";
 
 // Regex pattern to match any prefix (letters followed by dash)
 const PREFIX_PATTERN = /^[a-zA-Z]+-/i;
@@ -198,6 +199,8 @@ export class BacklogServer {
 	private unsubscribeContentStore?: () => void;
 	private storeReadyBroadcasted = false;
 	private configWatcher: { stop: () => void } | null = null;
+	// Shared-secret gate for the task API (BACK-647); undefined = no auth required.
+	private webAuthToken: string | undefined;
 
 	constructor(projectPath: string) {
 		this.core = new Core(projectPath, { enableWatchers: true });
@@ -256,6 +259,13 @@ export class BacklogServer {
 		return this.server?.port ?? null;
 	}
 
+	// BACK-647: gates the task API used by both the issue-list (TaskList) and the
+	// deprecated kanban desktop overview (Board) - returns a 401 Response to short
+	// circuit the handler, or null to let the request proceed.
+	private checkAuth(req: Request): Response | null {
+		return checkBearerAuth(req, this.webAuthToken);
+	}
+
 	private broadcastTasksUpdated() {
 		for (const ws of this.sockets) {
 			try {
@@ -284,6 +294,7 @@ export class BacklogServer {
 		// Use config default port if no port specified
 		const finalPort = port ?? config?.defaultPort ?? 6420;
 		this.projectName = config?.projectName || "Untitled Project";
+		this.webAuthToken = config?.webAuthToken;
 
 		// Check if browser should open (config setting or CLI override)
 		// Default to true if autoOpenBrowser is not explicitly set to false
@@ -291,7 +302,8 @@ export class BacklogServer {
 
 		// Set up config watcher to broadcast changes
 		this.configWatcher = watchConfig(this.core, {
-			onConfigChanged: () => {
+			onConfigChanged: (nextConfig) => {
+				this.webAuthToken = nextConfig?.webAuthToken;
 				this.broadcastConfigUpdated();
 			},
 		});
@@ -316,22 +328,27 @@ export class BacklogServer {
 
 					// API Routes using Bun's native route syntax
 					"/api/tasks": {
-						GET: async (req: Request) => await this.handleListTasks(req),
-						POST: async (req: Request) => await this.handleCreateTask(req),
+						GET: async (req: Request) => this.checkAuth(req) ?? (await this.handleListTasks(req)),
+						POST: async (req: Request) => this.checkAuth(req) ?? (await this.handleCreateTask(req)),
 					},
 					"/api/task/:id": {
-						GET: async (req: Request & { params: { id: string } }) => await this.handleGetTask(req.params.id),
+						GET: async (req: Request & { params: { id: string } }) =>
+							this.checkAuth(req) ?? (await this.handleGetTask(req.params.id)),
 					},
 					"/api/tasks/:id": {
-						GET: async (req: Request & { params: { id: string } }) => await this.handleGetTask(req.params.id),
-						PUT: async (req: Request & { params: { id: string } }) => await this.handleUpdateTask(req, req.params.id),
-						DELETE: async (req: Request & { params: { id: string } }) => await this.handleDeleteTask(req.params.id),
+						GET: async (req: Request & { params: { id: string } }) =>
+							this.checkAuth(req) ?? (await this.handleGetTask(req.params.id)),
+						PUT: async (req: Request & { params: { id: string } }) =>
+							this.checkAuth(req) ?? (await this.handleUpdateTask(req, req.params.id)),
+						DELETE: async (req: Request & { params: { id: string } }) =>
+							this.checkAuth(req) ?? (await this.handleDeleteTask(req.params.id)),
 					},
 					"/api/tasks/:id/complete": {
-						POST: async (req: Request & { params: { id: string } }) => await this.handleCompleteTask(req.params.id),
+						POST: async (req: Request & { params: { id: string } }) =>
+							this.checkAuth(req) ?? (await this.handleCompleteTask(req.params.id)),
 					},
 					"/api/statuses": {
-						GET: async () => await this.handleGetStatuses(),
+						GET: async (req: Request) => this.checkAuth(req) ?? (await this.handleGetStatuses()),
 					},
 					"/api/config": {
 						GET: async () => await this.handleGetConfig(),
@@ -384,7 +401,7 @@ export class BacklogServer {
 						POST: async (req: Request & { params: { id: string } }) => await this.handleArchiveMilestone(req.params.id),
 					},
 					"/api/tasks/reorder": {
-						POST: async (req: Request) => await this.handleReorderTask(req),
+						POST: async (req: Request) => this.checkAuth(req) ?? (await this.handleReorderTask(req)),
 					},
 					"/api/tasks/cleanup": {
 						GET: async (req: Request) => await this.handleCleanupPreview(req),

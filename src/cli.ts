@@ -103,6 +103,7 @@ const CONFIG_GET_KEYS = [
 	"zeroPaddedIds",
 	"checkActiveBranches",
 	"activeBranchDays",
+	"webAuthToken",
 ] as const;
 
 const CONFIG_SET_KEYS = [
@@ -120,6 +121,7 @@ const CONFIG_SET_KEYS = [
 	"zeroPaddedIds",
 	"checkActiveBranches",
 	"activeBranchDays",
+	"webAuthToken",
 ] as const;
 
 function normalizeIntegrationOption(value: string): IntegrationMode | null {
@@ -4063,10 +4065,18 @@ addHelpSchema(configCmd.command("get <key>"), {
 				case "activeBranchDays":
 					console.log(config.activeBranchDays?.toString() || "30");
 					break;
+				case "webAuthToken":
+					if (config.webAuthToken) {
+						console.log(config.webAuthToken);
+					} else {
+						console.log("webAuthToken is not set");
+						process.exit(1);
+					}
+					break;
 				default:
 					console.error(`Unknown config key: ${key}`);
 					console.error(
-						"Available keys: defaultEditor, projectName, defaultStatus, statuses, labels, milestones, definitionOfDone, dateFormat, maxColumnWidth, defaultPort, autoOpenBrowser, remoteOperations, autoCommit, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays",
+						"Available keys: defaultEditor, projectName, defaultStatus, statuses, labels, milestones, definitionOfDone, dateFormat, maxColumnWidth, defaultPort, autoOpenBrowser, remoteOperations, autoCommit, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays, webAuthToken",
 					);
 					process.exit(1);
 			}
@@ -4234,6 +4244,15 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 					config.activeBranchDays = days;
 					break;
 				}
+				case "webAuthToken": {
+					const trimmed = value.trim();
+					if (!trimmed) {
+						console.error("webAuthToken cannot be empty. Use an unset mechanism by editing the config file directly.");
+						process.exit(1);
+					}
+					config.webAuthToken = trimmed;
+					break;
+				}
 				case "statuses":
 				case "labels":
 				case "milestones":
@@ -4265,7 +4284,7 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 				default:
 					console.error(`Unknown config key: ${key}`);
 					console.error(
-						"Available keys: defaultEditor, projectName, defaultStatus, dateFormat, maxColumnWidth, autoOpenBrowser, defaultPort, remoteOperations, autoCommit, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays",
+						"Available keys: defaultEditor, projectName, defaultStatus, dateFormat, maxColumnWidth, autoOpenBrowser, defaultPort, remoteOperations, autoCommit, filesystemOnly, bypassGitHooks, zeroPaddedIds, checkActiveBranches, activeBranchDays, webAuthToken",
 					);
 					process.exit(1);
 			}
@@ -4318,6 +4337,7 @@ addHelpSchema(configCmd.command("list"), {
 			console.log(`  taskPrefix: ${config.prefixes?.task || "task"} (read-only)`);
 			console.log(`  checkActiveBranches: ${config.checkActiveBranches ?? "true"}`);
 			console.log(`  activeBranchDays: ${config.activeBranchDays ?? "30"}`);
+			console.log(`  webAuthToken: ${config.webAuthToken ? "(set)" : "(not set)"}`);
 		} catch (err) {
 			console.error("Failed to list config values", err);
 			process.exitCode = 1;

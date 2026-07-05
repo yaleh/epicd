@@ -89,20 +89,18 @@ const setupDom = (url = "http://localhost/board") => {
 
 const renderBoardPage = (
 	url?: string,
-	options: { tasks?: Task[]; statuses?: string[]; availableLabels?: string[] } = {},
+	options: { tasks?: Task[]; availableLabels?: string[] } = {},
 ): HTMLElement => {
 	setupDom(url);
 	const container = document.getElementById("root");
 	expect(container).toBeTruthy();
 	const renderedTasks = options.tasks ?? tasks;
-	const renderedStatuses = options.statuses ?? ["To Do", "In Progress", "Done"];
 	activeRoot = createRoot(container as HTMLElement);
 	act(() => {
 		activeRoot?.render(
 			<BrowserRouter>
 				<BoardPage
 					tasks={renderedTasks}
-					statuses={renderedStatuses}
 					milestones={[]}
 					availableLabels={options.availableLabels ?? ["bug", "docs", "enhancement"]}
 					milestoneEntities={[]}
@@ -289,10 +287,12 @@ describe("Web board filters", () => {
 		expect(text).not.toContain("Write docs");
 	});
 
-	it("shows cleanup on the final configured status column when it is not named Done", () => {
+	it("shows cleanup on the pipeline's terminal 'done' phase column regardless of legacy status", () => {
+		// BACK-647 604.4: columns (and the cleanup column) are now derived from the
+		// execution pipeline's phase set, not a configurable/legacy `statuses` list -
+		// so the cleanup button tracks a task's `phase: "done"`, not its `status` string.
 		const container = renderBoardPage(undefined, {
-			statuses: ["To Do", "Review", "Closed"],
-			tasks: [createTask({ id: "task-200", title: "Closed task", status: "Closed" })],
+			tasks: [createTask({ id: "task-200", title: "Closed task", status: "Closed", phase: "done" })],
 		});
 
 		const cleanupButtons = Array.from(container.querySelectorAll("button")).filter((button) =>

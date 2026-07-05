@@ -497,7 +497,6 @@ function App() {
                   onNewTask={handleNewTask}
                 tasks={tasks}
                 onRefreshData={refreshData}
-                statuses={statuses}
                 milestones={milestones}
                 availableLabels={availableLabels}
                 milestoneEntities={milestoneEntities}

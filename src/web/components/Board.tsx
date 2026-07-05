@@ -1,10 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { type Milestone, type Task } from '../../types';
-import { apiClient, type ReorderTaskPayload } from '../lib/api';
-import { buildLanes, DEFAULT_LANE_KEY, groupTasksByLaneAndStatus, type LaneMode } from '../lib/lanes';
+import { apiClient } from '../lib/api';
+import {
+  buildLanes,
+  buildPhaseColumns,
+  DEFAULT_LANE_KEY,
+  groupTasksByLaneAndStatus,
+  phaseColumnLabel,
+  phaseKeyOf,
+  PIPELINE_TERMINAL_PHASE,
+  type LaneMode,
+} from '../lib/lanes';
 import { collectAvailableLabels, labelsToLower } from '../../utils/label-filter';
 import { collectArchivedMilestoneKeys, milestoneKey } from '../utils/milestones';
-import { getTerminalStatus } from '../../utils/terminal-status';
 import TaskColumn from './TaskColumn';
 import CleanupModal from './CleanupModal';
 import LabelFilterDropdown from './LabelFilterDropdown';
@@ -16,7 +24,6 @@ interface BoardProps {
   highlightTaskId?: string | null;
   tasks: Task[];
   onRefreshData?: () => Promise<void>;
-  statuses: string[];
   isLoading: boolean;
   milestones: string[];
   availableLabels: string[];
@@ -50,7 +57,6 @@ const Board: React.FC<BoardProps> = ({
   highlightTaskId,
   tasks,
   onRefreshData,
-  statuses,
   isLoading,
   availableLabels,
   milestoneEntities,
@@ -69,7 +75,11 @@ const Board: React.FC<BoardProps> = ({
   const [showCleanupModal, setShowCleanupModal] = useState(false);
   const [cleanupSuccessMessage, setCleanupSuccessMessage] = useState<string | null>(null);
   const [collapsedLanes, setCollapsedLanes] = useState<Record<string, boolean>>({});
-  const terminalStatus = getTerminalStatus(statuses);
+  // BACK-647 604.4: columns are the execution pipeline's phase set (AC#4), not hardcoded
+  // Basic/Epic status strings - see `buildPhaseColumns`. Tasks with no phase (no
+  // pipeline_id, or a legacy status-only task) still render, in a trailing "No phase" column.
+  const phaseColumns = useMemo(() => buildPhaseColumns(tasks), [tasks]);
+  const terminalStatus = PIPELINE_TERMINAL_PHASE;
   const archivedMilestoneIds = useMemo(
     () => collectArchivedMilestoneKeys(archivedMilestones, milestoneEntities),
     [archivedMilestones, milestoneEntities]
@@ -276,19 +286,6 @@ const Board: React.FC<BoardProps> = ({
     }
   };
 
-  const handleTaskReorder = async (payload: ReorderTaskPayload) => {
-    try {
-      await apiClient.reorderTask(payload);
-      // Refresh data to reflect the changes
-      if (onRefreshData) {
-        await onRefreshData();
-      }
-      setUpdateError(null);
-    } catch (err) {
-      setUpdateError(err instanceof Error ? err.message : 'Failed to reorder task');
-    }
-  };
-
   const handleCleanupSuccess = async (movedCount: number) => {
     setShowCleanupModal(false);
     setCleanupSuccessMessage(`Successfully moved ${movedCount} task${movedCount !== 1 ? 's' : ''} to completed folder`);
@@ -327,23 +324,23 @@ const Board: React.FC<BoardProps> = ({
 
   // Use all tasks for lane grouping (for counts and visibility)
   const tasksByLane = useMemo(
-    () => groupTasksByLaneAndStatus(laneMode, lanes, statuses, tasks, {
+    () => groupTasksByLaneAndStatus(laneMode, lanes, phaseColumns, tasks, {
       archivedMilestoneIds,
       milestoneEntities,
       archivedMilestones,
-    }),
-    [laneMode, lanes, statuses, tasks, archivedMilestoneIds, milestoneEntities, archivedMilestones]
+    }, phaseKeyOf),
+    [laneMode, lanes, phaseColumns, tasks, archivedMilestoneIds, milestoneEntities, archivedMilestones]
   );
 
   // Separate grouping for filtered display in columns
   const filteredTasksByLane = useMemo(
     () =>
-      groupTasksByLaneAndStatus(laneMode, lanes, statuses, filteredTasks, {
+      groupTasksByLaneAndStatus(laneMode, lanes, phaseColumns, filteredTasks, {
         archivedMilestoneIds,
         milestoneEntities,
         archivedMilestones,
-      }),
-    [laneMode, lanes, statuses, filteredTasks, archivedMilestoneIds, milestoneEntities, archivedMilestones]
+      }, phaseKeyOf),
+    [laneMode, lanes, phaseColumns, filteredTasks, archivedMilestoneIds, milestoneEntities, archivedMilestones]
   );
 
   const displayTasksByLane = (milestoneFilter || hasActiveFilters) ? filteredTasksByLane : tasksByLane;
@@ -425,7 +422,7 @@ const Board: React.FC<BoardProps> = ({
     }));
   };
 
-  if (isLoading && statuses.length === 0) {
+  if (isLoading && tasks.length === 0) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-lg text-gray-600 dark:text-gray-300 transition-colors duration-200">Loading tasks...</div>
@@ -583,15 +580,19 @@ const Board: React.FC<BoardProps> = ({
                 {/* Lane content - columns */}
                 {!isCollapsed && (
                   <div className="p-4">
-                    <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${statuses.length}, minmax(0, 1fr))` }}>
-                      {statuses.map((status) => (
-                        <div key={`${lane.key}-${status}`} className="min-w-0">
+                    <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${phaseColumns.length}, minmax(0, 1fr))` }}>
+                      {phaseColumns.map((phaseKey) => (
+                        <div key={`${lane.key}-${phaseKey}`} className="min-w-0">
                           <TaskColumn
-                            title={status}
-                            tasks={getTasksForLane(lane.key, status)}
+                            title={phaseColumnLabel(phaseKey)}
+                            tasks={getTasksForLane(lane.key, phaseKey)}
                             onTaskUpdate={handleTaskUpdate}
                             onEditTask={onEditTask}
-                            onTaskReorder={handleTaskReorder}
+                            // Columns are pipeline phases now (AC#4): cross-column drag would mean
+                            // writing an engine phase name into the legacy `status` field, which the
+                            // adjudicator/driver never reads - disabled so the deprecated desktop-only
+                            // overview stays a read-only view of engine-driven progress.
+                            onTaskReorder={undefined}
                             dragSourceStatus={dragSourceStatus}
                             dragSourceLane={dragSourceLane}
                             laneId={lane.key}
@@ -604,7 +605,7 @@ const Board: React.FC<BoardProps> = ({
                               setDragSourceStatus(null);
                               setDragSourceLane(null);
                             }}
-                            onCleanup={status === terminalStatus ? () => setShowCleanupModal(true) : undefined}
+                            onCleanup={phaseKey === terminalStatus ? () => setShowCleanupModal(true) : undefined}
                           />
                         </div>
                       ))}
@@ -618,14 +619,14 @@ const Board: React.FC<BoardProps> = ({
       ) : (
         <div className="overflow-x-auto pb-2">
           <div className="flex flex-row flex-nowrap gap-4 w-full">
-            {statuses.map((status) => (
-              <div key={status} className="flex-1 min-w-[16rem]">
+            {phaseColumns.map((phaseKey) => (
+              <div key={phaseKey} className="flex-1 min-w-[16rem]">
                 <TaskColumn
-                  title={status}
-                  tasks={getTasksForLane(DEFAULT_LANE_KEY, status)}
+                  title={phaseColumnLabel(phaseKey)}
+                  tasks={getTasksForLane(DEFAULT_LANE_KEY, phaseKey)}
                   onTaskUpdate={handleTaskUpdate}
                   onEditTask={onEditTask}
-                  onTaskReorder={handleTaskReorder}
+                  onTaskReorder={undefined}
                   dragSourceStatus={dragSourceStatus}
                   dragSourceLane={dragSourceLane}
                   laneId={DEFAULT_LANE_KEY}
@@ -637,7 +638,7 @@ const Board: React.FC<BoardProps> = ({
                     setDragSourceStatus(null);
                     setDragSourceLane(null);
                   }}
-                  onCleanup={status === terminalStatus ? () => setShowCleanupModal(true) : undefined}
+                  onCleanup={phaseKey === terminalStatus ? () => setShowCleanupModal(true) : undefined}
                 />
               </div>
             ))}
