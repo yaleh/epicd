@@ -69,6 +69,15 @@ epic 完成流程中的系统性审计步骤主动挡下。这正是 LFDD 要补
   该判据现在被引入用于**回顾性评估与跨轮比较**，但"零新阻塞项"仍是
   实际推进/收口的唯一硬性判据。
 
+## 执行方式（iteration-2 起）
+
+iteration-0/1 由主会话直接执行全部实现/审计/文档撰写，导致主会话上下文
+随实现细节线性累积（BACK-602 完成后即出现会话中断迹象）。iteration-2
+起改为三层委托：主会话仅做决策，epic-driver agent（独立上下文）承担
+decompose/实现/合并/评估/审计全流程并只返回压缩报告，scribe agent
+（独立上下文）负责撰写本目录下的 BAIME 文档。详见
+[context-isolation-plan.md](./context-isolation-plan.md)。
+
 ## 迭代索引
 
 | # | 目标 | 状态 | V_instance | V_meta |
