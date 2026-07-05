@@ -3,15 +3,16 @@ id: BACK-622
 title: >-
   decomposer.ts writes phase without status, causing epic status/phase desync
   (BACK-601 shaped)
-status: 'Basic: Proposal'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:36'
-updated_date: '2026-07-05 00:36'
+updated_date: '2026-07-05 02:13'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 34000
+phase: done
 dod:
   - text: bun test src/test/engine-decompose.test.ts
     checked: false
@@ -89,3 +90,9 @@ In each of the three `core.updateTask` call sites in `decomposer.ts`, add `statu
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-05T02:04:06Z
+<!-- SECTION:NOTES:END -->
