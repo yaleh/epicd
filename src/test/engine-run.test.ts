@@ -70,6 +70,16 @@ describe("runEngine – fixpoint loop", () => {
 		projectRoot = createUniqueTestDir("engine-run");
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-run-test");
+
+		// Children created via decompose carry the engine-derived "Basic: Ready"
+		// status (label("primitive", "ready")) — add it to the configured
+		// statuses (mirroring this repo's own board, backlog/config.yml) so
+		// createTaskFromInput's canonical-status validation accepts it.
+		const config = await core.filesystem.loadConfig();
+		if (config) {
+			config.statuses = [...(config.statuses ?? []), "Basic: Ready"];
+			await core.filesystem.saveConfig(config);
+		}
 	});
 
 	afterEach(async () => {
