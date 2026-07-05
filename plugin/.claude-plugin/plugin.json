@@ -1,0 +1,19 @@
+{
+	"name": "epicd",
+	"version": "1.0.0",
+	"description": "epicd operation skill set: propose, promote, inbox, run, init — thin wrappers around the epicd engine CLI (`backlog` / `engine ...`). No external methodology-framework dependency; no methodology skills (only the 5 operation skills).",
+	"author": {
+		"name": "Yale Huang",
+		"url": "https://github.com/yaleh"
+	},
+	"license": "MIT",
+	"homepage": "https://github.com/yaleh/epicd",
+	"repository": "https://github.com/yaleh/epicd",
+	"commands": [
+		"./skills/propose/SKILL.md",
+		"./skills/promote/SKILL.md",
+		"./skills/inbox/SKILL.md",
+		"./skills/run/SKILL.md",
+		"./skills/init/SKILL.md"
+	]
+}

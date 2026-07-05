@@ -322,7 +322,7 @@ function engineDispatch(repoRoot, prefix, id) {
   const trimmed = out === null ? null : out.replace(/\n+$/, '');
   if (trimmed) return trimmed;
   return prefix + ':' + id +
-    '\nEngine dispatch failed this tick — re-run `bun src/cli.ts engine dispatch ' + id +
+    '\nEngine dispatch failed this tick — re-run `' + engineCliCommand(repoRoot) + ' dispatch ' + id +
     '` from the repo root and follow its output.';
 }
 
@@ -346,15 +346,31 @@ function readTaskMeta(filepath) {
   return null;
 }
 
+// engineCliCommand: resolves the shell command prefix used to invoke the epicd engine
+// CLI's `engine` subcommand group. Portable across install shapes (BACK-605.9 M1 —
+// this script ships inside the epicd Claude Code plugin and must not assume the epicd
+// source tree is present at the board repo's cwd):
+//   1. EPICD_ENGINE_CMD env var — explicit override, e.g. "backlog engine" when the
+//      published CLI binary is on PATH (the normal case for a foreign repo that only
+//      installed the plugin, not epicd's source).
+//   2. "bun src/cli.ts engine" — build-free dev entry, used only when `src/cli.ts`
+//      exists under `repoRoot` (the epicd dev tree dogfooding itself).
+//   3. "backlog engine" — fallback assuming the published bin is on PATH.
+function engineCliCommand(repoRoot) {
+  if (process.env.EPICD_ENGINE_CMD) return process.env.EPICD_ENGINE_CMD;
+  if (fs.existsSync(path.join(repoRoot, 'src', 'cli.ts'))) return 'bun src/cli.ts engine';
+  return 'backlog engine';
+}
+
 // runEngineCli: single invocation seam to the epicd engine CLI (the scan/dispatch
-// authority). Invoked via `bun src/cli.ts` (build-free entry, no per-tick rebuild), cwd =
-// repoRoot, stderr suppressed. Returns stdout on success or null on any spawn/engine
-// failure — callers degrade best-effort so a transient CLI hiccup never crashes the tick.
-// Both the scan source (engineScanOnce) and the payload fetch (engineDispatch) route
-// through here so the invocation contract lives in exactly one place.
+// authority). cwd = repoRoot, stderr suppressed. Returns stdout on success or null on
+// any spawn/engine failure — callers degrade best-effort so a transient CLI hiccup
+// never crashes the tick. Both the scan source (engineScanOnce) and the payload fetch
+// (engineDispatch) route through here so the invocation contract lives in exactly one
+// place.
 function runEngineCli(repoRoot, args) {
   try {
-    return execSync('bun src/cli.ts engine ' + args,
+    return execSync(engineCliCommand(repoRoot) + ' ' + args,
       { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
   } catch (_) {
     return null;
