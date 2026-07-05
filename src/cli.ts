@@ -4797,6 +4797,42 @@ engineCmd
 	});
 
 engineCmd
+	.command("gate-log")
+	.description(
+		"read-only query over the GateEvent log (queryGateEvents) — the single shared wrapper reused by the `inbox` operation skill (BACK-605.9) and the planned Stage-2 CLI/Web read surfaces (BACK-605.10); never re-implement this query a second time.",
+	)
+	.option("--file <path>", "path to the GateEvent JSONL log (default: <cwd>/docs/research/gate-events.jsonl)")
+	.option("--pipeline-id <id>", "filter by pipeline_id")
+	.option("--gate <name>", "filter by gate name")
+	.option("--actor <name>", "filter by actor")
+	.option("--since <iso>", "inclusive lower bound on timestamp (ISO 8601)")
+	.option("--until <iso>", "inclusive upper bound on timestamp (ISO 8601)")
+	.option("--limit <n>", "max number of events to return")
+	.option("--offset <n>", "number of matching events to skip")
+	.action(async (options) => {
+		try {
+			const cwd = process.cwd();
+			const { runGateLogQuery } = await import("./engine/gate-log.ts");
+			const events = runGateLogQuery(cwd, {
+				file: options.file,
+				pipelineId: options.pipelineId,
+				gate: options.gate,
+				actor: options.actor,
+				since: options.since,
+				until: options.until,
+				limit: options.limit,
+				offset: options.offset,
+			});
+			for (const event of events) {
+				process.stdout.write(`${JSON.stringify(event)}\n`);
+			}
+		} catch (err) {
+			console.error("engine gate-log failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
 	.command("stage2-gate")
 	.description("run the Stage 2 fixpoint gate against a rebuilt repo tree (suite-green AND drive-fixpoint)")
 	.requiredOption("--rebuilt <path>", "absolute path to the rebuilt repo tree")

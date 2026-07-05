@@ -1,0 +1,21 @@
+{
+	"$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+	"name": "epicd",
+	"description": "epicd operation skills (propose/promote/inbox/run/init) — thin, engine-API-only wrappers around the epicd CLI, packaged for reuse outside the epicd source tree.",
+	"owner": {
+		"name": "Yale Huang",
+		"url": "https://github.com/yaleh"
+	},
+	"plugins": [
+		{
+			"name": "epicd",
+			"source": "./plugin",
+			"version": "1.0.0",
+			"description": "5 operation skills (propose, promote, inbox, run, init) that call only the epicd engine CLI — no external methodology-framework dependency, no epicd-repo-specific hardcoded paths.",
+			"license": "MIT",
+			"homepage": "https://github.com/yaleh/epicd",
+			"category": "task-management",
+			"tags": ["epicd", "backlog", "engine", "skills"]
+		}
+	]
+}

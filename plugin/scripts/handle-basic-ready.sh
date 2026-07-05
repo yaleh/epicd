@@ -7,15 +7,30 @@ set -euo pipefail
 
 TASK_ID="${1:?usage: handle-basic-ready.sh TASK-ID}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-# CLI_JS is resolved from this script's own on-disk location — NOT from
-# $REPO_ROOT — so the claim always runs through the dev CLI belonging to
-# this codebase, even when this script is invoked with a different git
-# repo as its board target (e.g. a test fixture). This is what actually
-# avoids the version-skew hazard: the bare `backlog` on $PATH can resolve
-# to a stale globally installed package whose frontmatter schema doesn't
-# know about engine structural fields (pipeline_id, phase, parent_id,
-# dod) and silently drops them on rewrite (BACK-620).
-CLI_JS="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/src/cli.ts"
+# CLI_CMD resolution (BACK-605.9 M1 — portable across install shapes, this script
+# ships inside the epicd Claude Code plugin and must not assume the epicd source
+# tree lives at a fixed relative path from a foreign board repo):
+#   1. EPICD_CLI_CMD env var — explicit override, e.g. "backlog" when the published
+#      CLI binary is on PATH (the normal case for a repo that only installed the
+#      plugin, not epicd's source).
+#   2. "bun <this-script's-own-dir>/../../src/cli.ts" — resolved from this script's
+#      own on-disk location (NOT $REPO_ROOT) so the claim runs through the dev CLI
+#      belonging to this codebase whenever that source tree actually sits alongside
+#      this script (epicd dogfooding itself, or a test fixture pointed at it) — this
+#      avoids the version-skew hazard where a bare `backlog` on $PATH resolves to a
+#      stale globally installed package whose frontmatter schema doesn't know about
+#      engine structural fields (pipeline_id, phase, parent_id, dod) and silently
+#      drops them on rewrite (BACK-620).
+#   3. "backlog" — fallback assuming the published bin is on PATH.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEV_CLI_JS="${SCRIPT_DIR}/../../src/cli.ts"
+if [ -n "${EPICD_CLI_CMD:-}" ]; then
+  CLI_CMD="${EPICD_CLI_CMD}"
+elif [ -f "$DEV_CLI_JS" ]; then
+  CLI_CMD="bun $DEV_CLI_JS"
+else
+  CLI_CMD="backlog"
+fi
 CAPS_DIR="${REPO_ROOT}/backlog/.caps"
 LOCK_FILE="${CAPS_DIR}/${TASK_ID}.exec-lock"
 WT_PATH="${REPO_ROOT}/../$(basename "$REPO_ROOT")-${TASK_ID}"
@@ -34,7 +49,7 @@ trap 'release_lock; git -C "$REPO_ROOT" worktree remove "$WT_PATH" --force 2>/de
 # Step 2: status → In Progress + cap marker. Clear any stale completion signal FIRST
 # so a leftover .agent-done-TASK from a prior run cannot cause a false-done merge.
 rm -f "$SIGNAL_FILE"
-(cd "$REPO_ROOT" && bun "$CLI_JS" task edit "$TASK_ID" --status "Basic: In Progress" \
+(cd "$REPO_ROOT" && $CLI_CMD task edit "$TASK_ID" --status "Basic: In Progress" \
   --append-notes "claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)") 2>/dev/null || true
 printf 'cap:claim=started\n' >> "${CAPS_DIR}/${TASK_ID}"
 

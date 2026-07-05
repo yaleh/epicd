@@ -32,7 +32,12 @@ describe("epicd-run wiring (BACK-625 / ADR-015)", () => {
 
 		it("routes to the engine CLI through a single invocation seam (runEngineCli)", () => {
 			expect(contents).toContain("runEngineCli");
-			expect(contents).toContain("engine ' + args"); // builds `bun src/cli.ts engine <args>`
+			expect(contents).toContain("engineCliCommand(repoRoot) + ' ' + args");
+		});
+
+		it("resolves the engine CLI command portably (EPICD_ENGINE_CMD override, no hardcoded absolute repo path)", () => {
+			expect(contents).toContain("EPICD_ENGINE_CMD");
+			expect(contents).toContain("function engineCliCommand(repoRoot)");
 		});
 
 		it("uses `engine scan --once` as its scan (dedup) source", () => {

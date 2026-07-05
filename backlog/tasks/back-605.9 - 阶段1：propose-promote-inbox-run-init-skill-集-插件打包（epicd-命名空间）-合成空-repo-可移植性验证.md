@@ -3,18 +3,17 @@ id: BACK-605.9
 title: >-
   阶段1：propose/promote/inbox/run/init skill 集 + 插件打包（epicd: 命名空间）+ 合成空 repo
   可移植性验证
-status: 'Basic: Needs Human'
+status: 'Basic: In Progress'
 assignee:
   - '@claude'
 created_date: '2026-07-05 11:14'
-updated_date: '2026-07-05 11:59'
+updated_date: '2026-07-05 11:57'
 labels:
   - 'kind:feature'
   - 'epicd:E5'
 dependencies: []
 parent_task_id: BACK-605
 ordinal: 58000
-phase: needs-human
 dod:
   - text: bunx tsc --noEmit
     checked: false
