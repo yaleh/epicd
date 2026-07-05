@@ -1,10 +1,11 @@
 ---
 id: BACK-634
 title: engine decompose-apply 创建的子任务从不携带结构化 dod，engine complete 恒路由 needs-human
-status: 'Basic: Backlog'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 09:20'
+updated_date: '2026-07-05 09:39'
 labels: []
 dependencies: []
 ordinal: 52000
@@ -25,7 +26,15 @@ dod:
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
+- [x] #1 bunx tsc --noEmit passes when TypeScript touched
+- [x] #2 bun run check . passes when formatting/linting touched
+- [x] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Root cause confirmed via BACK-632 dogfooding: applyProposedChildren never passed dodGates to createTaskFromInput, so decompose-created children always had empty task.dod, and dod-runner.ts's documented safety fallback (empty dod -> []) made engine complete route to needs-human unconditionally. Fixed: ProposedChild.dodGates threaded through parseProposedChildren/applyProposedChildren into createTaskFromInput; buildDecomposeBrief instructs proposers to include dodGates. Added tests in engine-decompose.test.ts (parseProposedChildren dodGates extraction/tolerance, integration test asserting task.dod is populated when dodGates supplied and empty when omitted). tsc/check/test all green (1800 pass).
+
+Follow-up (found while dispatching BACK-633): task edit had --dod-gate to append structured gates but no removal counterpart, unlike --dod/--remove-dod for the prose checklist. Needed it immediately to fix a wrong dod-gate command backfilled onto BACK-633. Added --remove-dod-gate <index> to task edit (src/cli.ts), composable with --dod-gate in the same call (remove-by-index applied before appends). Tests added in cli-dod-gate.test.ts.
+<!-- SECTION:NOTES:END -->

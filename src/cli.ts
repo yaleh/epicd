@@ -2402,6 +2402,11 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 		createMultiValueAccumulator(),
 	)
 	.option(
+		"--remove-dod-gate <index>",
+		"remove a structured executable DoD gate by index (1-based, can be used multiple times)",
+		createMultiValueAccumulator(),
+	)
+	.option(
 		"--check-ac <index>",
 		"check acceptance criterion by index (1-based, can be used multiple times)",
 		createMultiValueAccumulator(),
@@ -2752,17 +2757,27 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 			return;
 		}
 
-		// BACK-613: append structured executable DoD gates (--dod-gate). Kept as a
-		// focused post-step so it composes with the rest of the edit without threading
-		// through the edit-args builder. These are what runDoD re-runs (ENG-8), distinct
-		// from the human-facing prose `--dod` checklist.
+		// BACK-613: append/remove structured executable DoD gates (--dod-gate /
+		// --remove-dod-gate). Kept as a focused post-step so it composes with the rest of
+		// the edit without threading through the edit-args builder. These are what runDoD
+		// re-runs (ENG-8), distinct from the human-facing prose `--dod` checklist.
 		const dodGateAdds = toStringArray(options.dodGate)
 			.map((v) => String(v).trim())
 			.filter((v) => v.length > 0);
-		if (dodGateAdds.length > 0) {
+		let dodGateRemoves: number[] = [];
+		try {
+			dodGateRemoves = parsePositiveIndexList(options.removeDodGate);
+		} catch (error) {
+			console.error(formatTaskEditError(error, canonicalId));
+			process.exitCode = 1;
+			return;
+		}
+		if (dodGateAdds.length > 0 || dodGateRemoves.length > 0) {
+			const removeSet = new Set(dodGateRemoves);
+			const survivors = (updatedTask.dod ?? []).filter((_, index) => !removeSet.has(index + 1));
 			updatedTask = {
 				...updatedTask,
-				dod: [...(updatedTask.dod ?? []), ...dodGateAdds.map((text) => ({ text, checked: false }))],
+				dod: [...survivors, ...dodGateAdds.map((text) => ({ text, checked: false }))],
 			};
 			await core.updateTask(updatedTask);
 		}

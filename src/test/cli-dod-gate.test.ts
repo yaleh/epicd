@@ -61,4 +61,29 @@ describe("task create/edit --dod-gate (BACK-613)", () => {
 			{ text: "bun test", checked: false },
 		]);
 	});
+
+	it("edit --remove-dod-gate removes a structured gate by 1-based index (BACK-633)", async () => {
+		await $`bun ${CLI_PATH} task create "Gated task" --dod-gate ${"bunx tsc --noEmit"} --dod-gate ${"wrong cmd"} --dod-gate ${"bun test"}`
+			.cwd(TEST_DIR)
+			.quiet();
+		await $`bun ${CLI_PATH} task edit task-1 --remove-dod-gate 2`.cwd(TEST_DIR).quiet();
+
+		const core = new Core(TEST_DIR);
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task?.dod).toEqual([
+			{ text: "bunx tsc --noEmit", checked: false },
+			{ text: "bun test", checked: false },
+		]);
+	});
+
+	it("edit --remove-dod-gate composes with --dod-gate in the same call (replace-by-index then append)", async () => {
+		await $`bun ${CLI_PATH} task create "Gated task" --dod-gate ${"wrong cmd"}`.cwd(TEST_DIR).quiet();
+		await $`bun ${CLI_PATH} task edit task-1 --remove-dod-gate 1 --dod-gate ${"bunx tsc --noEmit"}`
+			.cwd(TEST_DIR)
+			.quiet();
+
+		const core = new Core(TEST_DIR);
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task?.dod).toEqual([{ text: "bunx tsc --noEmit", checked: false }]);
+	});
 });
