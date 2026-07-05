@@ -5,16 +5,36 @@
 `iterations/iteration-N.md`（沿用 iteration-0.md / iteration-1.md 的
 10 节结构),并回填本文件顶部的"下一轮目标"。
 
-## 当前状态（回填时点）
+## 当前状态（iteration-2 完成后回填）
 
 - 完成轮次：iteration-0（BACK-628,V_instance 0.86 / V_meta 0.47）、
-  iteration-1（BACK-602,V_instance 0.94 / V_meta 0.59）。
-- 实验整体收敛判据：**未收敛**（V_meta < 0.80）。
-- 已识别的 meta 层缺口（按优先级）：
-  1. **completeness**——方法论文档需随工程执行同步维护,不能只靠事后回填。
-  2. **reusability**——样本仅 2 次,且都在 epicd 自身;需要更多轮次 +
-     需要开始区分"领域无关的通用步骤"与"epicd 特有的 CLI 细节"。
-  3. **effectiveness**——目前只有定性证据,缺量化基线对比。
+  iteration-1（BACK-602,V_instance 0.94 / V_meta 0.59）、
+  iteration-2（BACK-603,V_instance 0.93 / V_meta 0.66）。
+- 实验整体收敛判据：**未收敛**（V_meta 0.66 < 0.80）。
+- iteration-2 的进展：首次建立量化 effectiveness 基线（decompose→全部
+  child Done ≈28 分钟）；首次显式区分领域无关步骤与 epicd 特有细节；
+  同时暴露一个新的 meta 层缺口——最初尝试的"主会话→epic-driver→子
+  agent"三层委托架构被实测证伪（Agent 调用不支持任何深度的嵌套派发，
+  无论前台/后台），导致 epic-driver 自证的"两轮独立审计"实际共享同一
+  上下文，此失效由用户直接观察捕获，而非流程自身检测到。已修正为
+  两层架构（主会话直接派发每一个 child 实现 agent / 独立审计 agent /
+  scribe agent，深度恰好为 1），详见 `context-isolation-plan.md` 与
+  `iterations/iteration-2.md`。V_instance 因此轻微下降（0.94→0.93），
+  如实反映这次真实的流程失效，而非事后淡化。
+- 已识别的 meta 层缺口（按优先级，iteration-2 后更新）：
+  1. **completeness**——README.md 的"执行方式"章节在三层设计被证伪后
+     未同步修正,直到 iteration-2 的 scribe 阶段才补上;"同步维护方法论
+     文档"这条改进本身仍未完全落实,需要更强机制而非依赖记性。
+  2. **validation / 流程自证能力**——"审计是否真的独立"目前缺乏机制化
+     自检,完全依赖外部人工核查（本轮是用户直接观察）;下一轮候选:
+     给审计 agent 的报告加入"自证独立性"的显式字段。
+  3. **reusability**——样本增至 3 次,但仍全部在 epicd 自身;本轮新增
+     的领域无关/epicd 特有分类、以及"Agent 调用不支持嵌套"这一平台级
+     发现是目前最具体的可迁移性证据,但跨项目验证仍是空白。
+  4. **effectiveness**——已建立第一个量化基线（墙钟时间）,但"每个
+     child 触发 needs-human 的次数及原因"这项计划中的数据本轮因
+     driver 轮审计独立性问题未能可靠采集,是一次部分未达成,应在
+     后续轮次补上。
 
 ## Iteration 2：BACK-603（E3: pipeline-as-data 泛化 + exploration pipeline）
 

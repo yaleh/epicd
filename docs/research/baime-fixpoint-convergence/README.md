@@ -69,13 +69,24 @@ epic 完成流程中的系统性审计步骤主动挡下。这正是 LFDD 要补
   该判据现在被引入用于**回顾性评估与跨轮比较**，但"零新阻塞项"仍是
   实际推进/收口的唯一硬性判据。
 
-## 执行方式（iteration-2 起）
+## 执行方式（iteration-2 修正版：两层，非三层）
 
 iteration-0/1 由主会话直接执行全部实现/审计/文档撰写，导致主会话上下文
 随实现细节线性累积（BACK-602 完成后即出现会话中断迹象）。iteration-2
-起改为三层委托：主会话仅做决策，epic-driver agent（独立上下文）承担
-decompose/实现/合并/评估/审计全流程并只返回压缩报告，scribe agent
-（独立上下文）负责撰写本目录下的 BAIME 文档。详见
+最初尝试引入三层委托（主会话→epic-driver agent→实现/审计子 agent）以
+节省主会话上下文，但实测证明**不可行**：Agent 调用不支持任何深度的
+嵌套派发——无论前台/后台派发，被派发的 agent 都不能再向下派发 Agent。
+epic-driver 因此把本该独立的两轮审计做成了同一上下文里的自我复核，
+不满足 LFDD 审计独立性的核心前提；该失效由用户直接观察捕获并纠正
+（用户指出 driver 执行"并未创建新的 agent"，核实后 driver 自身报告
+承认检索不到可用的 Agent 生成/子代理工具）。
+
+修正后的架构为**两层**：不再设 epic-driver 中间层，主会话本身直接、
+但只用短小机械的调用（`task edit`/`engine decompose`/
+`engine complete`/`engine evaluate`）编排整个循环，把一切"重活"（读写
+代码、跑测试、审计、撰写文档）分别下放给主会话**直接派发**的独立单次
+子 agent——每个 child 一个实现 agent、每一轮独立审计一个 agent、以及
+一个 scribe agent，全部深度恰好为 1，不再嵌套。详见
 [context-isolation-plan.md](./context-isolation-plan.md)。
 
 ## 迭代索引
@@ -84,13 +95,18 @@ decompose/实现/合并/评估/审计全流程并只返回压缩报告，scribe 
 |---|---|---|---|---|
 | 0 | BACK-628（自审计 epic：达成自托管不动点） | 收敛 | 0.86 | 0.47 |
 | 1 | BACK-602（E2：结构化 gate-event log） | 收敛 | 0.94 | 0.59 |
-| 2 | BACK-603（E3：pipeline-as-data 泛化） | 计划中，见 [ITERATION-PROMPTS.md](./ITERATION-PROMPTS.md) | — | — |
+| 2 | BACK-603（E3：pipeline-as-data 泛化 + exploration pipeline） | 收敛 | 0.93 | 0.66 |
 
 详见 [iterations/iteration-0.md](./iterations/iteration-0.md)、
-[iterations/iteration-1.md](./iterations/iteration-1.md)。
+[iterations/iteration-1.md](./iterations/iteration-1.md)、
+[iterations/iteration-2.md](./iterations/iteration-2.md)。
 
 ## 收敛状态（实验整体，非单个 epic）
 
-**未收敛**（V_meta 0.59 < 0.80 阈值；completeness 分量仍偏低——本文档
-是该缺口被指出后的第一次补救，但只有 2 个数据点，可迁移性证据仍薄）。
-详见 iteration-1 的 Gap Analysis 与本文档旁的 ITERATION-PROMPTS.md。
+**未收敛**（V_meta 0.66 < 0.80 阈值；较 iteration-1 有实质提升——首个
+量化 effectiveness 基线 + 更具体的领域无关/epicd 特有分类证据——但
+completeness 与 validation 仍受本轮暴露出的新缺口拖累：README 的
+"执行方式"章节此前未随三层设计被证伪而同步修正、审计独立性缺乏
+机制化自检，均已在 iteration-2.md 中如实记录）。3 个数据点，
+可迁移性证据仍需更多轮次（尤其跨项目场景）验证。详见 iteration-2 的
+Gap Analysis 与本文档旁的 ITERATION-PROMPTS.md。
