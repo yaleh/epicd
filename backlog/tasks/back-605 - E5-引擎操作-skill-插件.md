@@ -1,11 +1,11 @@
 ---
 id: BACK-605
 title: 'E5: 引擎操作 skill 插件（propose/promote/inbox/run/init）'
-status: 'Epic: Proposal'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 11:27'
+updated_date: '2026-07-05 12:39'
 labels:
   - 'kind:epic'
   - 'epicd:E5'
@@ -13,6 +13,7 @@ dependencies:
   - BACK-602
   - BACK-603
 ordinal: 6000
+phase: done
 ---
 
 ## Description
