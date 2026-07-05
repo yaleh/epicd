@@ -4605,6 +4605,50 @@ engineCmd
 	});
 
 engineCmd
+	.command("promote")
+	.description(
+		"human promote gate: writes pipeline_id/phase/status to move a task from authoring's Backlog boundary to execution/ready (workitem-lifecycle-state.puml authoring.done → execution.ready edge). Only accepts tasks at 'Basic: Backlog' or 'Epic: Backlog'.",
+	)
+	.argument("<id>", "task id to promote")
+	.action(async (id: string) => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { makeBoardStore } = await import("./engine/store.ts");
+			const { label } = await import("./core/field-registry.ts");
+			const { roleOf } = await import("./types/index.ts");
+
+			const core = new Core(cwd);
+			const store = makeBoardStore(core);
+
+			const task = await store.getTask(id);
+			if (!task) {
+				console.error(`Task ${id} not found`);
+				process.exitCode = 1;
+				return;
+			}
+
+			if (task.status !== "Basic: Backlog" && task.status !== "Epic: Backlog") {
+				console.error(`engine promote: ${id} is at status "${task.status}", must be at Backlog to promote`);
+				process.exitCode = 1;
+				return;
+			}
+
+			await store.updateTask({
+				...task,
+				pipeline_id: "execution",
+				phase: "ready",
+				status: label(roleOf(task), "ready"),
+			});
+
+			console.log(`engine promote: ${id} → execution/ready`);
+		} catch (err) {
+			console.error("engine promote failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
 	.command("backfill")
 	.description(
 		"one-time, in-place, idempotent backfill of engine structural fields (pipeline_id/phase/parent_id/role) on existing task files (BACK-601.5). dod/cap are never backfilled. Must not run while the old loop-backlog is holding the board.",

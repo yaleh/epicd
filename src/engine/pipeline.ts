@@ -22,3 +22,15 @@ export const executionPipeline: Pipeline = {
 		{ name: "done", actor: "none" },
 	],
 };
+
+// The authoring pipeline (workitem-lifecycle-state.puml Authoring lane).
+// Draft/Refining have no driver wired yet (out of scope until E7/BACK-608);
+// Backlog is the human-gated boundary `engine promote` reads from.
+export const authoringPipeline: Pipeline = {
+	id: "authoring",
+	states: [
+		{ name: "draft", actor: "machine" },
+		{ name: "refining", actor: "machine" },
+		{ name: "backlog", actor: "human" },
+	],
+};
