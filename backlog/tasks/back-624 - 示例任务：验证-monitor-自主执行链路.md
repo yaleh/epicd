@@ -1,7 +1,7 @@
 ---
 id: BACK-624
 title: 示例任务：验证 monitor 自主执行链路
-status: 'Basic: Backlog'
+status: 'Basic: Ready'
 assignee: []
 created_date: '2026-07-05 01:15'
 updated_date: '2026-07-05 01:15'
@@ -9,6 +9,8 @@ labels:
   - 'kind:chore'
 dependencies: []
 ordinal: 25000
+pipeline_id: execution
+phase: ready
 dod:
   - text: test -f docs/research/back-624-smoke-test.md
     checked: false
