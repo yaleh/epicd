@@ -1,16 +1,16 @@
 ---
 id: BACK-624
 title: 示例任务：验证 monitor 自主执行链路
-status: 'Basic: Ready'
+status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-05 01:15'
-updated_date: '2026-07-05 01:15'
+updated_date: '2026-07-05 01:29'
 labels:
   - 'kind:chore'
 dependencies: []
 ordinal: 25000
 pipeline_id: execution
-phase: ready
+phase: done
 dod:
   - text: test -f docs/research/back-624-smoke-test.md
     checked: false
@@ -28,3 +28,9 @@ dod:
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-05T01:20:56Z
+<!-- SECTION:NOTES:END -->
