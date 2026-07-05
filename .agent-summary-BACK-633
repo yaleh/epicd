@@ -1,0 +1,5 @@
+Phase 1 (migrate writer) ✓ 2026-07-05T09:32:04Z
+DoD #1: PASS — bunx tsc --noEmit
+Phase 2 (e2e round-trip + AC#3 sim tests) ✓ 2026-07-05T09:33:56Z
+DoD #2: PASS — bun run check . (only pre-existing warnings unrelated to touched files)
+DoD #3: PASS — bun test --parallel (1818 pass, 0 fail)
