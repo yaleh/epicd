@@ -404,10 +404,10 @@ export class BacklogServer {
 						POST: async (req: Request) => this.checkAuth(req) ?? (await this.handleReorderTask(req)),
 					},
 					"/api/tasks/cleanup": {
-						GET: async (req: Request) => await this.handleCleanupPreview(req),
+						GET: async (req: Request) => this.checkAuth(req) ?? (await this.handleCleanupPreview(req)),
 					},
 					"/api/tasks/cleanup/execute": {
-						POST: async (req: Request) => await this.handleCleanupExecute(req),
+						POST: async (req: Request) => this.checkAuth(req) ?? (await this.handleCleanupExecute(req)),
 					},
 					"/api/version": {
 						GET: async () => await this.handleGetVersion(),
@@ -422,10 +422,10 @@ export class BacklogServer {
 						POST: async (req: Request) => await this.handleInit(req),
 					},
 					"/api/search": {
-						GET: async (req: Request) => await this.handleSearch(req),
+						GET: async (req: Request) => this.checkAuth(req) ?? (await this.handleSearch(req)),
 					},
 					"/api/gate-events": {
-						GET: async (req: Request) => await this.handleListGateEvents(req),
+						GET: async (req: Request) => this.checkAuth(req) ?? (await this.handleListGateEvents(req)),
 					},
 					"/api/coordinator-claims": {
 						GET: async (req: Request) => this.checkAuth(req) ?? (await this.handleGetCoordinatorClaims()),

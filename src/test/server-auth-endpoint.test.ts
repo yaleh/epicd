@@ -114,5 +114,25 @@ describe("BacklogServer task API auth", () => {
 			});
 			expect(authed.status).toBe(200);
 		});
+
+		it("also gates search, gate-events, and the cleanup endpoints", async () => {
+			const routes = [
+				{ path: "/api/search?query=Auth-gated", method: "GET" },
+				{ path: "/api/gate-events", method: "GET" },
+				{ path: "/api/tasks/cleanup", method: "GET" },
+				{ path: "/api/tasks/cleanup/execute", method: "POST" },
+			];
+
+			for (const { path, method } of routes) {
+				const unauthed = await fetch(`http://127.0.0.1:${serverPort}${path}`, { method });
+				expect(unauthed.status).toBe(401);
+
+				const authed = await fetch(`http://127.0.0.1:${serverPort}${path}`, {
+					method,
+					headers: { Authorization: "Bearer integration-test-secret" },
+				});
+				expect(authed.status).not.toBe(401);
+			}
+		});
 	});
 });

@@ -9,8 +9,19 @@
  * is also accepted for convenience).
  */
 
+import { timingSafeEqual } from "node:crypto";
+
 const AUTH_HEADER = "authorization";
 const BEARER_PREFIX = "Bearer ";
+
+function tokensMatch(provided: string, expected: string): boolean {
+	const providedBuf = Buffer.from(provided);
+	const expectedBuf = Buffer.from(expected);
+	if (providedBuf.length !== expectedBuf.length) {
+		return false;
+	}
+	return timingSafeEqual(providedBuf, expectedBuf);
+}
 
 /**
  * Returns a 401 Response when a token is configured and the request doesn't present it,
@@ -24,7 +35,7 @@ export function checkBearerAuth(req: Request, expectedToken: string | undefined)
 	const header = req.headers.get(AUTH_HEADER) ?? "";
 	const provided = header.startsWith(BEARER_PREFIX) ? header.slice(BEARER_PREFIX.length) : header;
 
-	if (provided === expectedToken) {
+	if (tokensMatch(provided, expectedToken)) {
 		return null;
 	}
 
