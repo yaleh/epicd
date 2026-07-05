@@ -1,6 +1,4 @@
-import { label } from "../core/field-registry.js";
 import type { Task } from "../types/index.js";
-import { roleOf } from "../types/index.js";
 import { isCompound } from "./adjudicate.js";
 import type { CompletionResult, TaskStore } from "./complete.js";
 import { completeTask } from "./complete.js";
@@ -72,7 +70,6 @@ export class Driver {
 								await store.updateTask({
 									...task,
 									phase: "needs-human",
-									status: label(roleOf(task), "needs-human"),
 								});
 							}
 							return;

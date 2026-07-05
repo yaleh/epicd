@@ -1,11 +1,11 @@
 ---
 id: BACK-627
 title: engine phase→status 派生集中到 updateTask，消除 BACK-622 逐点 bandaid
-status: 'Basic: Proposal'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 05:28'
-updated_date: '2026-07-05 05:28'
+updated_date: '2026-07-05 06:47'
 labels:
   - 'kind:refactor'
 dependencies: []
@@ -43,16 +43,28 @@ Core.updateTask（src/core/backlog.ts:1108）每次写入已计算 newStatus = d
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
+- [x] #1 bunx tsc --noEmit passes when TypeScript touched
+- [x] #2 bun run check . passes when formatting/linting touched
+- [x] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 updateTask 对有 phase 的任务在 saveTask 前将 task.status 设为 displayStatus(task, config.statuses)；无 phase 的任务 status 不变（回归测试覆盖两种情况）
-- [ ] #2 删除 decomposer.ts/complete.ts/driver.ts/cli.ts 逐点 status: label(...) 写入后，所有引擎 phase 转换（含 complete() linear-advance）的 displayed status 仍与 phase 一致——无逐点 status 写入残留
-- [ ] #3 在默认 [To Do, In Progress, Done] 看板上 decompose 成功创建子任务、不再因 createTaskFromInput 校验抛错（回归测试，覆盖 review 发现 #2）
-- [ ] #4 phase→status 派生使用 config 声明的 statuses 词表（非 title-case fallback），非 title-case 看板不再持久化 off-vocabulary 大小写（发现 #3）
-- [ ] #5 bunx tsc --noEmit 干净；bun run check 干净；bun test 相关套件全绿
+- [x] #1 updateTask 对有 phase 的任务在 saveTask 前将 task.status 设为 displayStatus(task, config.statuses)；无 phase 的任务 status 不变（回归测试覆盖两种情况）
+- [x] #2 删除 decomposer.ts/complete.ts/driver.ts/cli.ts 逐点 status: label(...) 写入后，所有引擎 phase 转换（含 complete() linear-advance）的 displayed status 仍与 phase 一致——无逐点 status 写入残留
+- [x] #3 在默认 [To Do, In Progress, Done] 看板上 decompose 成功创建子任务、不再因 createTaskFromInput 校验抛错（回归测试，覆盖 review 发现 #2）
+- [x] #4 phase→status 派生使用 config 声明的 statuses 词表（非 title-case fallback），非 title-case 看板不再持久化 off-vocabulary 大小写（发现 #3）
+- [x] #5 bunx tsc --noEmit 干净；bun run check 干净；bun test 相关套件全绿
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-07-05 实现（BACK-627 in the ignition-fixpoint iteration）：
+- Core.updateTask（src/core/backlog.ts）在 saveTask 前，若 task.phase 存在则 task.status = displayStatus(task, config.statuses)，no-op 当无 phase。
+- 删除 decomposer.ts(×3)/complete.ts(×3)/driver.ts(×1)/cli.ts engine promote(×1) 的逐点 status: label(roleOf(...), phase) 写入，全部改走中心化派生。
+- createTaskFromInput：input.phase 存在时改为直接 label("primitive", phase, config.statuses) 派生 status，不再经 requireCanonicalStatus 校验——修复发现#2（默认看板 decompose 建子任务会因未声明 'Basic: Ready' 而抛错、epic 卡死）。
+- 回归覆盖：默认看板([To Do,In Progress,Done])decompose 成功建子任务；自定义大小写词表(Basic: READY)正确解析而非 title-case fallback；updateTask 对有/无 phase 任务的行为区分；engine-merge-wire/engine-compound 既有测试改为经 displayStatus() 读取投影（不再断言 complete.ts/driver.ts 逐点写 status，因为这正是本任务要移除的 bandaid）。
+- bunx tsc --noEmit 干净；bun run check . 干净；bun test --parallel 1763 pass（1 处 milestone-rename 并行隔离 flake，单独跑 10/10 通过，与本改动无关）。
+- 遗留：BACK-601 之类已带 phase 的任务，仍无法经 CLI/MCP 直接把 status 设成与 phase 不一致的目标值（updateTask 会用当前 phase 覆盖）——这是预期行为（消除逐点写不代表消除"无 --phase 入口"缺口），真正的收口在 BACK-628.3（补 --phase CLI/MCP 入口）。
+<!-- SECTION:NOTES:END -->

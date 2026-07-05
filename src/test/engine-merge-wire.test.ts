@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { displayStatus } from "../core/field-registry.ts";
 import type { TaskStore } from "../engine/complete.ts";
 import { completeTask } from "../engine/complete.ts";
 import { MERGE_LOCK_FILENAME, type MergeLockFs } from "../engine/safety.ts";
@@ -233,8 +234,12 @@ describe("completeTask — commit hook (BACK-616)", () => {
 	});
 });
 
-describe("completeTask — status stays in sync with phase (BACK-617)", () => {
-	it("writes status: 'Basic: Done' alongside phase: 'done' on adjudicated success", async () => {
+describe("completeTask — displayed status stays in sync with phase (BACK-617, re-centralized BACK-627)", () => {
+	// BACK-627: complete.ts no longer hand-writes `status` alongside `phase` — that
+	// derivation is centralized in Core.updateTask. Against a bare TaskStore double
+	// (not Core-backed), the phase alone is authoritative; displayStatus(task) is the
+	// single read that projects it, which is what these assertions now verify.
+	it("phase: 'done' displays as 'Basic: Done' on adjudicated success", async () => {
 		const task = makeTask("TASK-S1", [{ text: "step", checked: true }]);
 		const { store, savedPhase } = makeStore(task);
 
@@ -243,10 +248,10 @@ describe("completeTask — status stays in sync with phase (BACK-617)", () => {
 		});
 
 		expect(savedPhase()).toBe("done");
-		expect((await store.getTask("TASK-S1"))?.status).toBe("Basic: Done");
+		expect(displayStatus((await store.getTask("TASK-S1")) as Task)).toBe("Basic: Done");
 	});
 
-	it("writes status: 'Basic: Needs Human' alongside phase: 'needs-human' on dodResults failure", async () => {
+	it("phase: 'needs-human' displays as 'Basic: Needs Human' on dodResults failure", async () => {
 		const task = makeTask("TASK-S2");
 		const { store, savedPhase } = makeStore(task);
 
@@ -255,10 +260,10 @@ describe("completeTask — status stays in sync with phase (BACK-617)", () => {
 		});
 
 		expect(savedPhase()).toBe("needs-human");
-		expect((await store.getTask("TASK-S2"))?.status).toBe("Basic: Needs Human");
+		expect(displayStatus((await store.getTask("TASK-S2")) as Task)).toBe("Basic: Needs Human");
 	});
 
-	it("writes status: 'Basic: Needs Human' alongside phase: 'needs-human' on merge conflict", async () => {
+	it("phase: 'needs-human' displays as 'Basic: Needs Human' on merge conflict", async () => {
 		const task = makeTask("TASK-S3");
 		const { store, savedPhase } = makeStore(task);
 
@@ -267,10 +272,10 @@ describe("completeTask — status stays in sync with phase (BACK-617)", () => {
 		});
 
 		expect(savedPhase()).toBe("needs-human");
-		expect((await store.getTask("TASK-S3"))?.status).toBe("Basic: Needs Human");
+		expect(displayStatus((await store.getTask("TASK-S3")) as Task)).toBe("Basic: Needs Human");
 	});
 
-	it("writes status: 'Epic: Done' (not 'Basic: Done') for a compound task (has children)", async () => {
+	it("phase: 'done' displays as 'Epic: Done' (not 'Basic: Done') for a compound task (has children)", async () => {
 		const task = { ...makeTask("TASK-S4", [{ text: "step", checked: true }]), subtasks: ["TASK-S4.1"] };
 		const { store, savedPhase } = makeStore(task);
 
@@ -279,6 +284,6 @@ describe("completeTask — status stays in sync with phase (BACK-617)", () => {
 		});
 
 		expect(savedPhase()).toBe("done");
-		expect((await store.getTask("TASK-S4"))?.status).toBe("Epic: Done");
+		expect(displayStatus((await store.getTask("TASK-S4")) as Task)).toBe("Epic: Done");
 	});
 });

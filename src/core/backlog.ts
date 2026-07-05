@@ -55,7 +55,7 @@ import { upsertTaskUpdatedDate } from "../utils/task-updated-date.ts";
 import { isTerminalStatus } from "../utils/terminal-status.ts";
 import { migrateConfig, needsMigration } from "./config-migration.ts";
 import { ContentStore } from "./content-store.ts";
-import { displayStatus } from "./field-registry.ts";
+import { displayStatus, label } from "./field-registry.ts";
 import { migrateDraftPrefixes, needsDraftPrefixMigration } from "./prefix-migration.ts";
 import { calculateNewOrdinal, DEFAULT_ORDINAL_STEP, resolveOrdinalConflicts } from "./reorder.ts";
 import { SearchService } from "./search-service.ts";
@@ -1002,8 +1002,16 @@ export class Core {
 			);
 		}
 
+		const configForStatus = await this.fs.loadConfig();
+
 		let status = "";
-		if (requestedStatus) {
+		if (typeof input.phase === "string") {
+			// Engine-managed create (decompose/promote child tasks): derive status from
+			// phase via the same projection updateTask uses, rather than validating
+			// against the board's declared status vocabulary — a board that doesn't
+			// declare e.g. "Basic: Ready" must not fail child creation (BACK-627 finding #2).
+			status = label("primitive", input.phase, configForStatus?.statuses ?? []);
+		} else if (requestedStatus) {
 			if (isDraft) {
 				status = "Draft";
 			} else {
@@ -1029,7 +1037,7 @@ export class Core {
 					}))
 					.filter((criterion) => criterion.text.length > 0)
 			: [];
-		const config = await this.fs.loadConfig();
+		const config = configForStatus;
 		const definitionOfDoneItems = buildDefinitionOfDoneItems({
 			defaults: config?.definitionOfDone,
 			add: input.definitionOfDoneAdd,
@@ -1107,6 +1115,18 @@ export class Core {
 		const oldStatus = originalTask ? displayStatus(originalTask, callbackStatuses) : "";
 		const newStatus = displayStatus(task, callbackStatuses);
 		const statusChanged = oldStatus !== newStatus;
+
+		// Derivation belongs here, not at each phase-transition call site: when a
+		// task carries a phase AND this update actually transitions that phase, the
+		// persisted `status` string is kept in sync with the derived display status
+		// so callers never need to hand-write `status: label(roleOf(task), phase)`
+		// (BACK-627). When phase is unchanged, an explicit status edit (e.g. the
+		// claim script's "Basic: In Progress" while phase stays "ready" — BACK-620)
+		// is respected rather than clobbered; scan-loop's stale-in-progress reaper
+		// depends on that literal surviving.
+		if (task.phase && task.phase !== originalTask?.phase) {
+			task.status = newStatus;
+		}
 
 		// Always set updatedDate when updating a task
 		task.updatedDate = new Date().toISOString().slice(0, 16).replace("T", " ");
