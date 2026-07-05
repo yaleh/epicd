@@ -250,6 +250,30 @@ describe("makeDecomposer (integration, real Core)", () => {
 			expect(child.status).toBe(label("primitive", "ready"));
 		}
 	});
+
+	it("BACK-634: a proposed child with dodGates gets a structured executable task.dod", async () => {
+		const epic = await createEpic(core, "Epic with dod-gated child");
+		const withDodGates = `[{"title": "Gated child", "dodGates": ["bunx tsc --noEmit", "bun run check ."]}]`;
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: withDodGates });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const [child] = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(child?.dod).toEqual([
+			{ text: "bunx tsc --noEmit", checked: false },
+			{ text: "bun run check .", checked: false },
+		]);
+	});
+
+	it("BACK-634: a proposed child WITHOUT dodGates gets no task.dod (documents the needs-human-by-default gap)", async () => {
+		const epic = await createEpic(core, "Epic with un-gated child");
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const [child] = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(child?.dod ?? []).toEqual([]);
+	});
 });
 
 describe("engine decompose-apply <taskId> — CLI end-to-end (BACK-628.4)", () => {
@@ -366,6 +390,20 @@ describe("parseProposedChildren", () => {
 		expect(
 			parseProposedChildren(
 				'[{"title": "A"}, {"title": "B", "touches": "not-an-array"}, {"title": "C", "touches": [1, 2]}]',
+			),
+		).toEqual([{ title: "A" }, { title: "B" }, { title: "C" }]);
+	});
+
+	it("extracts dodGates when present as a string array (BACK-634)", () => {
+		expect(parseProposedChildren('[{"title": "A", "dodGates": ["bunx tsc --noEmit", "bun run check ."]}]')).toEqual([
+			{ title: "A", dodGates: ["bunx tsc --noEmit", "bun run check ."] },
+		]);
+	});
+
+	it("tolerates missing/malformed dodGates without dropping the child (BACK-634)", () => {
+		expect(
+			parseProposedChildren(
+				'[{"title": "A"}, {"title": "B", "dodGates": "not-an-array"}, {"title": "C", "dodGates": [1, 2]}]',
 			),
 		).toEqual([{ title: "A" }, { title: "B" }, { title: "C" }]);
 	});

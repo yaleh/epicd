@@ -40,6 +40,11 @@ export interface ProposedChild {
 	/** Files/modules this child is expected to touch (ADR-016 D1 orthogonality signal).
 	 *  Best-effort and allowed to over-report; used only to compute sibling overlap. */
 	touches?: string[];
+	/** Structured executable DoD gates (BACK-613) for this child. Optional — if omitted,
+	 *  the child is created with no `dod`, and dod-runner.ts's documented safety behavior
+	 *  applies (no dod → engine complete always routes to needs-human). Declaring gates
+	 *  here is the only way a decompose-created child can ever be auto-completed (BACK-634). */
+	dodGates?: string[];
 }
 
 /** One pair of sibling children whose declared `touches` intersect (ADR-016 D1). */
@@ -110,6 +115,9 @@ export function parseProposedChildren(output: string | undefined): ProposedChild
 				...(Array.isArray(c.touches) && c.touches.every((t: unknown) => typeof t === "string")
 					? { touches: c.touches as string[] }
 					: {}),
+				...(Array.isArray(c.dodGates) && c.dodGates.every((t: unknown) => typeof t === "string")
+					? { dodGates: c.dodGates as string[] }
+					: {}),
 			}));
 	} catch {
 		return [];
@@ -132,11 +140,16 @@ function buildDecomposeBrief(task: Task): string {
 	lines.push(
 		"Emit ONLY a JSON array of children as the last thing in your output:",
 		"```json",
-		'[{"title": "First child title", "description": "what it delivers", "touches": ["path/a.ts"]}, {"title": "Second child title", "description": "..."}]',
+		'[{"title": "First child title", "description": "what it delivers", "touches": ["path/a.ts"], "dodGates": ["bunx tsc --noEmit", "bun run check .", "bun test <scoped test file>"]}, {"title": "Second child title", "description": "..."}]',
 		"```",
 		'"touches" is optional: the files/modules you expect this child to touch. Best-effort — ',
 		"over-reporting is fine. It is used only to flag possible overlap between siblings for a",
 		"human to review; it never blocks decomposition.",
+		'"dodGates" is optional but strongly recommended: structured shell commands re-run',
+		"verbatim by `engine complete` to adjudicate done vs needs-human (BACK-634). A child",
+		"created with no dodGates can NEVER be auto-completed — it always routes to needs-human",
+		"by design (dod-runner.ts). Include the project's standard gates plus any test file the",
+		"child is expected to add.",
 	);
 	if (task.implementationPlan) {
 		lines.push("", "## Implementation Plan (source of child tasks)", task.implementationPlan);
@@ -185,6 +198,7 @@ export async function applyProposedChildren(
 			{
 				title: child.title,
 				...(child.description ? { description: child.description } : {}),
+				...(child.dodGates && child.dodGates.length > 0 ? { dodGates: child.dodGates } : {}),
 				pipeline_id: "execution",
 				phase: "ready",
 				parent_id: task.id,
