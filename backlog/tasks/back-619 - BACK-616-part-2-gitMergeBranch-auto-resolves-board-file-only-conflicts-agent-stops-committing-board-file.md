@@ -3,23 +3,15 @@ id: BACK-619
 title: >-
   BACK-616 part 2 - gitMergeBranch auto-resolves board-file-only conflicts;
   agent stops committing board file
-status: 'Basic: Proposal'
+status: 'Basic: Needs Human'
 assignee: []
 created_date: '2026-07-04 23:23'
-updated_date: '2026-07-04 23:23'
+updated_date: '2026-07-05 00:02'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 31000
-dod:
-  - text: >-
-      bun test src/test/engine-merge.test.ts src/test/engine-merge-wire.test.ts
-      src/test/epicd-run-wiring.test.ts
-    checked: false
-  - text: bunx tsc --noEmit
-    checked: false
-  - text: bun run check .
-    checked: false
+phase: needs-human
 ---
 
 ## Description
@@ -99,3 +91,9 @@ This is the second half of the board-merge-friction work. BACK-616 (part 1) fixe
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-04T23:51:50Z
+<!-- SECTION:NOTES:END -->

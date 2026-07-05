@@ -1,23 +1,13 @@
 ---
 id: BACK-612
 title: BACK-601.5 - 现存 task 文件就地幂等 backfill（M1 roadmap）
-status: 'Basic: Ready'
+status: 'Basic: In Progress'
 assignee: []
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 16:59'
+updated_date: '2026-07-04 23:48'
 labels: []
 dependencies: []
 ordinal: 23000
-pipeline_id: execution
-phase: ready
-parent_id: BACK-601
-dod:
-  - text: bun test src/test/engine-fields-backfill.test.ts
-    checked: false
-  - text: bunx tsc --noEmit
-    checked: false
-  - text: bun run check .
-    checked: false
 ---
 
 ## Description
@@ -74,6 +64,12 @@ Create `src/test/engine-fields-backfill.test.ts`:
 - [ ] `bun test`
 - [ ] `bun run check .`
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-04T23:48:20Z
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
