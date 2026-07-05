@@ -104,5 +104,15 @@ describe("BacklogServer task API auth", () => {
 			});
 			expect(authedStatuses.status).toBe(200);
 		});
+
+		it("also gates the coordinator-claims endpoint", async () => {
+			const unauthed = await fetch(`http://127.0.0.1:${serverPort}/api/coordinator-claims`);
+			expect(unauthed.status).toBe(401);
+
+			const authed = await fetch(`http://127.0.0.1:${serverPort}/api/coordinator-claims`, {
+				headers: { Authorization: "Bearer integration-test-secret" },
+			});
+			expect(authed.status).toBe(200);
+		});
 	});
 });

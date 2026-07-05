@@ -428,7 +428,7 @@ export class BacklogServer {
 						GET: async (req: Request) => await this.handleListGateEvents(req),
 					},
 					"/api/coordinator-claims": {
-						GET: async () => await this.handleGetCoordinatorClaims(),
+						GET: async (req: Request) => this.checkAuth(req) ?? (await this.handleGetCoordinatorClaims()),
 					},
 					"/sequences": {
 						GET: async () => await this.handleGetSequences(),
