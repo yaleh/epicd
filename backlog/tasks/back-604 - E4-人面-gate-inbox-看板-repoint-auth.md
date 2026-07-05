@@ -1,11 +1,11 @@
 ---
 id: BACK-604
 title: 'E4: 人面 — 多车道 issue-list（主面）+ 内联 gate + auth'
-status: 'Basic: Awaiting Children'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 14:57'
+updated_date: '2026-07-05 17:13'
 labels:
   - 'kind:epic'
   - 'epicd:E4'
@@ -16,7 +16,7 @@ dependencies:
   - BACK-628
 ordinal: 5000
 pipeline_id: execution
-phase: awaiting-children
+phase: done
 ---
 
 ## Description
