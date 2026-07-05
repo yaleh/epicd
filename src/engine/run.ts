@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Core } from "../core/backlog.js";
 import { type DecomposeHandler, Driver, type SafetyConfig, type WorktreeOps } from "./driver.js";
-import { executionPipeline } from "./pipeline.js";
+import { executionPipeline, type Pipeline } from "./pipeline.js";
 import { makeBoardStore } from "./store.js";
 
 /**
@@ -20,16 +20,19 @@ export function isDriverActive(backlogDir: string): boolean {
 }
 
 /**
- * Returns true if any task in the list is in a machine-actor phase of the
- * execution pipeline.  Used to detect fixpoint (no remaining work).
+ * Returns true if any task in the list is in a machine-actor phase of any of the
+ * given pipelines.  Used to detect fixpoint (no remaining work). Generalized
+ * (BACK-603) from a single hardcoded `executionPipeline` check to an arbitrary
+ * `pipelines` list — registering an additional pipeline (e.g. exploration) is a
+ * data change at the call site, not an edit to this function's logic.
  */
-function hasPendingWork(tasks: Array<{ pipeline_id?: string; phase?: string }>): boolean {
+function hasPendingWork(tasks: Array<{ pipeline_id?: string; phase?: string }>, pipelines: Pipeline[]): boolean {
 	for (const task of tasks) {
 		if (!task.pipeline_id || !task.phase) continue;
-		if (task.pipeline_id === executionPipeline.id) {
-			const state = executionPipeline.states.find((s) => s.name === task.phase);
-			if (state?.actor === "machine") return true;
-		}
+		const pipeline = pipelines.find((p) => p.id === task.pipeline_id);
+		if (!pipeline) continue;
+		const state = pipeline.states.find((s) => s.name === task.phase);
+		if (state?.actor === "machine") return true;
 	}
 	return false;
 }
@@ -43,10 +46,18 @@ export interface RunEngineOptions {
 	decompose?: DecomposeHandler;
 	/** Called after each tick with the current tick count (optional, useful for logging). */
 	onTick?: (tick: number) => void;
+	/**
+	 * Pipelines the driver dispatches against (BACK-603 generalization).
+	 * Defaults to `[executionPipeline]` — today's sole caller shape is unchanged.
+	 * Pass additional pipelines (e.g. an exploration pipeline) to drive them in
+	 * the same run without editing this module's body.
+	 */
+	pipelines?: Pipeline[];
 }
 
 /**
- * Run the execution pipeline against the real board until fixpoint.
+ * Run the given pipelines (default: execution only) against the real board until
+ * fixpoint.
  *
  * Single-active-driver guard: if the `.active-agents` file exists in
  * `backlogDir`, throws immediately so the caller knows to back off.
@@ -64,16 +75,18 @@ export async function runEngine(
 		);
 	}
 
+	const pipelines = options.pipelines ?? [executionPipeline];
+	const pipelineIds = new Set(pipelines.map((p) => p.id));
 	const store = makeBoardStore(core);
-	const driver = new Driver([executionPipeline], store, worktree, options.safety, options.decompose);
+	const driver = new Driver(pipelines, store, worktree, options.safety, options.decompose);
 	const { maxTicks = 100, onTick } = options;
 
 	let ticks = 0;
 	while (ticks < maxTicks) {
 		const tasks = await core.queryTasks({});
-		if (!hasPendingWork(tasks)) break;
+		if (!hasPendingWork(tasks, pipelines)) break;
 
-		const engineTasks = tasks.filter((t) => t.pipeline_id === executionPipeline.id);
+		const engineTasks = tasks.filter((t) => t.pipeline_id && pipelineIds.has(t.pipeline_id));
 		await driver.tick(engineTasks);
 		ticks++;
 		onTick?.(ticks);
