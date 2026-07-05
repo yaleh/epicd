@@ -22,18 +22,19 @@
  *   epic-draft:TASK-N        status "Epic: Draft"   (draft mode only) → worker claims
  *                            (→ "Epic: Refining") then inline-calls epic-to-backlog.
  *
- * NOTE (BACK-614 / BACK-625 / ADR-015): the `basic-ready` channel's scan authority AND
- * its dispatch payload are BOTH the epicd engine. `engine scan --once` reuses
- * Interpreter.scan over (pipeline_id, phase) — src/engine/scan.ts — and emits one minimal
- * machine line "basic-ready:<id>" per actionable task; engineScanOnce (below) reads those
- * for edge-dedup. On each NEW basic-ready key, engineDispatch (below) fetches the
- * self-contained instruction from `engine dispatch <id>` (src/engine/dispatch.ts) and this
- * daemon passes it through verbatim. This daemon is PURE TRANSPORT: it authors no
- * instruction text, reads no template file — it only dedups on the stable machine key and
- * adds the `---EVENT---` framing (the invocation-adapter's job; ADR-015 D3/D5). The engine's
- * dispatch output is exactly the block a Monitor seat OR raw `claude -p` executes
- * (swap-litmus). `epic-*`/draft/eval channels stay bare `prefix:id` (out of scope until
- * their handlers move to the engine too).
+ * NOTE (BACK-614 / BACK-625 / BACK-628.4 / ADR-015): the `basic-ready`, `epic-ready`,
+ * and `epic-eval-due` channels' scan authority AND dispatch payload are ALL the epicd
+ * engine. `engine scan --once` reuses Interpreter.scan over (pipeline_id, phase) —
+ * src/engine/scan.ts — and emits one minimal machine line ("basic-ready:<id>" /
+ * "epic-ready:<id>" / "epic-eval-due:<id>") per actionable task; engineScanOnce (below)
+ * reads those for edge-dedup. On each NEW key in one of these three channels, engineDispatch
+ * (below) fetches the self-contained instruction from `engine dispatch <id>`
+ * (src/engine/dispatch.ts) and this daemon passes it through verbatim. This daemon is PURE
+ * TRANSPORT: it authors no instruction text, reads no template file — it only dedups on the
+ * stable machine key and adds the `---EVENT---` framing (the invocation-adapter's job;
+ * ADR-015 D3/D5). The engine's dispatch output is exactly the block a Monitor seat OR raw
+ * `claude -p` executes (swap-litmus). draft channels stay bare `prefix:id` (out of scope
+ * until their handlers move to the engine too).
  *
  * CLI flag --mode <ready|draft> selects which channel GROUP this scanner instance polls
  * (MODE_CHANNELS below). Default 'ready' — identical channel set/behavior to the pre-mode
@@ -56,15 +57,11 @@ const fs          = require('fs');
 const path        = require('path');
 const { execSync } = require('child_process');
 
-const EPIC_READY_STATUS  = 'epic: ready';
 const BASIC_DRAFT_STATUS = 'basic: draft';
 const EPIC_DRAFT_STATUS  = 'epic: draft';
 const BASIC_PROPOSAL_STATUS = 'basic: proposal';
 const EPIC_PROPOSAL_STATUS  = 'epic: proposal';
-const BASIC_DONE_STATUS  = 'basic: done';
 const BASIC_IN_PROGRESS_STATUS = 'basic: in progress';
-const BASIC_NEEDS_HUMAN_STATUS = 'basic: needs human';
-const EPIC_AWAITING_CHILDREN_STATUS = 'epic: awaiting children';
 const BASIC_REFINING_STATUS = 'basic: refining';
 const EPIC_REFINING_STATUS  = 'epic: refining';
 const REAP_THRESHOLD_MS = 1800000; // 30 minutes
@@ -307,22 +304,24 @@ function convergeSingleton(selfPid, tasksDir, mode) {
   killAndEscalate(victims);
 }
 
-// engineDispatch: fetch the self-contained basic-ready dispatch payload for ONE task
-// from the engine (BACK-625 / ADR-015). The engine authors the payload (prompt); this
+// engineDispatch: fetch the self-contained dispatch payload for ONE task from the engine
+// (BACK-625 / BACK-628.4 / ADR-015) — shared by the basic-ready, epic-ready, and
+// epic-eval-due channels; `engine dispatch <id>` branches on the task's phase to pick the
+// right payload (src/engine/dispatch.ts). The engine authors the payload (prompt); this
 // daemon is pure transport — it never reads a template file, never substitutes. The
-// returned block's first line is the `basic-ready:<id>` machine key, followed by the
+// returned block's first line is the `<prefix>:<id>` machine key, followed by the
 // self-contained instruction (the exact bytes a Monitor seat or `claude -p` executes).
 // The task id is validated against the canonical id shape before it is ever handed to the
 // shell (upstream capture is `\S+`) — defense-in-depth against shell metacharacters. On a
 // transient engine-CLI failure it degrades to a single-shot, still-actionable line (NOT a
 // guidance-less bare key: the Monitor description no longer explains bare lines).
 const TASK_ID_RE = /^[A-Za-z][A-Za-z0-9]*-\d+(?:\.\d+)*$/;
-function engineDispatch(repoRoot, id) {
-  if (!TASK_ID_RE.test(id)) return 'basic-ready:' + id; // malformed id → never spawned
+function engineDispatch(repoRoot, prefix, id) {
+  if (!TASK_ID_RE.test(id)) return prefix + ':' + id; // malformed id → never spawned
   const out = runEngineCli(repoRoot, 'dispatch ' + id);
   const trimmed = out === null ? null : out.replace(/\n+$/, '');
   if (trimmed) return trimmed;
-  return 'basic-ready:' + id +
+  return prefix + ':' + id +
     '\nEngine dispatch failed this tick — re-run `bun src/cli.ts engine dispatch ' + id +
     '` from the repo root and follow its output.';
 }
@@ -342,10 +341,7 @@ function readTaskMeta(filepath) {
     const fm = m[1];
     const statusMatch = fm.match(/^status:\s*(.+)$/m);
     const status = statusMatch ? statusMatch[1].trim().replace(/['"]/g, '').toLowerCase() : null;
-    // epicd frontmatter uses `parent_id` (baime used `parent_task_id`).
-    const parentMatch = content.match(/^parent_id:\s*(.+)$/m);
-    const parent_id = parentMatch ? parentMatch[1].trim().toUpperCase() : null;
-    return { status, parent_id };
+    return { status };
   } catch { /* unreadable */ }
   return null;
 }
@@ -365,28 +361,28 @@ function runEngineCli(repoRoot, args) {
   }
 }
 
-// engineScanOnce: board-scan source for the basic-ready channel (BACK-614).
-// The scan authority is the epicd engine itself: `engine scan --once` reuses
-// Interpreter.scan over (pipeline_id, phase) — src/engine/scan.ts — and emits one
-// minimal machine line "basic-ready:<id>" per actionable task. This reads those
-// lines directly (no template rendering, no blob re-parse — this daemon is the one
-// renderer). Best-effort: a null result degrades to an empty Set so a transient
-// CLI/engine hiccup never crashes the scanner tick.
+// engineScanOnce: board-scan source for the basic-ready/epic-ready/epic-eval-due channels
+// (BACK-614 / BACK-628.4). The scan authority is the epicd engine itself: `engine scan
+// --once` reuses Interpreter.scan over (pipeline_id, phase) — src/engine/scan.ts — and
+// emits one minimal machine line ("basic-ready:<id>" / "epic-ready:<id>" /
+// "epic-eval-due:<id>") per actionable task. This reads those lines directly (no template
+// rendering, no blob re-parse — this daemon is the one renderer) and buckets them by
+// prefix. Best-effort: a null result degrades to empty Sets so a transient CLI/engine
+// hiccup never crashes the scanner tick. Replaces the legacy per-file status-string
+// predicates (isEpicReady/scanEvalDueEpics) — the engine's (pipeline_id, phase) state
+// machine is now the single scan authority for all three channels.
 function engineScanOnce(repoRoot) {
-  const out = new Set();
+  const channels = { 'basic-ready': new Set(), 'epic-ready': new Set(), 'epic-eval-due': new Set() };
   const stdout = runEngineCli(repoRoot, 'scan --once');
-  if (stdout === null) return out;
+  if (stdout === null) return channels;
   for (const line of stdout.split('\n')) {
-    const m = line.match(/^basic-ready:(\S+)$/);
-    if (m) out.add(m[1]);
+    const colon = line.indexOf(':');
+    if (colon < 0) continue;
+    const prefix = line.slice(0, colon);
+    const id = line.slice(colon + 1);
+    if (channels[prefix]) channels[prefix].add(id);
   }
-  return out;
-}
-
-function isEpicReady(filepath) {
-  const meta = readTaskMeta(filepath);
-  if (!meta) return false;
-  return meta.status === EPIC_READY_STATUS;
+  return channels;
 }
 
 // Draft-lane predicates (draft mode only). Only look at status — never labels; claim is
@@ -403,44 +399,6 @@ function isEpicDraft(filepath) {
   const meta = readTaskMeta(filepath);
   if (!meta) return false;
   return meta.status === EPIC_DRAFT_STATUS;
-}
-
-// scanEvalDueEpics: single whole-dir scan that returns a Set of epic IDs where
-// the epic is at "Epic: Awaiting Children" AND all its children are in a terminal state
-// (Basic: Done or Basic: Needs Human). Replaces the per-file isChildDone predicate —
-// suppresses partial completion (e.g. 3/6 done) and eliminates cold-start bursts.
-// Self-clearing: once the epic advances to Evaluating/Done, epicStatus no longer matches
-// EPIC_AWAITING_CHILDREN_STATUS → predicate flips false → pulse stops re-emitting.
-function scanEvalDueEpics(tasksDir) {
-  const epics = {};            // epicId → status (lowercase)
-  const childrenByParent = {}; // parentId → [child statuses (lowercase)]
-  let entries;
-  try { entries = fs.readdirSync(tasksDir); } catch { return new Set(); }
-  for (const entry of entries) {
-    if (!entry.endsWith('.md')) continue;
-    const id = parseTaskId(entry);
-    if (!id) continue;
-    const meta = readTaskMeta(path.join(tasksDir, entry));
-    if (!meta) continue;
-    if (meta.status && meta.status.startsWith('epic:')) {
-      epics[id] = meta.status;
-    } else if (meta.status && meta.status.startsWith('basic:') && meta.parent_id) {
-      const parentId = meta.parent_id;
-      if (!childrenByParent[parentId]) childrenByParent[parentId] = [];
-      childrenByParent[parentId].push(meta.status);
-    }
-  }
-  const result = new Set();
-  for (const [epicId, epicStatus] of Object.entries(epics)) {
-    if (epicStatus !== EPIC_AWAITING_CHILDREN_STATUS) continue;
-    const children = childrenByParent[epicId] || [];
-    if (children.length === 0) continue;
-    const allTerminal = children.every(s =>
-      s === BASIC_DONE_STATUS || s === BASIC_NEEDS_HUMAN_STATUS
-    );
-    if (allTerminal) result.add(epicId);
-  }
-  return result;
 }
 
 function scanIds(tasksDir, predicate) {
@@ -573,30 +531,27 @@ function computePulseLines(tasksDir, opts) {
   const channelAllowed = prefix => allowed.has(prefix);
 
   const channels = [
-    { prefix: 'epic-ready',        predicate: f => isEpicReady(f) },
     { prefix: 'basic-draft',       predicate: f => isBasicDraft(f) },
     { prefix: 'epic-draft',        predicate: f => isEpicDraft(f) },
     { prefix: 'stale-in-progress', predicate: f => isInProgress(f) && isReapDue(readClaimedAt(f), Date.now()) },
   ];
   const lines = [];
-  // basic-ready: data-derived via `engine scan --once` (BACK-605.8 Phase C), not a
-  // per-file status-string predicate — see engineScanOnce.
-  if (channelAllowed('basic-ready')) {
-    for (const id of [...engineScanOnce(repoRoot)].sort()) {
-      lines.push(`basic-ready:${id}`);
+  // basic-ready/epic-ready/epic-eval-due: all data-derived via `engine scan --once`
+  // (BACK-605.8 Phase C; BACK-628.4 extends this to the epic channels), not a per-file
+  // status-string predicate — see engineScanOnce.
+  if (channelAllowed('basic-ready') || channelAllowed('epic-ready') || channelAllowed('epic-eval-due')) {
+    const engineChannels = engineScanOnce(repoRoot);
+    for (const prefix of ['basic-ready', 'epic-ready', 'epic-eval-due']) {
+      if (!channelAllowed(prefix)) continue;
+      for (const id of [...engineChannels[prefix]].sort()) {
+        lines.push(`${prefix}:${id}`);
+      }
     }
   }
   for (const ch of channels) {
     if (!channelAllowed(ch.prefix)) continue;
     for (const id of [...scanIds(tasksDir, ch.predicate)].sort()) {
       lines.push(`${ch.prefix}:${id}`);
-    }
-  }
-  // epic-eval-due channel: whole-dir scan, emits one event per epic that is at
-  // "Epic: Awaiting Children" AND all its children are terminal (Done or Needs Human).
-  if (channelAllowed('epic-eval-due')) {
-    for (const id of [...scanEvalDueEpics(tasksDir)].sort()) {
-      lines.push('epic-eval-due:' + id);
     }
   }
   // 7th channel — review-due: fires when commits since .last-review-commit >= reviewInterval.
@@ -631,10 +586,8 @@ module.exports = {
   parseArgs,
   engineScanOnce,
   engineDispatch,
-  isEpicReady,
   isBasicDraft,
   isEpicDraft,
-  scanEvalDueEpics,
   isReapDue,
   isInProgress,
   readClaimedAt,
@@ -761,11 +714,13 @@ if (require.main === module) {
       // the rising-edge {prefix, id}; the payload is fetched/built here (transport layer).
       for (const { prefix, id } of trackEvents(notified, lines)) {
         if (prefix === 'stale-in-progress') logStaleInProgress(tasksDir, id);
-        // basic-ready payload is authored by the engine (BACK-625 / ADR-015); this daemon
-        // is pure transport. Other channels stay bare `prefix:id` (out of scope until their
-        // handlers move to the engine too). `---EVENT---` framing is the adapter's job.
-        const block = prefix === 'basic-ready'
-          ? engineDispatch(repoRoot, id)
+        // basic-ready/epic-ready/epic-eval-due payloads are authored by the engine
+        // (BACK-625 / BACK-628.4 / ADR-015); this daemon is pure transport. Other channels
+        // stay bare `prefix:id` (out of scope until their handlers move to the engine too).
+        // `---EVENT---` framing is the adapter's job.
+        const isEngineChannel = prefix === 'basic-ready' || prefix === 'epic-ready' || prefix === 'epic-eval-due';
+        const block = isEngineChannel
+          ? engineDispatch(repoRoot, prefix, id)
           : (prefix + ':' + id);
         process.stdout.write(block + '\n---EVENT---\n');
       }

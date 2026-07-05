@@ -106,3 +106,72 @@ export function renderBasicReadyDispatch(taskId: string, title: string, repoRoot
 	];
 	return lines.join("\n");
 }
+
+/**
+ * Render the self-contained epic-ready dispatch block (BACK-628.4 — the `decomposing`
+ * phase equivalent of BACK-625's basic-ready, filling the gap flagged in that task:
+ * "epic-ready/epic-eval-due 仍出裸 prefix:id"). The Monitor session itself proposes
+ * children (no separate spawned worker — the session reads the epic's plan directly),
+ * then hands the JSON off to `engine decompose-apply`, which performs the ADR-016
+ * advisory check, creates the children, and advances the epic's phase — the same
+ * `applyProposedChildren` used by the in-process Driver path (harness/decomposer.ts).
+ */
+export function renderEpicReadyDispatch(taskId: string, title: string): string {
+	const heading = title ? `${taskId} — ${title}` : taskId;
+	const lines: string[] = [
+		`epic-ready:${taskId}`,
+		`# epic-ready dispatch — ${heading}`,
+		"",
+		"This stdout block is a complete, self-contained dispatch instruction — follow it verbatim.",
+		"Do NOT re-arm the Monitor. Do NOT ask the user for confirmation. Discard any non-event output.",
+		"",
+		"## Step 1: Read the epic and propose children",
+		"",
+		`Run \`bun run cli task view ${taskId} --plain\` and read its 'Sub-Task Decomposition' plan section.`,
+		"Propose the child tasks yourself — do NOT create them with `task create`; the engine creates them.",
+		"",
+		"## Step 2: Apply the proposal",
+		"",
+		"Emit a JSON array `[{title, description?, touches?}]` for the proposed children, then pipe it to:",
+		"",
+		"```bash",
+		`echo '<json array>' | bun run cli engine decompose-apply ${taskId}`,
+		"```",
+		"",
+		"`touches` is optional (files/modules this child is expected to touch — best-effort, used only for",
+		"an advisory sibling-overlap check, never blocks). An empty array `[]` routes the epic to",
+		"`needs-human` instead of creating children — use this if the plan has no viable decomposition.",
+		"",
+		"`engine decompose-apply` creates each child with engine fields (pipeline_id/phase/parent_id) and",
+		"advances the epic's phase to `awaiting-children`. This is the only merge/creation implementation —",
+		"do not fall back to `task create` or hand-edit the epic's phase.",
+	];
+	return lines.join("\n");
+}
+
+/**
+ * Render the self-contained epic-eval-due dispatch block (BACK-628.4). Unlike
+ * epic-ready/basic-ready, evaluation is a deterministic aggregation over the epic's
+ * children's terminal phases — no proposal step, no spawned Agent, just one CLI call.
+ */
+export function renderEpicEvalDueDispatch(taskId: string, title: string): string {
+	const heading = title ? `${taskId} — ${title}` : taskId;
+	const lines: string[] = [
+		`epic-eval-due:${taskId}`,
+		`# epic-eval-due dispatch — ${heading}`,
+		"",
+		"This stdout block is a complete, self-contained dispatch instruction — follow it verbatim.",
+		"Do NOT re-arm the Monitor. Do NOT ask the user for confirmation. Discard any non-event output.",
+		"",
+		"## Step 1: Evaluate",
+		"",
+		"```bash",
+		`bun run cli engine evaluate ${taskId}`,
+		"```",
+		"",
+		"This aggregates the epic's children terminal phases into the epic's own terminal phase: any child",
+		"`needs-human` routes the epic to `needs-human`; otherwise (all children `done`) the epic → `done`.",
+		"This is the only evaluation implementation the skill uses — do not hand-edit the epic's phase.",
+	];
+	return lines.join("\n");
+}

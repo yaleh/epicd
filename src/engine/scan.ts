@@ -17,9 +17,11 @@ import type { Task } from "../types/index.js";
 import { Interpreter } from "./interpreter.js";
 import { executionPipeline } from "./pipeline.js";
 
-/** Phase → event-channel prefix (only "ready" is in scope; others reference-only). */
+/** Phase → event-channel prefix (BACK-628.4: decomposing/evaluating crystallized alongside ready). */
 const PHASE_PREFIX: Record<string, string> = {
 	ready: "basic-ready",
+	decomposing: "epic-ready",
+	evaluating: "epic-eval-due",
 };
 
 /**
@@ -44,7 +46,7 @@ export function scanReadyLines(tasks: Task[]): string[] {
 
 		if (pipelineId !== executionPipeline.id) continue;
 		const prefix = PHASE_PREFIX[phase];
-		if (!prefix) continue; // out of scope (e.g. "decomposing" → epic, reference-only)
+		if (!prefix) continue; // out of scope (e.g. "awaiting-children", actor: none)
 		lines.push(`${prefix}:${taskId}`);
 	}
 	return lines;

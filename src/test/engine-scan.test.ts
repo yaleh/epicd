@@ -103,3 +103,41 @@ describe("scanReadyLines", () => {
 		expect(lines).toContain(`basic-ready:${t2.id}`);
 	});
 });
+
+describe("scanReadyLines — epic-ready/epic-eval-due (BACK-628.4)", () => {
+	let projectRoot: string;
+	let core: Core;
+
+	beforeEach(async () => {
+		projectRoot = createUniqueTestDir("engine-scan-epic");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-scan-epic-test");
+	});
+
+	afterEach(async () => {
+		await rm(projectRoot, { recursive: true, force: true });
+	});
+
+	it("emits 'epic-ready:<id>' for an execution task in the decomposing phase", async () => {
+		const task = await createBoardTask(core, "Epic to decompose", { phase: "decomposing" });
+		const tasks = await core.queryTasks({});
+
+		expect(scanReadyLines(tasks)).toContain(`epic-ready:${task.id}`);
+	});
+
+	it("emits 'epic-eval-due:<id>' for an execution task in the evaluating phase", async () => {
+		const task = await createBoardTask(core, "Epic to evaluate", { phase: "evaluating" });
+		const tasks = await core.queryTasks({});
+
+		expect(scanReadyLines(tasks)).toContain(`epic-eval-due:${task.id}`);
+	});
+
+	it("does not emit an epic-eval-due line while still awaiting-children (actor: none)", async () => {
+		const task = await createBoardTask(core, "Epic awaiting children", { phase: "awaiting-children" });
+		const tasks = await core.queryTasks({});
+
+		const lines = scanReadyLines(tasks);
+		expect(lines).not.toContain(`epic-eval-due:${task.id}`);
+		expect(lines.some((l) => l.endsWith(`:${task.id}`))).toBe(false);
+	});
+});

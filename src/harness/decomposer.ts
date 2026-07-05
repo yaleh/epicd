@@ -24,11 +24,9 @@
  */
 
 import type { Core } from "../core/backlog.js";
-import { label } from "../core/field-registry.js";
 import type { CompletionResult } from "../engine/complete.js";
 import type { DecomposeHandler } from "../engine/driver.js";
 import type { Task } from "../types/index.js";
-import { roleOf } from "../types/index.js";
 import { type CochangeOverlap, findCochangeOverlaps, type GitLogPrimitive } from "./cochange.ts";
 
 /** Primitive that actually runs a worker (real spawn or test double). Returns the
@@ -150,14 +148,74 @@ function buildDecomposeBrief(task: Task): string {
 }
 
 /**
+ * Apply a list of already-proposed children to an epic: create each as a primitive
+ * execution-pipeline task, advance the epic's phase, and attach the ADR-016 advisory
+ * overlap report. Shared by `makeDecomposer` (in-process Driver path, worker proposes
+ * then this applies) and the standalone `engine decompose-apply` CLI command (BACK-628.4:
+ * an out-of-process Monitor session proposes children, then invokes this via the CLI —
+ * no in-process spawn seam required for the unattended epic-ready path).
+ *
+ * children.length === 0 routes the epic to needs-human instead of creating anything.
+ */
+export async function applyProposedChildren(
+	core: Core,
+	task: Task,
+	children: ProposedChild[],
+	repoPath = ".",
+	opts?: { gitLog?: GitLogPrimitive; cochangeThreshold?: number },
+): Promise<void> {
+	if (children.length === 0) {
+		await core.updateTask({ ...task, phase: "needs-human" }, false);
+		return;
+	}
+
+	// Advisory-only orthogonality check (ADR-016 D1/D2/D4): flag declared touches overlap
+	// (D1) and historically-cochanging siblings (D2/D3) for human review. Never blocks
+	// decompose/dispatch.
+	const overlaps = findTouchesOverlaps(children);
+	const cochangeOverlaps = await findCochangeOverlaps(children, repoPath, {
+		...(opts?.gitLog ? { gitLog: opts.gitLog } : {}),
+		...(opts?.cochangeThreshold !== undefined ? { threshold: opts.cochangeThreshold } : {}),
+	});
+
+	// Engine creates children with engine fields so the scan can see them. Children
+	// created by decompose are always primitive/leaf tasks.
+	for (const child of children) {
+		await core.createTaskFromInput(
+			{
+				title: child.title,
+				...(child.description ? { description: child.description } : {}),
+				pipeline_id: "execution",
+				phase: "ready",
+				parent_id: task.id,
+			},
+			false,
+		);
+	}
+
+	// Explicit phase advance (ready/decomposing → awaiting-children); awaiting-children
+	// actor=none so the engine stops driving the epic.
+	await core.updateTask({ ...task, phase: "awaiting-children" }, false);
+
+	// Advisory orthogonality report (ADR-016 D4), written last so it isn't clobbered by the
+	// full-record phase-advance write above. Never blocks decompose/dispatch.
+	if (overlaps.length > 0 || cochangeOverlaps.length > 0) {
+		await core.updateTaskFromInput(
+			task.id,
+			{ appendImplementationNotes: [formatOverlapReport(overlaps, cochangeOverlaps)] },
+			false,
+		);
+	}
+}
+
+/**
  * Create a DecomposeHandler backed by the given SpawnPrimitive and Core.
  *
  * The returned handler:
  *  1. Idempotency (board truth): if children (parent_id===epic.id) already exist, skip
  *     spawn and stabilise phase → awaiting-children.
  *  2. Otherwise spawn a worker (cwd=repoPath, no worktree) that proposes children as JSON.
- *  3. Engine creates each proposed child via createTaskFromInput with engine fields.
- *  4. Advance the epic's phase: >=1 child → awaiting-children; failure/no children → needs-human.
+ *  3-5. Delegates to applyProposedChildren (create children / advance phase / advisory report).
  */
 export function makeDecomposer(
 	spawnPrimitive: SpawnPrimitive,
@@ -173,14 +231,7 @@ export function makeDecomposer(
 			// only when it actually differs — re-writing the same value is a wasteful no-op.
 			const current = await core.getTask(task.id);
 			if (current && current.phase !== "awaiting-children") {
-				await core.updateTask(
-					{
-						...current,
-						phase: "awaiting-children",
-						status: label(roleOf(current), "awaiting-children"),
-					},
-					false,
-				);
+				await core.updateTask({ ...current, phase: "awaiting-children" }, false);
 			}
 			return;
 		}
@@ -190,51 +241,11 @@ export function makeDecomposer(
 		const result = await spawnPrimitive(brief, repoPath);
 		const children = parseProposedChildren(result.output);
 
-		if (!result.success || children.length === 0) {
-			await core.updateTask({ ...task, phase: "needs-human", status: label(roleOf(task), "needs-human") }, false);
+		if (!result.success) {
+			await core.updateTask({ ...task, phase: "needs-human" }, false);
 			return;
 		}
 
-		// 2b. Advisory-only orthogonality check (ADR-016 D1/D2/D4): flag declared touches
-		//     overlap (D1) and historically-cochanging siblings (D2/D3) for human review.
-		//     Never blocks decompose/dispatch.
-		const overlaps = findTouchesOverlaps(children);
-		const cochangeOverlaps = await findCochangeOverlaps(children, repoPath, {
-			...(opts?.gitLog ? { gitLog: opts.gitLog } : {}),
-			...(opts?.cochangeThreshold !== undefined ? { threshold: opts.cochangeThreshold } : {}),
-		});
-
-		// 3. Engine creates children with engine fields so the scan can see them.
-		//    Children created by decompose are always primitive/leaf tasks.
-		for (const child of children) {
-			await core.createTaskFromInput(
-				{
-					title: child.title,
-					...(child.description ? { description: child.description } : {}),
-					pipeline_id: "execution",
-					phase: "ready",
-					status: label("primitive", "ready"),
-					parent_id: task.id,
-				},
-				false,
-			);
-		}
-
-		// 4. Explicit phase advance (ready → awaiting-children); awaiting-children actor=none
-		//    so the engine stops driving the epic.
-		await core.updateTask(
-			{ ...task, phase: "awaiting-children", status: label(roleOf(task), "awaiting-children") },
-			false,
-		);
-
-		// 5. Advisory orthogonality report (ADR-016 D4), written last so it isn't clobbered by
-		//    the full-record phase-advance write above. Never blocks decompose/dispatch.
-		if (overlaps.length > 0 || cochangeOverlaps.length > 0) {
-			await core.updateTaskFromInput(
-				task.id,
-				{ appendImplementationNotes: [formatOverlapReport(overlaps, cochangeOverlaps)] },
-				false,
-			);
-		}
+		await applyProposedChildren(core, task, children, repoPath, opts);
 	};
 }

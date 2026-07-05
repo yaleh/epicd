@@ -12,13 +12,17 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { execFileSync } from "node:child_process";
 import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { Core } from "../core/backlog.ts";
-import { label } from "../core/field-registry.ts";
+import { displayStatus, label } from "../core/field-registry.ts";
 import type { CompletionResult } from "../engine/complete.ts";
 import { findTouchesOverlaps, makeDecomposer, parseProposedChildren } from "../harness/decomposer.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
+
+const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 
 /** Create a compound epic on the real board, enrolled in the execution pipeline. */
 async function createEpic(core: Core, title: string): Promise<Task> {
@@ -248,6 +252,89 @@ describe("makeDecomposer (integration, real Core)", () => {
 	});
 });
 
+describe("engine decompose-apply <taskId> — CLI end-to-end (BACK-628.4)", () => {
+	let projectRoot: string;
+	let core: Core;
+
+	beforeEach(async () => {
+		projectRoot = createUniqueTestDir("engine-decompose-apply-cli");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-decompose-apply-cli-test");
+	});
+
+	afterEach(async () => {
+		await rm(projectRoot, { recursive: true, force: true });
+	});
+
+	it("creates children from stdin JSON and advances the epic to awaiting-children", async () => {
+		const epic = await createEpic(core, "Epic via decompose-apply");
+		const proposed = JSON.stringify([{ title: "Child A", description: "does a" }, { title: "Child B" }]);
+
+		const out = execFileSync("bun", [CLI_PATH, "engine", "decompose-apply", epic.id], {
+			cwd: projectRoot,
+			input: proposed,
+			encoding: "utf8",
+		});
+
+		expect(out).toContain("awaiting-children");
+		expect(out).toContain("(2 children)");
+
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.map((c) => c.title).sort()).toEqual(["Child A", "Child B"]);
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("awaiting-children");
+	});
+
+	it("empty JSON array routes the epic to needs-human, no children created", async () => {
+		const epic = await createEpic(core, "Epic via decompose-apply, empty");
+
+		const out = execFileSync("bun", [CLI_PATH, "engine", "decompose-apply", epic.id], {
+			cwd: projectRoot,
+			input: "[]",
+			encoding: "utf8",
+		});
+
+		expect(out).toContain("needs-human");
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(0);
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("needs-human");
+	});
+});
+
+describe("engine evaluate <taskId> — CLI end-to-end (BACK-628.4)", () => {
+	let projectRoot: string;
+	let core: Core;
+
+	beforeEach(async () => {
+		projectRoot = createUniqueTestDir("engine-evaluate-cli");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-evaluate-cli-test");
+	});
+
+	afterEach(async () => {
+		await rm(projectRoot, { recursive: true, force: true });
+	});
+
+	it("aggregates children into the epic's terminal phase (all done → done)", async () => {
+		const epic = await createEpic(core, "Epic via evaluate");
+		await core.updateTask({ ...epic, phase: "evaluating" }, false);
+		const { task: c1 } = await core.createTaskFromInput({ title: "Child 1", status: "To Do" }, false);
+		await core.updateTask({ ...c1, pipeline_id: "execution", phase: "done", parent_id: epic.id } as Task, false);
+		const { task: c2 } = await core.createTaskFromInput({ title: "Child 2", status: "To Do" }, false);
+		await core.updateTask({ ...c2, pipeline_id: "execution", phase: "done", parent_id: epic.id } as Task, false);
+
+		const out = execFileSync("bun", [CLI_PATH, "engine", "evaluate", epic.id], {
+			cwd: projectRoot,
+			encoding: "utf8",
+		});
+
+		expect(out).toContain("done");
+		const reloaded = await core.getTask(epic.id);
+		expect(reloaded?.phase).toBe("done");
+	});
+});
+
 describe("parseProposedChildren", () => {
 	it("extracts a JSON array embedded in worker prose", () => {
 		const children = parseProposedChildren(CHILDREN_JSON);
@@ -302,5 +389,97 @@ describe("findTouchesOverlaps", () => {
 				{ title: "B", touches: ["y.ts"] },
 			]),
 		).toEqual([]);
+	});
+});
+
+describe("BACK-627: create-path status derivation does not require board vocabulary", () => {
+	let projectRoot: string;
+	let core: Core;
+
+	afterEach(async () => {
+		await rm(projectRoot, { recursive: true, force: true });
+	});
+
+	it("decompose creates children on the DEFAULT board ([To Do, In Progress, Done]) without a canonical-status error", async () => {
+		projectRoot = createUniqueTestDir("engine-decompose-default-board");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-decompose-default-board-test");
+		// No config.statuses patch here — this is the regression case from finding #2:
+		// a board that never declares "Basic: Ready" must not fail child creation.
+
+		const epic = await createEpic(core, "Epic on default board");
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(2);
+		for (const child of children) {
+			expect(child.status).toBe("Basic: Ready");
+			expect(displayStatus(child)).toBe("Basic: Ready");
+		}
+	});
+
+	it("resolves phase→status against the config-declared vocabulary casing, not a title-case fallback", async () => {
+		projectRoot = createUniqueTestDir("engine-decompose-custom-casing");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-decompose-custom-casing-test");
+
+		// A board that declares off-title-case vocabulary for the "ready" phase
+		// (role prefix "Basic"/"Epic" is fixed by label(); only the phase casing varies).
+		const config = await core.filesystem.loadConfig();
+		if (config) {
+			config.statuses = [...(config.statuses ?? []), "Basic: READY"];
+			await core.filesystem.saveConfig(config);
+		}
+
+		const epic = await createEpic(core, "Epic on custom-casing board");
+		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
+		const decompose = makeDecomposer(fakeSpawn, core);
+		await decompose(epic, projectRoot);
+
+		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
+		expect(children.length).toBe(2);
+		for (const child of children) {
+			expect(child.status).toBe("Basic: READY");
+		}
+	});
+});
+
+describe("BACK-627: Core.updateTask centralizes phase→status derivation", () => {
+	let projectRoot: string;
+	let core: Core;
+
+	afterEach(async () => {
+		await rm(projectRoot, { recursive: true, force: true });
+	});
+
+	it("writes task.status = displayStatus(task) whenever phase is present", async () => {
+		projectRoot = createUniqueTestDir("engine-updatetask-status-sync");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-updatetask-status-sync-test");
+
+		const epic = await createEpic(core, "Epic to close");
+		await core.updateTask({ ...epic, phase: "done", status: "Epic: Done" }, false);
+
+		const reloaded = await core.getTask(epic.id);
+		// Even though the caller passed the stale/incoming status literally, the
+		// persisted status is derived from phase — no desync between the two.
+		expect(reloaded?.phase).toBe("done");
+		expect(reloaded?.status).toBe(label("compound", "done"));
+		expect(displayStatus(reloaded as Task)).toBe(label("compound", "done"));
+	});
+
+	it("leaves task.status untouched (no-op) for tasks without a phase", async () => {
+		projectRoot = createUniqueTestDir("engine-updatetask-no-phase");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-updatetask-no-phase-test");
+
+		const { task } = await core.createTaskFromInput({ title: "Plain task", status: "To Do" }, false);
+		await core.updateTask({ ...task, title: "Plain task (renamed)" }, false);
+
+		const reloaded = await core.getTask(task.id);
+		expect(reloaded?.phase).toBeUndefined();
+		expect(reloaded?.status).toBe("To Do");
 	});
 });

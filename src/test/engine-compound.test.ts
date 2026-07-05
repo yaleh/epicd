@@ -13,6 +13,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
+import { displayStatus } from "../core/field-registry.ts";
 import { isCompound, isPrimitive } from "../engine/adjudicate.ts";
 import type { TaskStore } from "../engine/complete.ts";
 import { type DecomposeHandler, Driver, type WorktreeOps } from "../engine/driver.ts";
@@ -141,8 +142,9 @@ describe("Driver compound branch", () => {
 		const driver = new Driver([executionPipeline], store, worktree);
 		await driver.tick(all());
 
-		expect(all().find((t) => t.id === "epic-2")?.phase).toBe("needs-human");
-		expect(all().find((t) => t.id === "epic-2")?.status).toBe("Epic: Needs Human");
+		const epic2 = all().find((t) => t.id === "epic-2") as Task;
+		expect(epic2.phase).toBe("needs-human");
+		expect(displayStatus(epic2)).toBe("Epic: Needs Human");
 	});
 
 	it("compound task in decomposing phase calls decompose handler", async () => {

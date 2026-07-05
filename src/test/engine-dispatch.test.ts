@@ -19,7 +19,7 @@ import { rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { Core } from "../core/backlog.ts";
-import { renderBasicReadyDispatch } from "../engine/dispatch.ts";
+import { renderBasicReadyDispatch, renderEpicEvalDueDispatch, renderEpicReadyDispatch } from "../engine/dispatch.ts";
 import { scanReadyLines } from "../engine/scan.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
@@ -101,6 +101,65 @@ describe("engine dispatch <id> — CLI end-to-end", () => {
 		expect(out).toContain(`engine complete ${task.id} --worktree`);
 		// absolute repo root is baked in
 		expect(out).toContain(projectRoot);
+	});
+});
+
+describe("renderEpicReadyDispatch / renderEpicEvalDueDispatch — self-contained payloads (BACK-628.4)", () => {
+	it("epic-ready payload puts the machine key first and instructs decompose-apply", () => {
+		const payload = renderEpicReadyDispatch("BACK-999", "Some epic title");
+		expect(payload.split("\n")[0]).toBe("epic-ready:BACK-999");
+		expect(payload).toContain("engine decompose-apply BACK-999");
+		expect(payload).toContain("Do NOT re-arm the Monitor");
+	});
+
+	it("epic-eval-due payload puts the machine key first and instructs evaluate", () => {
+		const payload = renderEpicEvalDueDispatch("BACK-999", "Some epic title");
+		expect(payload.split("\n")[0]).toBe("epic-eval-due:BACK-999");
+		expect(payload).toContain("engine evaluate BACK-999");
+		expect(payload).toContain("Do NOT re-arm the Monitor");
+	});
+});
+
+describe("engine dispatch <id> — branches by phase (BACK-628.4)", () => {
+	let projectRoot: string;
+	let core: Core;
+
+	beforeEach(async () => {
+		projectRoot = createUniqueTestDir("engine-dispatch-epic-phase");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-dispatch-epic-phase-test");
+	});
+
+	afterEach(async () => {
+		await rm(projectRoot, { recursive: true, force: true });
+	});
+
+	it("prints the epic-ready payload for a decomposing task", async () => {
+		const { task } = await core.createTaskFromInput({ title: "Epic to decompose", status: "To Do" }, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "decomposing" } as Task, false);
+
+		const out = execFileSync("bun", [CLI_PATH, "engine", "dispatch", task.id], {
+			cwd: projectRoot,
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "ignore"],
+		});
+
+		expect(out.split("\n")[0]).toBe(`epic-ready:${task.id}`);
+		expect(out).toContain(`engine decompose-apply ${task.id}`);
+	});
+
+	it("prints the epic-eval-due payload for an evaluating task", async () => {
+		const { task } = await core.createTaskFromInput({ title: "Epic to evaluate", status: "To Do" }, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "evaluating" } as Task, false);
+
+		const out = execFileSync("bun", [CLI_PATH, "engine", "dispatch", task.id], {
+			cwd: projectRoot,
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "ignore"],
+		});
+
+		expect(out.split("\n")[0]).toBe(`epic-eval-due:${task.id}`);
+		expect(out).toContain(`engine evaluate ${task.id}`);
 	});
 });
 
