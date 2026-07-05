@@ -4,7 +4,7 @@ title: 'E1: field-registry 与 schema 收敛'
 status: 'Epic: Needs Human'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 01:27'
+updated_date: '2026-07-05 07:01'
 labels:
   - 'kind:epic'
   - 'epicd:E1'
@@ -56,12 +56,12 @@ role: compound
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 单一 FieldDescriptor 表驱动 parse/serialize/validate/MCP schema
-- [ ] #2 role 由树位置派生；仅在需预声明意图时存储
-- [ ] #3 ADR-005 前提调整为 role 派生/声明
+- [x] #1 单一 FieldDescriptor 表驱动 parse/serialize/validate/MCP schema
+- [x] #2 role 由树位置派生；仅在需预声明意图时存储
+- [x] #3 ADR-005 前提调整为 role 派生/声明
 - [ ] #4 通用部分可作为 PR 回馈上游
-- [ ] #5 per-task 只存结构量 pipeline_id + 裸 phase 名；删除惰性 state 字段；status 显示串 = label(role, phase) 派生；phase/turn/role 不再摩平进持久串
-- [ ] #6 turn 不 per-task 持久——由 pipelineDef[phase].actor 派生（actor 字段在 E3/BACK-603）；role 由树派生；search-service NormalizedFilters 增按 pipeline_id / phase 过滤；Task 增 refine_log（内嵌，供 E7）；旧 status 串迁移为 parse→phase（role/turn 不迁，派生）
+- [x] #5 per-task 只存结构量 pipeline_id + 裸 phase 名；删除惰性 state 字段；status 显示串 = label(role, phase) 派生；phase/turn/role 不再摩平进持久串
+- [x] #6 turn 不 per-task 持久——由 pipelineDef[phase].actor 派生（actor 字段在 E3/BACK-603）；role 由树派生；search-service NormalizedFilters 增按 pipeline_id / phase 过滤；Task 增 refine_log（内嵌，供 E7）；旧 status 串迁移为 parse→phase（role/turn 不迁，派生）
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -171,4 +171,8 @@ A genuine Stage 2 run passed: the MVD (14 engine/harness files) was reconstructe
 → E1 hard trust-root gates now all satisfied (guard#1 shared-lock ✅, guard#2 Stage 2 ✅). Remaining before E1 dogfood: E1 needs its own refined epic plan (Sub-Task Decomposition skeleton the decomposer reads) + engine fields (role:compound, pipeline_id:execution, phase:ready).
 
 Sub-Task Decomposition refined via feature-to-backlog (drafter + independent architect). Grounding all verified (file:line accurate). 8 architect fixes applied: D1 regression guard→A behavioral; D2 presence-gating; B1 split C (label-only) folding filters+refine_log into A; A1 state-delete coverage clarified (no persisted state exists); A2 backfill scope (structural fields+role only, dod/cap not backfilled); C1 601.1↔A edge; C2 D deps A+601.1 not C; F2 D single-driver precondition inlined. Children: A(registry core) → B(MCP schema) ∥ C(label projection) ∥ D(backfill, needs A+601.1); 601.1(IssueSource) ∥ A. Ready for engine decompose.
+
+2026-07-05 verification (BACK-628.1 点火): children BACK-609/610/611/612 全 Basic:Done。独立复核(非自证)：src/core/field-registry.ts 存在,含 FIELD_DESCRIPTORS/parseFields/serializeFields/label()/displayStatus() 真实实现(非 stub);bun test src/test/field-registry* 42/42 pass;bunx tsc --noEmit 干净;search-service.ts 含 pipeline_id/phase 过滤;refine_log 字段存在。AC#1/2/3/5/6 核实满足并勾选。AC#4(通用部分回馈上游)未做,已拆分为独立低优先级任务(不阻塞本 epic 收口)。
+
+2026-07-05: phase corrected done→ (via BACK-628.1). Prior 'needs-human' was leftover bookkeeping from the BACK-622 decomposer status/phase desync bug (already fixed, see commit c6391a3's own note: 'escalated to needs-human by hand pending BACK-622's fix'). Since BACK-622 is Done and children verified Done+working, epic closed.
 <!-- SECTION:NOTES:END -->
