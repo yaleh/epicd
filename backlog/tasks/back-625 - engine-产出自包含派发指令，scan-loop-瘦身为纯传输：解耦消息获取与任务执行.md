@@ -1,11 +1,11 @@
 ---
 id: BACK-625
 title: engine 产出自包含派发指令，scan-loop 瘦身为纯传输：解耦消息获取与任务执行
-status: 'Basic: In Progress'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 02:30'
-updated_date: '2026-07-05 03:29'
+updated_date: '2026-07-05 03:40'
 labels:
   - 'kind:refactor'
 dependencies: []
