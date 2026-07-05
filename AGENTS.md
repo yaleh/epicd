@@ -20,6 +20,12 @@ If you can simplify the code, do it.
 - A **Basic task ≈ one reviewable PR** — sized up to ~2000 lines of change, delivered through one worktree + one merge + one gate cycle.
 - Structure a task's work **inside its plan** using two levels: **Phase** (a recoverable checkpoint) → **Stage** (informal sub-step). A ~2000-line change is organized as a few Phases with a few Stages each — not as many separate tasks.
 - **Decompose an epic by deliverable, not by concern/file.** Do NOT create a separate task per field, per filter, or per small edit — fold related changes into one PR-sized Basic task. Over-decomposition turns coordination overhead (gates, worktrees, merges, reviews) into the dominant cost.
+- **Confirm Epic status at plan time using this test — do not decompose unless both hold:**
+  - (a) You can name **≥2 independently reviewable/mergeable deliverables**. A sequence of steps toward one deliverable (schema → engine wiring → CLI → web page for the same feature) is not multiple deliverables — it's Phases/Stages inside one Basic task's plan.
+  - (b) The deliverables' combined size estimate has real margin over the ~2000-line ceiling — aim for **≥1.8-2x (≈3600+ lines)**, not a marginal overage. Splits that only clear the ceiling by 10-30% rarely pay for the fixed cost of extra gate/worktree/merge/review cycles; default those to a single Basic task.
+  - Anchor size estimates to comparable past work instead of guessing: e.g. "new store + engine wiring + CLI + web integration" has historically run 4000-8000 lines; a single API extension or point fix has run 1000-1500 lines.
+  - Red flag during decomposition: if any planned child is a trivial administrative/verification step (a marker file, a smoke-test stub, an audit-only note) rather than a real deliverable, that's concern-based over-decomposition — fold it back into its parent's Stages.
+  - If you can't yet name a second deliverable, start as Basic. Only convert to an Epic mid-implementation if the actual scope demonstrably overruns Basic size — don't pre-split on a hunch.
 - This applies to both human authoring and the engine's future dogfood decompose.
 
 
