@@ -1,18 +1,21 @@
 ---
 id: BACK-628.2.1
 title: 示例任务：验证 epicd supervisor 自主执行链路（BACK-628.2 AC#2）
-status: 'Basic: Needs Human'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 08:08'
-updated_date: '2026-07-05 08:13'
+updated_date: '2026-07-05 08:15'
 labels:
   - 'kind:chore'
 dependencies: []
 parent_task_id: BACK-628.2
 ordinal: 48000
 pipeline_id: execution
-phase: needs-human
+phase: done
+dod:
+  - text: test -f docs/research/back-628-2-smoke-test.md
+    checked: false
 cap:
   - phase: ready-dispatched
     done: true
