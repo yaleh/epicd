@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { $ } from "bun";
 import { Core } from "../core/backlog.ts";
 import { addCapMarker, hasCapMarker, type WorktreeRunner, withCapGuard, withWorktree } from "../engine/safety.ts";
+import { supervisorTick } from "../engine/supervisor.ts";
 import { advanceAwaitingChildrenToEvaluating } from "../harness/evaluator.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
@@ -128,13 +129,42 @@ describe("ADR-010 ENG-3: merge serialization + conflict-is-not-success — see e
 	});
 });
 
-describe("ADR-010 ENG-4: event consumption idempotency — see engine-supervisor.test.ts for the full dispatch-cap proof", () => {
-	it("ENG-4 label present: cross-reference to engine-supervisor.test.ts's restart-safety scenario", () => {
-		// The full proof (dispatch cap marker prevents re-emission across a
-		// simulated restart) lives in engine-supervisor.test.ts. Kept as a single
-		// source of truth for the assertion logic; this is the explicit ENG-4
-		// label anchor so grepping "ENG-4" also finds this consolidated file.
-		expect(true).toBe(true);
+describe("ADR-010 ENG-4: event consumption idempotency — re-processing the same dispatch signal must not duplicate side effects", () => {
+	let projectRoot: string;
+	let core: Core;
+
+	beforeEach(async () => {
+		projectRoot = createUniqueTestDir("adr010-eng4");
+		core = new Core(projectRoot);
+		await initializeTestProject(core, "adr010-eng4-test");
+	});
+
+	afterEach(async () => {
+		await rm(projectRoot, { recursive: true, force: true });
+	});
+
+	it("does not re-dispatch a task already carrying the dispatch cap marker across a simulated restart (adapted from engine-supervisor.test.ts:57)", async () => {
+		const { task } = await core.createTaskFromInput({ title: "Ready task", status: "To Do" }, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "ready" } as Task, false);
+
+		const firstSpawns: string[] = [];
+		await supervisorTick(core, projectRoot, async (taskId) => {
+			firstSpawns.push(taskId);
+		});
+		expect(firstSpawns).toEqual([task.id]);
+
+		// Simulate a supervisor restart: a fresh tick against the same on-disk
+		// state (task is still "ready" — the agent hasn't completed it yet).
+		// ENG-4 requires this second tick to be a no-op: the dispatch cap marker
+		// persisted by the first tick must prevent the side effect (spawn) from
+		// firing again.
+		const secondSpawns: string[] = [];
+		const secondDispatched = await supervisorTick(core, projectRoot, async (taskId) => {
+			secondSpawns.push(taskId);
+		});
+
+		expect(secondDispatched).toEqual([]);
+		expect(secondSpawns).toEqual([]);
 	});
 });
 
