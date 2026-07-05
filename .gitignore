@@ -87,6 +87,7 @@ backlog/tasks/.scanner-*.lock
 backlog/.merge-lock
 backlog/.merge-lock-sentinel
 backlog/.agent-done-*
+backlog/.supervisor-*
 
 # gate-event log runtime output
 docs/research/gcl-events.jsonl

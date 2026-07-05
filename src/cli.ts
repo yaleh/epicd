@@ -2388,6 +2388,9 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 		"add a structured executable DoD gate — a shell command the engine re-runs before merge (can be used multiple times)",
 		createMultiValueAccumulator(),
 	)
+	.option("--pipeline-id <id>", "set engine pipeline id (engine-managed field)")
+	.option("--phase <phase>", "set engine phase; status is derived from phase automatically")
+	.option("--parent-id <id>", "set engine parent task id (engine-managed field)")
 	.option(
 		"--remove-ac <index>",
 		"remove acceptance criterion by index (1-based, can be used multiple times)",
@@ -2728,6 +2731,15 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 		}
 		if (uncheckDod) {
 			editArgs.definitionOfDoneUncheck = uncheckDod;
+		}
+		if (typeof options.pipelineId === "string") {
+			editArgs.pipeline_id = String(options.pipelineId);
+		}
+		if (typeof options.phase === "string") {
+			editArgs.phase = String(options.phase);
+		}
+		if (typeof options.parentId === "string") {
+			editArgs.parent_id = String(options.parentId);
 		}
 
 		let updatedTask: Task;
@@ -4531,10 +4543,15 @@ engineCmd
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
 			const { scanReadyLines } = await import("./engine/scan.ts");
+			const { advanceAwaitingChildrenToEvaluating } = await import("./harness/evaluator.ts");
 
 			const core = new Core(cwd);
 
 			const runOnce = async () => {
+				// Data-derived awaiting-children → evaluating advance (BACK-628.4): the only
+				// write engine scan performs; keeps epic-eval-due data-derived (phase-based)
+				// rather than depending on a separate legacy status-string predicate.
+				await advanceAwaitingChildrenToEvaluating(core);
 				const tasks = await core.queryTasks({});
 				for (const line of scanReadyLines(tasks)) {
 					process.stdout.write(`${line}\n`);
@@ -4565,13 +4582,15 @@ engineCmd
 engineCmd
 	.command("dispatch <taskId>")
 	.description(
-		"emit the self-contained basic-ready dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Payload is authored here, not by scan-loop templates.",
+		"emit the self-contained dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Branches on the task's phase: ready→basic-ready, decomposing→epic-ready, evaluating→epic-eval-due (BACK-628.4). Payload is authored here, not by scan-loop templates.",
 	)
 	.action(async (taskId: string) => {
 		try {
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
-			const { renderBasicReadyDispatch } = await import("./engine/dispatch.ts");
+			const { renderBasicReadyDispatch, renderEpicReadyDispatch, renderEpicEvalDueDispatch } = await import(
+				"./engine/dispatch.ts"
+			);
 
 			const core = new Core(cwd);
 			const task = await core.getTask(taskId);
@@ -4580,9 +4599,68 @@ engineCmd
 				process.exitCode = 1;
 				return;
 			}
-			process.stdout.write(`${renderBasicReadyDispatch(task.id, task.title ?? "", cwd)}\n`);
+			const title = task.title ?? "";
+			const payload =
+				task.phase === "decomposing"
+					? renderEpicReadyDispatch(task.id, title)
+					: task.phase === "evaluating"
+						? renderEpicEvalDueDispatch(task.id, title)
+						: renderBasicReadyDispatch(task.id, title, cwd);
+			process.stdout.write(`${payload}\n`);
 		} catch (err) {
 			console.error("engine dispatch failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
+	.command("decompose-apply <taskId>")
+	.description(
+		"apply a JSON array of proposed children (read from stdin) to a decomposing epic: creates each child with engine fields and advances the epic's phase to awaiting-children (or needs-human if the array is empty). Companion to the epic-ready dispatch payload (BACK-628.4).",
+	)
+	.action(async (taskId: string) => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { applyProposedChildren, parseProposedChildren } = await import("./harness/decomposer.ts");
+
+			const core = new Core(cwd);
+			const task = await core.getTask(taskId);
+			if (!task) {
+				console.error(`engine decompose-apply: task ${taskId} not found`);
+				process.exitCode = 1;
+				return;
+			}
+
+			const stdinText = await new Response(Bun.stdin).text();
+			const children = parseProposedChildren(stdinText);
+
+			await applyProposedChildren(core, task, children, cwd);
+			const updated = await core.getTask(taskId);
+			console.log(`engine decompose-apply: ${taskId} → ${updated?.phase ?? "unknown"} (${children.length} children)`);
+		} catch (err) {
+			console.error("engine decompose-apply failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
+	.command("evaluate <taskId>")
+	.description(
+		"evaluate an epic in the evaluating phase: aggregates its children's terminal phases into the epic's own terminal phase (any child needs-human → epic needs-human; all done → epic done). Companion to the epic-eval-due dispatch payload (BACK-628.4).",
+	)
+	.action(async (taskId: string) => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { evaluateEpic } = await import("./harness/evaluator.ts");
+
+			const core = new Core(cwd);
+			await evaluateEpic(core, taskId);
+			const updated = await core.getTask(taskId);
+			console.log(`engine evaluate: ${taskId} → ${updated?.phase ?? "unknown"}`);
+		} catch (err) {
+			console.error("engine evaluate failed:", err instanceof Error ? err.message : String(err));
 			process.exitCode = 1;
 		}
 	});
@@ -4640,8 +4718,6 @@ engineCmd
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
 			const { makeBoardStore } = await import("./engine/store.ts");
-			const { label } = await import("./core/field-registry.ts");
-			const { roleOf } = await import("./types/index.ts");
 
 			const core = new Core(cwd);
 			const store = makeBoardStore(core);
@@ -4663,7 +4739,6 @@ engineCmd
 				...task,
 				pipeline_id: "execution",
 				phase: "ready",
-				status: label(roleOf(task), "ready"),
 			});
 
 			console.log(`engine promote: ${id} → execution/ready`);
@@ -4749,6 +4824,60 @@ engineCmd
 			}
 		} catch (err) {
 			console.error("engine stage2-gate failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
+	.command("supervisor")
+	.description(
+		"epicd-native transport for the execution lane (BACK-628.2): replaces baime's Monitor+scan-loop.cjs for scan/dispatch/lock bookkeeping. Each tick scans for ready tasks and prints the same self-contained dispatch payload (ADR-015 swap-litmus) a Monitor seat would otherwise read — this command never spawns a `claude` process itself (BACK-605.8 Phase D); an in-session Agent tool call consumes the payload and runs `engine complete` when done. A field lock (ENG-6) refuses a second instance for the same board, and a dispatch cap marker (ENG-1/ENG-4) makes restarts safe against re-emitting an in-flight task.",
+	)
+	.option("--once", "tick once and exit (default when --interval is not given)")
+	.option("--interval <ms>", "poll interval in milliseconds for repeated ticking")
+	.action(async (options) => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { supervisorTick, acquireFieldLock } = await import("./engine/supervisor.ts");
+			const { realMergeLockFs } = await import("./harness/real-primitives.ts");
+
+			const core = new Core(cwd);
+			const pipelineId = "execution";
+			const release = await acquireFieldLock(core.filesystem.backlogDir, pipelineId, realMergeLockFs).catch((err) => {
+				throw new Error(
+					`could not acquire the execution field lock — another supervisor is likely already running for this board (${err instanceof Error ? err.message : String(err)})`,
+				);
+			});
+
+			const runOnce = async () => {
+				const dispatched = await supervisorTick(core, cwd, async (_taskId, payload) => {
+					process.stdout.write(`${payload}\n---EVENT---\n`);
+				});
+				return dispatched;
+			};
+
+			try {
+				if (options.interval && !options.once) {
+					const intervalMs = Number.parseInt(options.interval, 10);
+					if (Number.isNaN(intervalMs) || intervalMs < 1) {
+						console.error("--interval must be a positive integer (ms)");
+						process.exitCode = 1;
+						return;
+					}
+					// biome-ignore lint/correctness/noConstantCondition: intentional poll loop
+					while (true) {
+						await runOnce();
+						await new Promise((resolve) => setTimeout(resolve, intervalMs));
+					}
+				} else {
+					await runOnce();
+				}
+			} finally {
+				await release();
+			}
+		} catch (err) {
+			console.error("engine supervisor failed:", err instanceof Error ? err.message : String(err));
 			process.exitCode = 1;
 		}
 	});
