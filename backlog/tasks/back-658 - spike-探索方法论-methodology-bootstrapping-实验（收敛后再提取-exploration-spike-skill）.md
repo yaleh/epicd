@@ -1,11 +1,11 @@
 ---
 id: BACK-658
 title: spike 探索方法论 methodology-bootstrapping 实验（收敛后再提取 exploration/spike skill）
-status: 'Basic: Draft'
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 07:44'
-updated_date: '2026-07-06 18:11'
+updated_date: '2026-07-06 18:20'
 labels:
   - 'kind:experiment'
   - 'area:engine'
@@ -17,8 +17,8 @@ references:
   - docs/task-lifecycle-model.md
 priority: medium
 ordinal: 78000
-pipeline_id: authoring
-phase: draft
+pipeline_id: exploration
+phase: done
 parent_id: BACK-665
 ---
 
@@ -61,10 +61,12 @@ BACK-657（phase 执行 skill 集）按 extract/mechanical/experiment 三分建 
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
+- [x] #1 bunx tsc --noEmit passes when TypeScript touched
+- [x] #2 bun run check . passes when formatting/linting touched
+- [x] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+
 
 ## Implementation Notes
 
