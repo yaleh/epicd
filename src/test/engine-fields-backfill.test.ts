@@ -8,8 +8,12 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Core } from "../core/backlog.ts";
-import { computeBackfillFields, deriveBarePhase, runBackfill } from "../core/engine-fields-backfill.ts";
-import { executionPipeline } from "../engine/pipeline.ts";
+import {
+	computeBackfillFields,
+	deriveBarePhase,
+	resolvePipelinePhase,
+	runBackfill,
+} from "../core/engine-fields-backfill.ts";
 import { type MergeLockFs, withMergeLock } from "../engine/safety.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
@@ -46,17 +50,69 @@ describe("deriveBarePhase", () => {
 	});
 });
 
+describe("resolvePipelinePhase", () => {
+	it("maps legacy Proposal → authoring/draft", () => {
+		expect(resolvePipelinePhase("Basic: Proposal")).toEqual({ pipeline_id: "authoring", phase: "draft" });
+	});
+
+	it("maps legacy Plan → authoring/refining", () => {
+		expect(resolvePipelinePhase("Basic: Plan")).toEqual({ pipeline_id: "authoring", phase: "refining" });
+	});
+
+	it("maps Backlog/Draft/Refining → authoring same-name phase", () => {
+		expect(resolvePipelinePhase("Basic: Backlog")).toEqual({ pipeline_id: "authoring", phase: "backlog" });
+		expect(resolvePipelinePhase("Basic: Draft")).toEqual({ pipeline_id: "authoring", phase: "draft" });
+		expect(resolvePipelinePhase("Basic: Refining")).toEqual({ pipeline_id: "authoring", phase: "refining" });
+	});
+
+	it("maps In Progress → execution/ready (claim layer, never persisted as a phase)", () => {
+		expect(resolvePipelinePhase("Basic: In Progress")).toEqual({ pipeline_id: "execution", phase: "ready" });
+	});
+
+	it("maps Ready/Decomposing/Awaiting Children/Evaluating/Needs Human/Done → execution same-name phase", () => {
+		expect(resolvePipelinePhase("Basic: Ready")).toEqual({ pipeline_id: "execution", phase: "ready" });
+		expect(resolvePipelinePhase("Basic: Decomposing")).toEqual({ pipeline_id: "execution", phase: "decomposing" });
+		expect(resolvePipelinePhase("Basic: Awaiting Children")).toEqual({
+			pipeline_id: "execution",
+			phase: "awaiting-children",
+		});
+		expect(resolvePipelinePhase("Basic: Evaluating")).toEqual({ pipeline_id: "execution", phase: "evaluating" });
+		expect(resolvePipelinePhase("Basic: Needs Human")).toEqual({ pipeline_id: "execution", phase: "needs-human" });
+		expect(resolvePipelinePhase("Basic: Done")).toEqual({ pipeline_id: "execution", phase: "done" });
+	});
+
+	it("maps Spike → exploration/spike", () => {
+		expect(resolvePipelinePhase("Basic: Spike")).toEqual({ pipeline_id: "exploration", phase: "spike" });
+	});
+});
+
 describe("computeBackfillFields", () => {
-	it("defaults pipeline_id to the execution pipeline id when missing", () => {
-		const task = baseTask();
+	it("selects authoring/draft for a legacy Proposal task instead of execution", () => {
+		const task = baseTask({ status: "Basic: Proposal" });
 		const patch = computeBackfillFields(task, new Map());
-		expect(patch.pipeline_id).toBe(executionPipeline.id);
+		expect(patch.pipeline_id).toBe("authoring");
+		expect(patch.phase).toBe("draft");
+	});
+
+	it("repositions a historically mis-tagged task (execution + illegal phase 'proposal') to authoring/draft", () => {
+		const task = baseTask({ pipeline_id: "execution", phase: "proposal", status: "Basic: Proposal" });
+		const patch = computeBackfillFields(task, new Map());
+		expect(patch.pipeline_id).toBe("authoring");
+		expect(patch.phase).toBe("draft");
+	});
+
+	it("leaves a legal (pipeline_id, phase) combo untouched", () => {
+		const task = baseTask({ pipeline_id: "execution", phase: "ready", status: "Basic: Proposal" });
+		const patch = computeBackfillFields(task, new Map());
+		expect(patch.pipeline_id).toBeUndefined();
+		expect(patch.phase).toBeUndefined();
 	});
 
 	it("derives phase from status when missing", () => {
 		const task = baseTask({ status: "Basic: In Progress" });
 		const patch = computeBackfillFields(task, new Map());
-		expect(patch.phase).toBe("in-progress");
+		expect(patch.pipeline_id).toBe("execution");
+		expect(patch.phase).toBe("ready");
 	});
 
 	it("derives parent_id from legacy parentTaskId when parent_id is blank", () => {
@@ -78,10 +134,17 @@ describe("computeBackfillFields", () => {
 		expect(patch.role).toBe("primitive");
 	});
 
+	it("repositions a legal-but-terminally-divergent task (execution/needs-human + status Done) to execution/done", () => {
+		const task = baseTask({ pipeline_id: "execution", phase: "needs-human", status: "Basic: Done" });
+		const patch = computeBackfillFields(task, new Map());
+		expect(patch.phase).toBe("done");
+		expect(patch.pipeline_id).toBe("execution");
+	});
+
 	it("returns no changes (empty object) when all four fields are already present", () => {
 		const task = baseTask({
 			pipeline_id: "execution",
-			phase: "to-do",
+			phase: "ready",
 			parent_id: "back-600",
 			role: "primitive",
 		});
@@ -125,12 +188,12 @@ describe("runBackfill", () => {
 		const reloadedParent = await core.getTask(parent.id);
 		const reloadedChild = await core.getTask(child.id);
 
-		expect(reloadedParent?.pipeline_id).toBe("execution");
-		expect(reloadedParent?.phase).toBe("to-do");
+		expect(reloadedParent?.pipeline_id).toBe("authoring");
+		expect(reloadedParent?.phase).toBe("draft");
 		expect(reloadedParent?.role).toBe("compound");
 
-		expect(reloadedChild?.pipeline_id).toBe("execution");
-		expect(reloadedChild?.phase).toBe("to-do");
+		expect(reloadedChild?.pipeline_id).toBe("authoring");
+		expect(reloadedChild?.phase).toBe("draft");
 		expect(reloadedChild?.parent_id).toBe(parent.id);
 		expect(reloadedChild?.role).toBe("primitive");
 	});
@@ -174,10 +237,40 @@ describe("runBackfill", () => {
 		const reloadedA = await core.getTask(a.id);
 		const reloadedB = await core.getTask(b.id);
 
-		expect(reloadedA?.pipeline_id).toBe("execution");
+		expect(reloadedA?.pipeline_id).toBe("authoring");
 		expect(reloadedA?.role).toBe("primitive");
 		expect(reloadedB?.pipeline_id).toBe("execution");
-		expect(reloadedB?.phase).toBe("in-progress");
+		expect(reloadedB?.phase).toBe("ready");
+	});
+
+	it("second run over already-repositioned tasks is a true no-op", async () => {
+		// Bypass create-time validation to simulate a historically mis-tagged task
+		// (pipeline_id/phase illegal combo) that predates BACK-655's write-boundary checks.
+		const { task } = await core.createTaskFromInput({ title: "Mislabeled", status: "To Do" }, false);
+		await core.filesystem.saveTask({ ...task, status: "Basic: Proposal", pipeline_id: "execution", phase: "proposal" });
+
+		const first = await runBackfill(core);
+		expect(first.updated).toContain(task.id);
+
+		const second = await runBackfill(core);
+		expect(second.updated).toEqual([]);
+	});
+
+	it("second run after terminal-divergence reposition is a no-op", async () => {
+		const { task } = await core.createTaskFromInput(
+			{ title: "Terminal divergence", pipeline_id: "execution", phase: "needs-human" },
+			false,
+		);
+		await core.filesystem.saveTask({ ...task, status: "Basic: Done", pipeline_id: "execution", phase: "needs-human" });
+
+		const first = await runBackfill(core);
+		expect(first.updated).toContain(task.id);
+
+		const reloaded = await core.getTask(task.id);
+		expect(reloaded?.phase).toBe("done");
+
+		const second = await runBackfill(core);
+		expect(second.updated).toEqual([]);
 	});
 });
 

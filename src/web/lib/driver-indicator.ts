@@ -1,16 +1,10 @@
-import {
-	authoringPipeline,
-	executionPipeline,
-	explorationPipeline,
-	type Pipeline,
-	type PipelineState,
-} from "../../engine/pipeline";
+import { ALL_PIPELINES, type PipelineState } from "../../engine/pipeline";
 import type { ClaimState } from "./coordinator-claims";
 
 // Browser-safe (no `node:fs`): imported directly by TaskList.tsx.
 
-/** All declared pipelines, exported so other web-lib modules (status-label.ts) don't redeclare this list. */
-export const ALL_PIPELINES: Pipeline[] = [executionPipeline, authoringPipeline, explorationPipeline];
+/** All declared pipelines, re-exported so other web-lib modules (status-label.ts) don't redeclare this list. */
+export { ALL_PIPELINES };
 
 /** Looks up a phase's `actor` against the pipeline it belongs to (data lookup, not a per-task field). */
 export function getPhaseActor(

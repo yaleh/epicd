@@ -7,7 +7,7 @@ status: 'Basic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 04:40'
-updated_date: '2026-07-06 06:11'
+updated_date: '2026-07-06 08:49'
 labels:
   - 'kind:feature'
   - 'area:engine'
@@ -266,6 +266,8 @@ Proposal approved (task description authored as detailed proposal). Starting pla
 Plan review APPROVED (strict architect, GCL E=7 C=5 H=1). 4 phases: A shared phase-legality helper + edit validation; B computeBackfillFields pipeline-by-status + reposition; C task create --pipeline/--phase; D engine drift-lint. Ready for LFDD.
 
 追加 Phase E + AC#6：status↔phase 终态分歧 reconcile + isTerminalStatus 修复（BACK-654 同源残留的硬化，折入本 PR，不另建 task）。
+
+impl done: Implemented all 5 phases per plan. Phase A added ALL_PIPELINES/pipelineById/isLegalPhase/assertLegalPhase to src/engine/pipeline.ts, wired assertLegalPhase into the task-edit write boundary (Core.applyTaskUpdateInput), and made src/web/lib/driver-indicator.ts import/re-export ALL_PIPELINES instead of redeclaring it. Phase B added resolvePipelinePhase(status) (the docs/task-lifecycle-model.md §4.1 legacy-vocab table) to src/core/engine-fields-backfill.ts and rewrote computeBackfillFields to reposition illegal/incomplete (pipeline_id, phase) combos by status semantics instead of unconditionally defaulting to execution; idempotency preserved (legal combo -> empty patch). Phase C added --pipeline/--phase to task create in src/cli.ts (defaulting to authoring/draft when none of pipeline/phase/status/draft is given) and validated phase legality in Core.createTaskFromInput. Phase D added computeDrift(tasks) and registered 'engine drift-lint' (lists drifted tasks, exits non-zero on drift, zero on clean board). Phase E fixed isTerminalStatus in src/utils/terminal-status.ts to derive terminal-ness from the engine's actor:none phase semantics (only for canonical 'Role: Phase'-prefixed statuses, guarded by hasRolePrefix so bare custom-board vocab like a literal 'Done' status on a To Do/Review/Closed board isn't misclassified), falling back to the old last-configured-status behavior otherwise; extended computeBackfillFields/computeDrift to detect and reposition/flag status-terminal vs phase-non-terminal divergence (e.g. execution/needs-human + status Done -> repositioned to execution/done). One deviation from the plan text: Phase E's isTerminalStatus fix required an extra hasRolePrefix guard (not explicitly spelled out in the plan) to avoid a regression against src/test/cleanup.test.ts's literal-'Done'-on-a-custom-board case, discovered via the full bun test run; no other deviations. Test/tsc/check results: bun test (full suite) = 1960 pass / 2 skip / 1 fail across 1963 tests — the 1 failure (src/test/baime-readme-back654-note.test.ts) is a pre-existing, unrelated doc-marker check that fails identically on the main repo before this task's changes. All BACK-655-authored/amended test files pass (pipeline.test.ts, cli-engine-fields-edit.test.ts, engine-fields-backfill.test.ts, cli-create.test.ts, engine-drift-lint.test.ts, terminal-status.test.ts), as do pipeline-coupling-discipline.test.ts and status-label-projection.test.ts named in the Acceptance Gate. bunx tsc --noEmit is clean. bun run check . reports 0 errors (11 pre-existing warnings in files this task didn't touch, e.g. acceptance-criteria.test.ts, engine-safety-cap.test.ts, test-helpers.ts). Total diff is ~450 changed lines across 11 files plus 1 new test file, well under the ~1700 LOC ceiling.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

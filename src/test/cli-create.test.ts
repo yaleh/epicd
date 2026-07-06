@@ -115,4 +115,44 @@ describe("create commands", () => {
 		expect(output).toContain("Created task TASK-2");
 		expect(createdTask?.dependencies).toEqual(["TASK-1"]);
 	});
+
+	it("defaults a bare create to authoring/draft (not Basic: Proposal)", async () => {
+		await $`bun ${CLI_PATH} task create "Bare create"`.cwd(TEST_DIR).quiet();
+
+		const core = new Core(TEST_DIR);
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task?.pipeline_id).toBe("authoring");
+		expect(task?.phase).toBe("draft");
+		expect(task?.status).toBe("Basic: Draft");
+	});
+
+	it("honors explicit --pipeline/--phase", async () => {
+		await $`bun ${CLI_PATH} task create "Explicit pipeline" --pipeline execution --phase ready`.cwd(TEST_DIR).quiet();
+
+		const core = new Core(TEST_DIR);
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task?.pipeline_id).toBe("execution");
+		expect(task?.phase).toBe("ready");
+		expect(task?.status).toBe("Basic: Ready");
+	});
+
+	it("rejects an illegal --pipeline/--phase combo at create", async () => {
+		const result = await $`bun ${CLI_PATH} task create "Illegal combo" --pipeline execution --phase proposal`
+			.cwd(TEST_DIR)
+			.nothrow()
+			.quiet();
+		expect(result.exitCode).not.toBe(0);
+
+		const core = new Core(TEST_DIR);
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task).toBeNull();
+	});
+
+	it("--draft still creates a Draft and is unaffected by the authoring/draft default", async () => {
+		await $`bun ${CLI_PATH} task create "Still a draft" --draft`.cwd(TEST_DIR).quiet();
+
+		const core = new Core(TEST_DIR);
+		const draft = await core.filesystem.loadDraft("draft-1");
+		expect(draft?.status).toBe("Draft");
+	});
 });
