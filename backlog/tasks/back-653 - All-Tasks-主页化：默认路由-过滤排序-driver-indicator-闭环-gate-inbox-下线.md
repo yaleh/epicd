@@ -1,11 +1,11 @@
 ---
 id: BACK-653
 title: All Tasks 主页化：默认路由/过滤排序/driver indicator 闭环 + gate-inbox 下线
-status: 'Basic: Ready'
+status: 'Basic: Needs Human'
 assignee:
   - '@claude'
 created_date: '2026-07-06 02:02'
-updated_date: '2026-07-06 02:19'
+updated_date: '2026-07-06 02:43'
 labels:
   - 'kind:feature'
 dependencies: []
@@ -17,7 +17,7 @@ references:
   - BACK-605.10
 ordinal: 73000
 pipeline_id: execution
-phase: ready
+phase: needs-human
 dod:
   - text: bunx tsc --noEmit
     checked: false
@@ -81,7 +81,11 @@ dod:
 - [ ] #7 新增测试 fixture 覆盖至少三种 driver indicator 情形（actor=human、actor=machine 有效 claim、actor=machine 过期孤儿），并有组件测试断言排序顺序和内联操作按钮的可见性/可点击性符合上述排序规则
 <!-- AC:END -->
 
+## Implementation Notes
 
+<!-- SECTION:NOTES:BEGIN -->
+claimed: 2026-07-06T02:20:03Z
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
