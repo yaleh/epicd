@@ -1,4 +1,3 @@
-import type { GateEvent } from "../../core/gate-event-store.ts";
 import type { TaskStatistics } from "../../core/statistics.ts";
 import type {
 	BacklogConfig,
@@ -545,33 +544,6 @@ export class ApiClient {
 		return this.fetchJson<
 			TaskStatistics & { statusCounts: Record<string, number>; priorityCounts: Record<string, number> }
 		>(`${API_BASE}/statistics`);
-	}
-
-	/**
-	 * Read-only GateEvent listing for the `GateInboxPage` (BACK-605.10).
-	 * Thin wrapper over `GET /api/gate-events`, which itself forwards to the
-	 * same `runGateLogQuery` used by `engine gate-log` — do not duplicate the
-	 * query/filter logic on the client.
-	 */
-	async fetchGateEvents(
-		options: {
-			pipelineId?: string;
-			gate?: string;
-			actor?: string;
-			since?: string;
-			until?: string;
-			limit?: number;
-		} = {},
-	): Promise<GateEvent[]> {
-		const params = new URLSearchParams();
-		if (options.pipelineId) params.set("pipelineId", options.pipelineId);
-		if (options.gate) params.set("gate", options.gate);
-		if (options.actor) params.set("actor", options.actor);
-		if (options.since) params.set("since", options.since);
-		if (options.until) params.set("until", options.until);
-		if (options.limit) params.set("limit", String(options.limit));
-		const query = params.toString();
-		return this.fetchJson<GateEvent[]>(`${API_BASE}/gate-events${query ? `?${query}` : ""}`);
 	}
 
 	async checkStatus(): Promise<InitializationStatus> {

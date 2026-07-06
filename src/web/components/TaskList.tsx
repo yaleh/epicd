@@ -22,6 +22,14 @@ import {
 } from "../lib/driver-indicator";
 import { buildLanes, groupTasksByLaneAndStatus, groupTasksByPhase, type LaneMode } from "../lib/lanes";
 import { getStatusBadgeClass } from "../lib/status-label";
+import {
+	canShowGateActions,
+	compareTaskIdsAscending,
+	driverPriorityRank,
+	filterVisibleTasks,
+	sortTasksByDriverPriority,
+	sortTasksByIdDescending,
+} from "../lib/task-list-sort";
 import CleanupModal from "./CleanupModal";
 import LabelFilterDropdown from "./LabelFilterDropdown";
 import { SuccessToast } from "./SuccessToast";
@@ -45,7 +53,7 @@ const PRIORITY_OPTIONS: Array<{ label: string; value: "" | SearchPriorityFilter 
 	{ label: "Low", value: "low" },
 ];
 
-type TaskSortColumn = "id" | "title" | "status" | "priority" | "milestone" | "created";
+type TaskSortColumn = "id" | "title" | "status" | "priority" | "milestone" | "created" | "driver";
 type SortDirection = "asc" | "desc";
 
 const PRIORITY_RANK: Record<string, number> = {
@@ -53,28 +61,6 @@ const PRIORITY_RANK: Record<string, number> = {
 	medium: 2,
 	low: 1,
 };
-
-function extractTaskNumericId(taskId: string): number | null {
-	const match = taskId.trim().match(/(\d+)$/);
-	if (!match?.[1]) return null;
-	return Number.parseInt(match[1], 10);
-}
-
-function compareTaskIdsAscending(a: Task, b: Task): number {
-	const idA = extractTaskNumericId(a.id);
-	const idB = extractTaskNumericId(b.id);
-
-	if (idA !== null && idB !== null) {
-		return idA - idB;
-	}
-	if (idA !== null) return -1;
-	if (idB !== null) return 1;
-	return a.id.localeCompare(b.id, undefined, { sensitivity: "base", numeric: true });
-}
-
-function sortTasksByIdDescending(list: Task[]): Task[] {
-	return [...list].sort((a, b) => compareTaskIdsAscending(b, a));
-}
 
 function getAssigneeInitials(value: string): string {
 	const cleaned = value.replace(/^@/, "").trim();
@@ -118,8 +104,19 @@ const TaskList: React.FC<TaskListProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [showCleanupModal, setShowCleanupModal] = useState(false);
 	const [cleanupSuccessMessage, setCleanupSuccessMessage] = useState<string | null>(null);
-	const [sortColumn, setSortColumn] = useState<TaskSortColumn>("id");
-	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+	// Default sort (BACK-653 AC#4): driver-indicator priority (👤 > ⚠️ > 🤖 > ⏳ > ✓).
+	// Clicking any other column header (below) switches to that column's own order;
+	// "driver" has no clickable header, so it's reachable only as the initial default.
+	const [sortColumn, setSortColumn] = useState<TaskSortColumn>("driver");
+	const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+	const doneStorageKey = "backlog.taskList.showDone";
+	// Default view (BACK-653 AC#3) hides terminal (actor=none-equivalent) tasks.
+	const [showDone, setShowDone] = useState<boolean>(() => {
+		const paramDone = searchParams.get("done");
+		if (paramDone === "1") return true;
+		if (paramDone === "0") return false;
+		return typeof window !== "undefined" && window.localStorage.getItem(doneStorageKey) === "1";
+	});
 	const laneStorageKey = "backlog.taskList.lane";
 	const parseLaneMode = (value: string | null): LaneMode | null => {
 		if (value === "milestone" || value === "pipeline" || value === "none") return value;
@@ -453,6 +450,27 @@ const TaskList: React.FC<TaskListProps> = ({
 		syncUrl(statusFilter, priorityFilter, labelFilter, value);
 	};
 
+	const handleToggleShowDone = () => {
+		setShowDone((previous) => {
+			const next = !previous;
+			if (typeof window !== "undefined") {
+				window.localStorage.setItem(doneStorageKey, next ? "1" : "0");
+			}
+			setSearchParams(
+				(params) => {
+					if (next) {
+						params.set("done", "1");
+					} else {
+						params.delete("done");
+					}
+					return params;
+				},
+				{ replace: true },
+			);
+			return next;
+		});
+	};
+
 	const handleLaneChange = (mode: LaneMode) => {
 		setLaneModeState(mode);
 		if (typeof window !== "undefined") {
@@ -668,7 +686,7 @@ const TaskList: React.FC<TaskListProps> = ({
 								{task.branch}
 							</span>
 						)}
-						{actor === "human" && (
+						{canShowGateActions(task) && (
 							<div
 								className="ml-auto flex shrink-0 items-center gap-1"
 								onClick={(event) => event.stopPropagation()}
@@ -831,14 +849,28 @@ const TaskList: React.FC<TaskListProps> = ({
 					}
 					break;
 				}
+				case "driver": {
+					result = withDirection(
+						driverPriorityRank(a, claimStates, availableStatuses) -
+							driverPriorityRank(b, claimStates, availableStatuses),
+					);
+					break;
+				}
 			}
 
 			if (result !== 0) return result;
 			return compareTaskIdsAscending(b, a);
 		});
-	}, [displayTasks, milestoneEntities, sortColumn, sortDirection]);
+	}, [displayTasks, milestoneEntities, sortColumn, sortDirection, claimStates, availableStatuses]);
 
-	const currentCount = sortedDisplayTasks.length;
+	// Default view (BACK-653 AC#3) hides terminal tasks unless "show completed" is on, or
+	// the user has explicitly filtered by the terminal status (they clearly want to see it).
+	const visibleSortedTasks = useMemo(
+		() => filterVisibleTasks(sortedDisplayTasks, availableStatuses, showDone || isFilteringTerminalStatus),
+		[sortedDisplayTasks, availableStatuses, showDone, isFilteringTerminalStatus],
+	);
+
+	const currentCount = visibleSortedTasks.length;
 
 	const archivedMilestoneIdsArray = useMemo(() => Array.from(archivedMilestoneKeys), [archivedMilestoneKeys]);
 
@@ -864,12 +896,12 @@ const TaskList: React.FC<TaskListProps> = ({
 
 	const tasksByLane = useMemo(
 		() =>
-			groupTasksByLaneAndStatus(laneMode, lanes, availableStatuses, sortedDisplayTasks, {
+			groupTasksByLaneAndStatus(laneMode, lanes, availableStatuses, visibleSortedTasks, {
 				archivedMilestoneIds: archivedMilestoneIdsArray,
 				milestoneEntities,
 				archivedMilestones,
 			}),
-		[laneMode, lanes, availableStatuses, sortedDisplayTasks, archivedMilestoneIdsArray, milestoneEntities, archivedMilestones],
+		[laneMode, lanes, availableStatuses, visibleSortedTasks, archivedMilestoneIdsArray, milestoneEntities, archivedMilestones],
 	);
 
 	const getLaneTasks = (laneKey: string): Task[] => {
@@ -1029,6 +1061,17 @@ const TaskList: React.FC<TaskListProps> = ({
 					</div>
 
 					<div className="flex items-center gap-3 flex-shrink-0">
+						<label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 whitespace-nowrap select-none">
+							<input
+								type="checkbox"
+								checked={showDone}
+								onChange={handleToggleShowDone}
+								aria-label="Show completed tasks"
+								className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+							/>
+							Show completed
+						</label>
+
 						{isFilteringTerminalStatus && currentCount > 0 && (
 								<button
 									type="button"
@@ -1096,7 +1139,7 @@ const TaskList: React.FC<TaskListProps> = ({
 						<table className="w-full min-w-[1100px] table-fixed border-collapse">
 							{renderColumnGroup()}
 							<tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-								{sortedDisplayTasks.map((task) => renderTaskRow(task))}
+								{visibleSortedTasks.map((task) => renderTaskRow(task))}
 							</tbody>
 						</table>
 					</div>
@@ -1104,9 +1147,18 @@ const TaskList: React.FC<TaskListProps> = ({
 			) : (
 				<div className="space-y-4">
 					{visibleLanes.map((lane) => {
-						const laneTasks = getLaneTasks(lane.key);
+						// BACK-653 AC#4: driver-indicator priority applies *within* each existing
+						// lane/phase grouping (BACK-644) — it never changes which lane/phase bucket
+						// a task falls into, only the order of tasks inside it.
+						const laneTasks = sortTasksByDriverPriority(getLaneTasks(lane.key), claimStates, availableStatuses);
 						const isCollapsed = collapsedLanes[lane.key] ?? false;
-						const phaseGroups = laneMode === "pipeline" ? groupTasksByPhase(laneTasks) : null;
+						const phaseGroups =
+							laneMode === "pipeline"
+								? groupTasksByPhase(laneTasks).map((group) => ({
+										...group,
+										tasks: sortTasksByDriverPriority(group.tasks, claimStates, availableStatuses),
+									}))
+								: null;
 
 						return (
 							<div
