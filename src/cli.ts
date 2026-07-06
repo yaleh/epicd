@@ -4777,14 +4777,12 @@ engineCmd
 			const isEpic =
 				task.role === "compound" || task.status === "Epic: Backlog" || (task.labels ?? []).includes("kind:epic");
 			const phase = isEpic ? "decomposing" : "ready";
+			// roleOf() derives "compound" for a pre-decompose epic (no children yet) from
+			// the kind:epic label directly (BACK-643) — no need to pre-declare role: here.
 			await store.updateTask({
 				...task,
 				pipeline_id: "execution",
 				phase,
-				// roleOf() falls back to tree-derivation when unset, but a pre-decompose
-				// epic has no children yet to derive "compound" from — must pre-declare
-				// (types/index.ts roleOf() doc comment covers exactly this case).
-				...(isEpic ? { role: "compound" as const } : {}),
 			});
 
 			console.log(`engine promote: ${id} → execution/${phase}`);

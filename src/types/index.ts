@@ -143,6 +143,8 @@ export function isLocalEditableTask(task: Task): boolean {
  * Priority:
  *  1. Stored `task.role` — explicit pre-declaration (e.g. an epic before decompose).
  *  2. Tree-derived — compound if the task has subtasks/children, primitive otherwise.
+ *  3. `kind:epic` label — the only durable pre-decompose compound signal once the
+ *     `role:` field is deleted (L3, docs/task-lifecycle-model.md §2/§4; BACK-643).
  *
  * Pass `childIds` when you have the live child list; otherwise the function falls back
  * to `task.subtasks` which is available after a normal load.
@@ -150,7 +152,8 @@ export function isLocalEditableTask(task: Task): boolean {
 export function roleOf(task: Task, childIds?: string[]): "compound" | "primitive" {
 	if (task.role) return task.role;
 	const children = childIds ?? task.subtasks;
-	return children && children.length > 0 ? "compound" : "primitive";
+	if (children && children.length > 0) return "compound";
+	return task.labels?.includes("kind:epic") ? "compound" : "primitive";
 }
 
 export interface TaskCreateInput {

@@ -188,5 +188,17 @@ describe("FieldDescriptor registry", () => {
 		it("stored role wins over tree derivation", () => {
 			expect(roleOf(baseTask({ role: "primitive", subtasks: ["task-1.1"] }))).toBe("primitive");
 		});
+
+		it("derives compound for a pre-decompose epic via kind:epic label (BACK-643)", () => {
+			expect(roleOf(baseTask({ labels: ["kind:epic"] }))).toBe("compound");
+		});
+
+		it("children still win over kind:epic label when both are present", () => {
+			expect(roleOf(baseTask({ labels: ["kind:epic"], subtasks: ["task-1.1"] }))).toBe("compound");
+		});
+
+		it("does not derive compound from unrelated labels", () => {
+			expect(roleOf(baseTask({ labels: ["kind:bug"] }))).toBe("primitive");
+		});
 	});
 });
