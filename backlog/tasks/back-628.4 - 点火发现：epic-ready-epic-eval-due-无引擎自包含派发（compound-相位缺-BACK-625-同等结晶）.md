@@ -5,18 +5,22 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:21'
-updated_date: '2026-07-05 07:27'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:feature'
   - 'epicd:bootstrap'
 dependencies: []
 parent_task_id: BACK-628
 ordinal: 47000
+pipeline_id: execution
+phase: done
+parent_id: BACK-628
 dod:
   - text: bunx tsc --noEmit
     checked: false
   - text: bun run check .
     checked: false
+role: primitive
 ---
 
 ## Description

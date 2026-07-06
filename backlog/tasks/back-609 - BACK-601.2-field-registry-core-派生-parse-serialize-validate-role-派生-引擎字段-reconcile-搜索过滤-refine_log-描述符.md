@@ -7,13 +7,14 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 11:23'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 ordinal: 20000
 pipeline_id: execution
 phase: done
 parent_id: BACK-601
+role: primitive
 ---
 
 ## Description

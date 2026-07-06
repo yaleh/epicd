@@ -7,7 +7,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 15:19'
-updated_date: '2026-07-05 18:08'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 ordinal: 69000
@@ -20,6 +20,7 @@ dod:
     checked: false
   - text: bun test --parallel
     checked: false
+role: primitive
 ---
 
 ## Description

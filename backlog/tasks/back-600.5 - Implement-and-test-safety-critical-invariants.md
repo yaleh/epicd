@@ -4,13 +4,17 @@ title: Implement and test safety-critical invariants
 status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-26 08:39'
-updated_date: '2026-07-04 04:36'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
 dependencies: []
 parent_task_id: BACK-600
 ordinal: 1000
+pipeline_id: execution
+phase: done
+parent_id: BACK-600
+role: primitive
 ---
 
 ## Description

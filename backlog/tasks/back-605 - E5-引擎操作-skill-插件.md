@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 12:39'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:epic'
   - 'epicd:E5'
@@ -13,7 +13,9 @@ dependencies:
   - BACK-602
   - BACK-603
 ordinal: 6000
+pipeline_id: execution
 phase: done
+role: compound
 ---
 
 ## Description

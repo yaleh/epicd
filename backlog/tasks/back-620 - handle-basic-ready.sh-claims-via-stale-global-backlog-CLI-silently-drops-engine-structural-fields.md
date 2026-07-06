@@ -7,17 +7,19 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:09'
-updated_date: '2026-07-05 00:27'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 32000
+pipeline_id: execution
 phase: done
 dod:
   - text: bun test src/test/handle-basic-ready-wiring.test.ts
     checked: false
   - text: bunx tsc --noEmit
     checked: false
+role: primitive
 ---
 
 ## Description

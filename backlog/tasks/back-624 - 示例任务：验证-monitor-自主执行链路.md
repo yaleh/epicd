@@ -4,7 +4,7 @@ title: 示例任务：验证 monitor 自主执行链路
 status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-05 01:15'
-updated_date: '2026-07-05 01:29'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:chore'
 dependencies: []
@@ -14,6 +14,7 @@ phase: done
 dod:
   - text: test -f docs/research/back-624-smoke-test.md
     checked: false
+role: primitive
 ---
 
 ## Description

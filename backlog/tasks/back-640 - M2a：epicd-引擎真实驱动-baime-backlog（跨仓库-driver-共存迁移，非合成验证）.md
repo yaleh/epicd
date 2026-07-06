@@ -5,12 +5,16 @@ status: 'Basic: Proposal'
 assignee:
   - '@claude'
 created_date: '2026-07-05 11:15'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:epic'
   - 'epicd:M2a'
 dependencies:
   - BACK-605.9
 ordinal: 60000
+pipeline_id: execution
+phase: proposal
+role: primitive
 ---
 
 ## Description

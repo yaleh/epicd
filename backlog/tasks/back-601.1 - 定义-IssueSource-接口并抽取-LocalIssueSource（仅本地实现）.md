@@ -5,13 +5,17 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-03 17:08'
-updated_date: '2026-07-05 08:33'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'epicd:E1'
   - 'kind:refactor'
 dependencies: []
 parent_task_id: BACK-601
 ordinal: 14000
+pipeline_id: execution
+phase: done
+parent_id: BACK-601
+role: primitive
 ---
 
 ## Description

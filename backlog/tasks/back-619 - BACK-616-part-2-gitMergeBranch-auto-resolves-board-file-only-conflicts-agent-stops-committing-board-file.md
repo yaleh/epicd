@@ -6,11 +6,12 @@ title: >-
 status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 23:23'
-updated_date: '2026-07-05 00:05'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 31000
+pipeline_id: execution
 phase: done
 dod:
   - text: >-
@@ -21,6 +22,7 @@ dod:
     checked: false
   - text: bun run check .
     checked: false
+role: primitive
 ---
 
 ## Description

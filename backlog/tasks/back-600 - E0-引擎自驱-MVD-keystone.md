@@ -4,12 +4,15 @@ title: 'E0: 引擎自驱 MVD（keystone）'
 status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-04 09:51'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:epic'
   - 'epicd:E0'
 dependencies: []
 ordinal: 1000
+pipeline_id: execution
+phase: done
+role: compound
 ---
 
 ## Description

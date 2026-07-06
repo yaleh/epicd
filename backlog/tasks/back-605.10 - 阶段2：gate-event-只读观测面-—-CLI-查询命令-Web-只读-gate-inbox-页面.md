@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@yale'
 created_date: '2026-07-05 11:15'
-updated_date: '2026-07-05 12:38'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:feature'
   - 'epicd:E5'
@@ -13,6 +13,10 @@ dependencies:
   - BACK-605.9
 parent_task_id: BACK-605
 ordinal: 59000
+pipeline_id: execution
+phase: done
+parent_id: BACK-605
+role: primitive
 ---
 
 ## Description

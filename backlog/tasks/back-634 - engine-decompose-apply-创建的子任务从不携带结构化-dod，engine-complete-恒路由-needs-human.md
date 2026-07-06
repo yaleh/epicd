@@ -5,10 +5,12 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 09:20'
-updated_date: '2026-07-05 09:39'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 ordinal: 52000
+pipeline_id: execution
+phase: done
 dod:
   - text: bunx tsc --noEmit
     checked: false
@@ -16,6 +18,7 @@ dod:
     checked: false
   - text: bun test src/test/decomposer.test.ts
     checked: false
+role: primitive
 ---
 
 ## Description

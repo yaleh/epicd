@@ -5,11 +5,15 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 03:41'
-updated_date: '2026-07-05 03:53'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 parent_task_id: BACK-626
 ordinal: 37000
+pipeline_id: execution
+phase: done
+parent_id: BACK-626
+role: primitive
 ---
 
 ## Description

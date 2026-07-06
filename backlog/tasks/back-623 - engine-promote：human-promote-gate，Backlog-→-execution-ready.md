@@ -5,17 +5,19 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 01:07'
-updated_date: '2026-07-05 01:14'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 24000
+pipeline_id: execution
 phase: done
 dod:
   - text: bun test src/test/engine-promote.test.ts
     checked: false
   - text: bunx tsc --noEmit
     checked: false
+role: primitive
 ---
 
 ## Description

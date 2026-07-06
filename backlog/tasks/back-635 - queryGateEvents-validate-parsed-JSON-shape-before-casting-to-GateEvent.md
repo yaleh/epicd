@@ -5,9 +5,12 @@ status: 'Basic: Proposal'
 assignee:
   - '@claude'
 created_date: '2026-07-05 09:54'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 ordinal: 53000
+pipeline_id: execution
+phase: proposal
 dod:
   - text: bunx tsc --noEmit
     checked: false
@@ -15,6 +18,7 @@ dod:
     checked: false
   - text: bun test src/test/gate-event-store.test.ts
     checked: false
+role: primitive
 ---
 
 ## Description

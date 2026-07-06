@@ -4,10 +4,11 @@ title: BACK-601.3 - MCP/CLI schema 由 registry 派生 + TaskCreateInput/TaskUpd
 status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 17:29'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 ordinal: 21000
+pipeline_id: execution
 phase: done
 dod:
   - text: >-
@@ -17,6 +18,7 @@ dod:
     checked: false
   - text: bunx tsc --noEmit
     checked: false
+role: primitive
 ---
 
 ## Description

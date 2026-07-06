@@ -4,13 +4,17 @@ title: Extend Task schema with engine fields and verify parse/serialize roundtri
 status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-26 08:39'
-updated_date: '2026-06-26 09:10'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:basic'
   - 'epicd:E0'
 dependencies: []
 parent_task_id: BACK-600
 ordinal: 2000
+pipeline_id: execution
+phase: done
+parent_id: BACK-600
+role: primitive
 ---
 
 ## Description

@@ -5,12 +5,16 @@ status: 'Basic: Proposal'
 assignee:
   - '@claude'
 created_date: '2026-07-06 02:42'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:bug'
   - 'area:engine'
 dependencies: []
 priority: medium
 ordinal: 74000
+pipeline_id: execution
+phase: proposal
+role: primitive
 ---
 
 ## Description

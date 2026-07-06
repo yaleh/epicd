@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-05 17:32'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:epic'
   - 'epicd:E4'
@@ -17,6 +17,7 @@ dependencies:
 ordinal: 5000
 pipeline_id: execution
 phase: done
+role: primitive
 ---
 
 ## Description

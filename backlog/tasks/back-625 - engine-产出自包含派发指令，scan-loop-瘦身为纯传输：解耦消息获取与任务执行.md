@@ -5,11 +5,14 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 02:30'
-updated_date: '2026-07-05 03:40'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:refactor'
 dependencies: []
 ordinal: 35000
+pipeline_id: execution
+phase: done
+role: primitive
 ---
 
 ## Description

@@ -7,17 +7,19 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:09'
-updated_date: '2026-07-05 00:28'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 33000
+pipeline_id: execution
 phase: done
 dod:
   - text: bun test src/test/engine-merge.test.ts src/test/engine-merge-wire.test.ts
     checked: false
   - text: bunx tsc --noEmit
     checked: false
+role: primitive
 ---
 
 ## Description

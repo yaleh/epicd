@@ -4,7 +4,7 @@ title: 分解正交性检查清单：从方法论到 decomposer 门禁与 cochan
 status: 'Epic: Done'
 assignee: []
 created_date: '2026-07-05 03:41'
-updated_date: '2026-07-05 05:27'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 references:
@@ -14,6 +14,9 @@ references:
   - backlog/tasks/back-625 - engine-产出自包含派发指令，scan-loop-瘦身为纯传输：解耦消息获取与任务执行.md
   - docs/adr/ADR-015-monitor-as-invocation-adapter.md
 ordinal: 36000
+pipeline_id: execution
+phase: done
+role: compound
 ---
 
 ## Description

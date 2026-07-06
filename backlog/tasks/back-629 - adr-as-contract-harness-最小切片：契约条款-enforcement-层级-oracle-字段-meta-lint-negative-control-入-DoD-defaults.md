@@ -7,7 +7,7 @@ status: 'Basic: Proposal'
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:07'
-updated_date: '2026-07-05 08:22'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:feature'
   - 'epicd:bootstrap'
@@ -15,6 +15,9 @@ dependencies: []
 references:
   - docs/proposals/2026-07-03-adr-as-contract-harness.md
 ordinal: 44000
+pipeline_id: execution
+phase: proposal
+role: primitive
 ---
 
 ## Description

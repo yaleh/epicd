@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 03:42'
-updated_date: '2026-07-05 05:27'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies:
   - BACK-626.1
@@ -16,6 +16,10 @@ documentation:
     Epic-skill-库本征维度度量原型（cochange-依赖图近似-Fisher-非对角结构）.md
 parent_task_id: BACK-626
 ordinal: 39000
+pipeline_id: execution
+phase: done
+parent_id: BACK-626
+role: primitive
 ---
 
 ## Description

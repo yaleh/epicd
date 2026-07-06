@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude-opus'
 created_date: '2026-07-04 10:44'
-updated_date: '2026-07-04 15:55'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies:
   - BACK-613
@@ -20,6 +20,7 @@ dod:
     checked: false
   - text: bun run check .
     checked: false
+role: primitive
 ---
 
 ## Description

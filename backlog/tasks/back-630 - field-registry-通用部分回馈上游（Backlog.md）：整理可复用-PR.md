@@ -5,12 +5,16 @@ status: 'Basic: Proposal'
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:19'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:chore'
 dependencies:
   - BACK-601
 priority: low
 ordinal: 45000
+pipeline_id: execution
+phase: proposal
+role: primitive
 ---
 
 ## Description

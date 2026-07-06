@@ -7,9 +7,13 @@ status: 'Basic: Proposal'
 assignee:
   - '@claude'
 created_date: '2026-07-05 11:21'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 ordinal: 61000
+pipeline_id: execution
+phase: proposal
+role: primitive
 ---
 
 ## Description

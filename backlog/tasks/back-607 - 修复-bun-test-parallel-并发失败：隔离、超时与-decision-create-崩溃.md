@@ -4,11 +4,14 @@ title: 修复 bun test --parallel 并发失败：隔离、超时与 decision cre
 status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-26 11:48'
-updated_date: '2026-06-26 12:26'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:basic'
 dependencies: []
 ordinal: 1000
+pipeline_id: execution
+phase: done
+role: primitive
 ---
 
 ## Description

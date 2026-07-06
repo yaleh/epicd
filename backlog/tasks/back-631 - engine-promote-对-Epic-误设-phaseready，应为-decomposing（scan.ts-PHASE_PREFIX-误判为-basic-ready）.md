@@ -7,11 +7,13 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 08:59'
-updated_date: '2026-07-05 09:04'
+updated_date: '2026-07-06 03:46'
 labels: []
 dependencies: []
 priority: high
 ordinal: 49000
+pipeline_id: execution
+phase: done
 dod:
   - text: bunx tsc --noEmit
     checked: false
@@ -19,6 +21,7 @@ dod:
     checked: false
   - text: bun test --parallel
     checked: false
+role: primitive
 ---
 
 ## Description

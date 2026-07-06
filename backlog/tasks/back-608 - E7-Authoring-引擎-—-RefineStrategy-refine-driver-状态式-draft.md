@@ -1,10 +1,10 @@
 ---
 id: BACK-608
 title: 'E7: Authoring 引擎 — RefineStrategy + refine driver + 状态式 draft'
-status: 'Epic: Proposal'
+status: 'Basic: Proposal'
 assignee: []
 created_date: '2026-07-04 01:58'
-updated_date: '2026-07-05 16:31'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:epic'
   - 'epicd:E7'
@@ -12,6 +12,9 @@ dependencies:
   - BACK-601
   - BACK-603
 ordinal: 8000
+pipeline_id: execution
+phase: proposal
+role: primitive
 ---
 
 ## Description

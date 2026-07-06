@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 08:08'
-updated_date: '2026-07-05 08:15'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:chore'
 dependencies: []
@@ -13,6 +13,7 @@ parent_task_id: BACK-628.2
 ordinal: 48000
 pipeline_id: execution
 phase: done
+parent_id: BACK-628.2
 dod:
   - text: test -f docs/research/back-628-2-smoke-test.md
     checked: false
@@ -20,6 +21,7 @@ cap:
   - phase: ready-dispatched
     done: true
     ts: '2026-07-05T08:11:38.003Z'
+role: primitive
 ---
 
 ## Description

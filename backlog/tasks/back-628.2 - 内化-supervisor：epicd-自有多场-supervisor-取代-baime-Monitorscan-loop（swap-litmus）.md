@@ -1,22 +1,26 @@
 ---
 id: BACK-628.2
 title: 内化 supervisor：epicd 自有多场 supervisor 取代 baime Monitor+scan-loop（swap-litmus）
-status: 'Basic: Done'
+status: 'Epic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 05:54'
-updated_date: '2026-07-05 08:19'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:feature'
   - 'epicd:bootstrap'
 dependencies: []
 parent_task_id: BACK-628
 ordinal: 43000
+pipeline_id: execution
+phase: done
+parent_id: BACK-628
 dod:
   - text: bunx tsc --noEmit
     checked: false
   - text: bun run check .
     checked: false
+role: compound
 ---
 
 ## Description

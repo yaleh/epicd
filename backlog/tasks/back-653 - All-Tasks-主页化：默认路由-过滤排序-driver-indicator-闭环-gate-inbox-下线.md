@@ -5,7 +5,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-06 02:02'
-updated_date: '2026-07-06 02:52'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:feature'
 dependencies: []
@@ -25,6 +25,7 @@ dod:
     checked: false
   - text: bun test --parallel
     checked: false
+role: primitive
 ---
 
 ## Description

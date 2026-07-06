@@ -6,7 +6,7 @@ title: >-
 status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 07:12'
-updated_date: '2026-07-04 07:44'
+updated_date: '2026-07-06 03:46'
 labels:
   - 'kind:basic'
   - 'kind:feature'
@@ -15,6 +15,10 @@ dependencies:
   - BACK-605.2
 parent_task_id: BACK-605
 ordinal: 1000
+pipeline_id: execution
+phase: done
+parent_id: BACK-605
+role: primitive
 ---
 
 ## Description
