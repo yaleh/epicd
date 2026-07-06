@@ -17,6 +17,12 @@ lint: |
 
 # ADR-011: Task Schema 与 Pipeline 契约
 
+> **当前生命周期真值见 [`docs/task-lifecycle-model.md`](../task-lifecycle-model.md)（canonical 参考）。**
+> 本 ADR 定下 schema 与 pipeline-as-data 契约；其中 D-1 的 `state` 字段与 D-7 的 E0 版
+> execution pipeline（`backlog→ready→in-progress→done`）已被 2026-07-04 proposal §2.3
+> 取代为"存 `phase`、删 `state`、合并 ready/in-progress、status 派生 = `label(role,phase)`"
+> 的四轴终版。canonical 文档描述已落码的模型，CLI/TUI/Web 均指向它。
+
 **Status**: Accepted（2026-06-26 human 设计 gate 通过）
 **Date**: 2026-06-26
 **Deciders**: Yale Huang

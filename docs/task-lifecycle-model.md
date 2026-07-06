@@ -1,0 +1,177 @@
+---
+title: "任务生命周期模型（canonical 参考）"
+status: Reference
+date: 2026-07-06
+supersedes-display-of:
+  - "扁平 status 词汇（Basic:/Epic: × Proposal/Plan/…）"
+crystallizes:
+  - "docs/adr/ADR-011-workitem-schema-and-pipeline-contract.md（D-1 单一递归 Task · D-2 pipeline-as-data · D-3 加法领域 · D-5 field-registry）"
+  - "docs/proposals/2026-07-04-multi-lane-issue-list.md（§2.2 三平面 · §2.3 四轴 · §6 R1/R3/R4 裁决）"
+  - "docs/proposals/2026-06-29-authoring-as-pipeline.md"
+  - "docs/uml/workitem-lifecycle-state.puml"
+implemented-in:
+  - "src/engine/pipeline.ts（三条 pipeline + PipelineState.actor）"
+  - "src/types/index.ts（Task：per-task 只存 pipeline_id + phase；roleOf 派生）"
+  - "src/core/field-registry.ts（label/displayStatus 投影；titleCasePhase）"
+  - "src/core/backlog.ts（Core.updateTask：phase→status 单向同步）"
+---
+
+# 任务生命周期模型（canonical 参考）
+
+> 这是 epicd 任务生命周期的**唯一权威参考**。它不引入新决策，只把已散落在 ADR-011 /
+> 2026-07-04 proposal / UML / 代码里的既定模型汇成一页。CLI、TUI、Web 三个界面都应
+> 指向本文档，且都只是本模型的**渲染器**，不得各自发明状态词汇。
+>
+> 与 ADR-011 的关系：ADR-011 D-1 的 schema 草案里写的是 `state` 字段与 E0 版
+> `backlog→ready→in-progress→done` execution pipeline；那是 MVD 版本，已被
+> 2026-07-04 proposal §2.3 **取代**为下面的"存 `phase`、删 `state`、合并
+> ready/in-progress、status 派生"终版。本文档描述的是**当前已落码的模型**。
+
+## 1. 一句话模型
+
+**一个递归 `Task`（Epic = 有子节点的 Task）+ 若干条各含小状态集的 pipeline（状态 =
+phase）+ 三个派生维度（role 由树位置、actor 由 `pipelineDef[phase].actor` 查表、
+active 由运行时 claim）。per-task 只持久化 `(pipeline_id, phase)` 两个结构量,其余全部
+投影/派生。**
+
+## 2. 四轴 + role：五个维度，各管一件事
+
+生命周期位置是多维的。把它们分开，是消除"一个 status 串做五件事"混乱的关键。
+
+| 维度 | 问题 | 载体 | 存 / 派生 |
+|---|---|---|---|
+| **lane（pipeline）** | 属于哪条生命周期？ | `pipeline_id` 字段 | **存** |
+| **phase** | 进度走到哪？ | pipeline 的一个 state（裸名，如 `ready`/`needs-human`/`done`）| **存**（唯一进度真值）|
+| **role** | 是否可再分解？ | 树位置：有子节点⇒`compound`（展示名 Epic），叶子⇒`primitive`（裸 Task）| 派生（`roleOf`）|
+| **actor / turn** | 按规则此刻**该谁**动？ | `pipelineDef[phase].actor ∈ {machine, human, none}` | 派生（查表）|
+| **active / claim** | 此刻**谁真的在**驱动？ | Coordinator 运行时 claim | 运行时，**永不持久** |
+
+关键设计判断（已裁决，保留）：
+
+- **actor 折进 phase，而非做成正交叉乘。** `needs-human` 不是"某 phase + turn=human"，
+  它**本身就是一个 `actor=human` 的 phase`**。这样 `turn = actor(phase)` 恒成立，且
+  非法组合（如 `done × human`、`backlog × machine`）根本无法表达。代价是"进度相近但
+  该谁动不同"的点会分裂成两个 phase（如 `evaluating`(machine) 与 `needs-human`(human)），
+  这是刻意用 phase 数量换取"无非法组合"的安全性。
+- **active 是正交运行时事实，永不折进持久状态。** "谁在实际跑"走独立只读契约
+  `Coordinator.claims()`，前端 `tasks ⟗ claims` 做 join。推论：`phase=ready ∧ 无
+  claim` = stale 孤儿。
+- **role 不看 `kind:epic` label**，只看树位置（`roleOf`：有 children ⇒ compound；
+  也允许在子节点出现前显式声明意图）。
+
+## 3. 三条 pipeline（当前已落码，`src/engine/pipeline.ts`）
+
+每个 phase 标注 actor。机器 scanner 只捡 `actor=machine ∧ 无有效 claim` 的 phase；
+`actor=human` 是人类 gate；`actor=none` 是终态/等待。
+
+```
+authoring   draft(machine) ──▶ refining(machine) ──▶ backlog(human)
+                                                          ║ engine promote（人类 gate 边界）
+                                                          ▼
+execution   ready(machine) ──▶ [decomposing(machine) ──▶ awaiting-children(none) ──▶ evaluating(machine)]  ──▶ done(none)
+              │                 └─ 仅 compound（Epic）走这段；primitive：ready ──▶ evaluating ─┘
+              └──▶ needs-human(human) ──▶ ready | done
+
+exploration spike(machine) ──▶ done(none)     // 侧track：未 authoring 的 spike；promote 时经 provenance.spawned_from 派生一个 execution task
+```
+
+- **一个 Task 生于 authoring**，在 `backlog` 处被人类 gate，`engine promote` 推入
+  execution，机器驱动至 `done`，除非撞上 `needs-human` gate。
+- `ready` 合并了旧的 `in-progress`：排队 vs 在跑靠运行时 claim 区分，不是两个 phase。
+- exploration 与 execution 靠 `provenance.spawned_from`（跨 pipeline 派生边，区别于
+  `parent_id` 的 containment）连接。
+
+## 4. status 是投影，不是真值
+
+人看到的 `"Basic: Ready"` / `"Epic: Needs Human"` 是**派生显示串**，由单向纯函数
+产出，只存在于渲染边界：
+
+```
+status = label(role, phase)
+       = `${role==="compound" ? "Epic" : "Basic"}: ${titleCasePhase(phase)}`
+```
+
+- 真值是 `(pipeline_id, phase)`；引擎读 `phase` 一个 key 查 pipeline-data 拿 actor，
+  **从不解读串里的英文字**。
+- config 的 `Basic: Ready`、旧 UI 的 `To Do/In Progress/Done` 都只是投影词汇，
+  **禁止反喂引擎逻辑**（三平面原则 R3）。
+- 兼容侧信道：`Core.updateTask` 在 phase 迁移时把派生 status 回写进 frontmatter，
+  供只读 raw `status:` 的外部消费者（如 baime reaper）使用；这是**单向**（phase→status），
+  status→phase 不同步。
+
+### 4.1 旧扁平 status 词汇与本模型的映射
+
+下列旧 status 值**不是**任何 pipeline 声明的 phase，属于被取代的扁平词汇。数据回归
+本模型时按此映射（`Proposal→draft`、`Plan→refining` 为**工作假设**，待跟进任务的
+proposal 阶段最终批准）：
+
+| 旧 status | 归宿 | 说明 |
+|---|---|---|
+| `Proposal` | authoring `draft` | **工作假设**（born in authoring）|
+| `Plan` | authoring `refining` | **工作假设** |
+| `Backlog` | authoring `backlog` | 直接对应 |
+| `Ready` / `Decomposing` / `Awaiting Children` / `Evaluating` / `Needs Human` / `Done` | execution 同名 phase | 直接对应 |
+| `Draft` / `Refining` | authoring 同名 phase | 直接对应 |
+| `In Progress`（旧 Basic 专有）| **不是 phase** → active/claim 层 | 机器持 `ready` 的活跃 claim；渲染为 🤖 |
+| `To Do`（legacy 三态）| authoring `draft` | 迁移遗留 |
+
+## 5. 三平面原则：界面是渲染器，不是词汇源
+
+| 平面 | canonical | 代码锚点 | 约束源 |
+|---|---|---|---|
+| **核心状态机** | domain state machine | `Pipeline`/`PipelineState` + Interpreter（纯数据 + 纯函数）| ADR-010/011/012 |
+| **执行 / 驱动** | monitor + scan-loop + claim + worktree/lock | 运行时协调面（`Coordinator`）| 外界：Claude Code session、spawn 成本 |
+| **人类展示** | 多车道 issue-list 等界面 | CLI / TUI / Web 渲染层 | 人的注意力 |
+
+**总原则：状态机是唯一权威词汇；另两平面从它投影，永不反向定义它。**
+
+三个界面对本模型的正确姿态（都是 §2 五维度的渲染器）：
+
+- **CLI**：`task list` 按 `pipeline → phase` 分组，每行标 actor 指示；`task create`
+  默认落 `authoring/draft`（不是旧默认 `Basic: Proposal`），并暴露 `--pipeline/--phase`
+  且校验 phase 合法性（`task edit` 已有这两个选项）。drift-lint（status 有值但
+  pipeline_id/phase 空、或 phase 不属其 pipeline）归此层。
+- **TUI / Kanban**：列 = 某 pipeline 的 phases，一条 pipeline 一条泳道，同一套 actor
+  指示。列**不得**是旧扁平 status 词汇。
+- **Web**：Pipeline 泳道视图即正确形态。status 列渲染为派生 badge，不是可独立编辑的
+  字段；驱动者指示由 `actor(phase) ⟗ claim` join 得出（👤 待你 gate / 🤖 Claude Code
+  正在跑 / ⚠️ stale 孤儿 / ⏳ 排队 / ✓ 终态）。
+
+## 6. phase → 执行 skill 映射（手动驱动参考）
+
+每个 **machine-actor** phase 都有一个「执行 skill」——一个 Claude Code 会话在该 phase
+被 invoke 它来把这个 phase 的活干出来。**手动驱动**时：看一个任务的 `(pipeline_id,
+phase)`，按下表 invoke 对应 skill；skill 做完该 phase 的工作并推进 phase；对下一个 phase
+重复。`human`/`none` phase 没有 skill（人工 gate / 终态）。
+
+一个 skill 的价值来自它**编码的方法论是否有效**，而有效性来自 methodology-bootstrapping
+实验，不来自它能过结构 lint。故每个 skill 按其 phase 背后方法论的状态用正确路径建成：
+**extract**（已收敛方法论 → knowledge-extractor 打包）/ **mechanical**（无方法论的薄 CLI
+封装）/ **experiment**（无已验证方法论 → 先跑实验收敛再提取）。详见 BACK-657。
+
+| pipeline / phase | actor | 执行 skill | 创建路径 / provenance | 承载 |
+|---|---|---|---|---|
+| execution / ready | machine | `primitive-executor`（LFDD） | **extract** ← LFDD 实验 | BACK-657 child 2 |
+| execution / decomposing | machine | `decompose` | **extract** ← ADR-018 + epic-to-backlog | BACK-657 child 3 |
+| execution / evaluating | machine | `evaluate` | **mechanical**（包 `engine evaluate`，无方法论） | BACK-657 child 3 |
+| authoring / draft | machine | `draft` | **extract/reference** ← feature-to-backlog | BACK-657 child 4（运行时接线待 E7/BACK-608） |
+| authoring / refining | machine | `refine` | **extract/reference** ← feature/epic-to-backlog | BACK-657 child 4（同上） |
+| exploration / spike | machine | `spike` | **experiment** ← 待 BACK-658 收敛后 extract | experiment-pending（BACK-658） |
+| execution / needs-human、authoring / backlog | human | 无（人工 gate） | — | — |
+| execution / done、awaiting-children、exploration / done | none | 无（终态/等待） | — | — |
+
+- **单一真值**：上表是给人看的手动驱动参考；机器侧的 `(pipeline_id, phase) → skill`
+  registry 折入 BACK-657 child 1 的 phase→skill 覆盖 manifest（同一份），后续 monitor
+  自动驱动（见 DRAFT-16）消费同一 registry 做运行时注入——人手动和机器自动查的是同一张表。
+- **里程碑边界**：到「手动用 skill 驱动执行」为止**不需要 monitor**——skills（BACK-657）
+  + 4 轴数据/CLI/web（BACK-655 + 已有）+ 本表就够。monitor（DRAFT-16）只是把手动那步自动化。
+
+## 7. 术语速查
+
+- **Task**：唯一递归实体。**Epic** = 有子节点的 Task（compound 的展示名）；primitive =
+  裸 Task。二者不是独立类型。
+- **Phase** = 执行 pipeline 的一个 state：引擎可观测、持久、可恢复的 checkpoint。
+- **Stage** = phase-handler 内部的子步：易逝、重试重跑、引擎不跟踪（口语称 "step"）。
+  已移出正式模型。
+- **actor(phase)** = 按规则该谁动（machine/human/none），查 pipeline-data 得，派生。
+- **claim / active** = 谁此刻在实际驱动，运行时事实，永不持久。
