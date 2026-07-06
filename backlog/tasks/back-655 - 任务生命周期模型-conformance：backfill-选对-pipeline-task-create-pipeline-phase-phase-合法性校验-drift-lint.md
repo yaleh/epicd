@@ -7,7 +7,7 @@ status: 'Basic: Needs Human'
 assignee:
   - '@claude'
 created_date: '2026-07-06 04:40'
-updated_date: '2026-07-06 08:59'
+updated_date: '2026-07-06 09:07'
 labels:
   - 'kind:feature'
   - 'area:engine'
