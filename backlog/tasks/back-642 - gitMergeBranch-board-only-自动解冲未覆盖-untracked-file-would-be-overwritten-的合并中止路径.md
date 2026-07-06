@@ -5,12 +5,12 @@ status: 'Basic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-05 12:46'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:bug'
 dependencies: []
 ordinal: 62000
-pipeline_id: execution
+pipeline_id: authoring
 phase: backlog
 role: primitive
 ---

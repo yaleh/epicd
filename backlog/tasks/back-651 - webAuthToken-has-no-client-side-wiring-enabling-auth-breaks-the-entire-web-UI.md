@@ -3,17 +3,17 @@ id: BACK-651
 title: >-
   webAuthToken has no client-side wiring - enabling auth breaks the entire web
   UI
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 17:22'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:bug'
 dependencies: []
 ordinal: 71000
-pipeline_id: execution
-phase: proposal
+pipeline_id: authoring
+phase: draft
 role: primitive
 ---
 

@@ -3,17 +3,17 @@ id: BACK-643
 title: >-
   roleOf() ignores kind:epic label for pre-decompose epics, causing cosmetic
   Basic:/Epic: status mislabel
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 14:56'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:bug'
 dependencies: []
 ordinal: 63000
-pipeline_id: execution
-phase: proposal
+pipeline_id: authoring
+phase: draft
 role: primitive
 ---
 

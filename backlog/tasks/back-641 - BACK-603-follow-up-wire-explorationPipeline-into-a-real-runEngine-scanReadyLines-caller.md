@@ -3,16 +3,16 @@ id: BACK-641
 title: >-
   BACK-603 follow-up: wire explorationPipeline into a real
   runEngine/scanReadyLines caller
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 11:21'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels: []
 dependencies: []
 ordinal: 61000
-pipeline_id: execution
-phase: proposal
+pipeline_id: authoring
+phase: draft
 role: primitive
 ---
 

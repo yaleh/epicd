@@ -3,11 +3,11 @@ id: BACK-657
 title: >-
   phase 执行 skill 集：为三条 pipeline 的机器 phase 各建随 epicd 发布的执行 skill（参考
   feature-to-backlog）
-status: 'Epic: Backlog'
+status: 'Basic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 06:53'
-updated_date: '2026-07-06 07:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -23,6 +23,9 @@ references:
   - BACK-641
 priority: high
 ordinal: 77000
+pipeline_id: authoring
+phase: backlog
+role: primitive
 ---
 
 ## Description

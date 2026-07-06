@@ -1,10 +1,11 @@
 ---
 id: BACK-658
 title: spike 探索方法论 methodology-bootstrapping 实验（收敛后再提取 exploration/spike skill）
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-06 07:44'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:experiment'
   - 'area:engine'
@@ -16,6 +17,9 @@ references:
   - docs/task-lifecycle-model.md
 priority: medium
 ordinal: 78000
+pipeline_id: authoring
+phase: draft
+role: primitive
 ---
 
 ## Description

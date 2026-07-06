@@ -1,18 +1,18 @@
 ---
 id: BACK-606
 title: 'E6: trust ratcheting 与自治'
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'epicd:E6'
 dependencies:
   - BACK-602
   - BACK-605
 ordinal: 7000
-pipeline_id: execution
-phase: proposal
+pipeline_id: authoring
+phase: draft
 role: primitive
 ---
 

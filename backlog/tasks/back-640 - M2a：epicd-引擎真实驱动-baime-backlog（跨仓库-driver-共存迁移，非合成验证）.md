@@ -1,19 +1,19 @@
 ---
 id: BACK-640
 title: M2a：epicd 引擎真实驱动 baime backlog（跨仓库 driver 共存迁移，非合成验证）
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 11:15'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:epic'
   - 'epicd:M2a'
 dependencies:
   - BACK-605.9
 ordinal: 60000
-pipeline_id: execution
-phase: proposal
+pipeline_id: authoring
+phase: draft
 role: primitive
 ---
 

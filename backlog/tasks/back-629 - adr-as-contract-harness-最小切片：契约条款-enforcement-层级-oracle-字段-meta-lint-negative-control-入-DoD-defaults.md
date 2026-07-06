@@ -3,11 +3,11 @@ id: BACK-629
 title: >-
   adr-as-contract-harness 最小切片：契约条款 enforcement 层级 + oracle 字段 + meta-lint +
   negative-control 入 DoD-defaults
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:07'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:feature'
   - 'epicd:bootstrap'
@@ -15,8 +15,8 @@ dependencies: []
 references:
   - docs/proposals/2026-07-03-adr-as-contract-harness.md
 ordinal: 44000
-pipeline_id: execution
-phase: proposal
+pipeline_id: authoring
+phase: draft
 role: primitive
 ---
 

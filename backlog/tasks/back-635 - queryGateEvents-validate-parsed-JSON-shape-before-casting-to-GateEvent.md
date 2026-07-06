@@ -1,16 +1,16 @@
 ---
 id: BACK-635
 title: 'queryGateEvents: validate parsed JSON shape before casting to GateEvent'
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 09:54'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels: []
 dependencies: []
 ordinal: 53000
-pipeline_id: execution
-phase: proposal
+pipeline_id: authoring
+phase: draft
 dod:
   - text: bunx tsc --noEmit
     checked: false

@@ -1,19 +1,19 @@
 ---
 id: BACK-630
 title: field-registry 通用部分回馈上游（Backlog.md）：整理可复用 PR
-status: 'Basic: Proposal'
+status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:19'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:chore'
 dependencies:
   - BACK-601
 priority: low
 ordinal: 45000
-pipeline_id: execution
-phase: proposal
+pipeline_id: authoring
+phase: draft
 role: primitive
 ---
 

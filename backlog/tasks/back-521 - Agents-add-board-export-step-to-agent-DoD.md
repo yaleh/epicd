@@ -1,15 +1,15 @@
 ---
 id: BACK-521
 title: 'Agents: add board export step to agent DoD'
-status: 'Basic: To Do'
+status: 'Basic: Draft'
 assignee: []
 created_date: '2025-06-09'
-updated_date: '2026-07-06 03:46'
+updated_date: '2026-07-06 09:16'
 labels:
   - agents
 dependencies: []
-pipeline_id: execution
-phase: to-do
+pipeline_id: authoring
+phase: draft
 role: primitive
 ---
 
