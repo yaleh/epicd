@@ -3,15 +3,17 @@ id: BACK-643
 title: >-
   roleOf() ignores kind:epic label for pre-decompose epics, causing cosmetic
   Basic:/Epic: status mislabel
-status: 'Basic: Draft'
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-05 14:56'
-updated_date: '2026-07-06 11:16'
+updated_date: '2026-07-06 14:00'
 labels:
   - 'kind:bug'
 dependencies: []
 ordinal: 63000
+pipeline_id: execution
+phase: done
 parent_id: BACK-665
 ---
 
@@ -32,4 +34,6 @@ parent_id: BACK-665
 
 <!-- SECTION:NOTES:BEGIN -->
 L3 承重升级（BACK-664）：docs/task-lifecycle-model.md §2/§4 已定 L3——删除 role: 持久字段后，pre-decompose epic（尚无 children）声明 compound 的唯一 durable 途径就是 kind:epic label。故本任务从「cosmetic 前缀修正」升为 L3 承重前置：roleOf 必须认 kind:epic，否则 BACK-664 child 2（删 role 字段）落地后未分解 epic 会派生错。修复应让 roleOf(task) 在无 children、无 role 字段时读 labels 含 kind:epic ⇒ compound。BACK-664 child 2 依赖本任务先行。
+
+Fixed: roleOf() (src/types/index.ts) now falls back to kind:epic label when no children/stored role. Removed redundant role:compound pre-declare workaround in engine promote (cli.ts). Added field-registry.test.ts coverage; updated engine-promote.test.ts to assert via roleOf() instead of the stored role field. Merged to main. Full suite green (1 known pre-existing flake), bun run check . clean, tsc clean.
 <!-- SECTION:NOTES:END -->
