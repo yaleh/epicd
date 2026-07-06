@@ -7,11 +7,12 @@ status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 14:56'
-updated_date: '2026-07-06 10:35'
+updated_date: '2026-07-06 11:16'
 labels:
   - 'kind:bug'
 dependencies: []
 ordinal: 63000
+parent_id: BACK-665
 ---
 
 ## Description

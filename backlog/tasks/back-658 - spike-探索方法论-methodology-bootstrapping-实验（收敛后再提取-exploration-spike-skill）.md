@@ -5,7 +5,7 @@ status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-06 07:44'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-06 11:16'
 labels:
   - 'kind:experiment'
   - 'area:engine'
@@ -19,6 +19,7 @@ priority: medium
 ordinal: 78000
 pipeline_id: authoring
 phase: draft
+parent_id: BACK-665
 role: primitive
 ---
 

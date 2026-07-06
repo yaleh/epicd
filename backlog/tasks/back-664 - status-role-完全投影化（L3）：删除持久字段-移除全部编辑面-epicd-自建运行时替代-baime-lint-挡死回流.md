@@ -5,7 +5,7 @@ status: 'Epic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:52'
-updated_date: '2026-07-06 10:36'
+updated_date: '2026-07-06 11:16'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -20,6 +20,7 @@ references:
   - BACK-660
 priority: high
 ordinal: 82000
+parent_id: BACK-665
 ---
 
 ## Description

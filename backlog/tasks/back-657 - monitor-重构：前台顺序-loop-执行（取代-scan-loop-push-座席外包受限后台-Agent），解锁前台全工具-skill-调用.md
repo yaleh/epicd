@@ -7,7 +7,7 @@ status: 'Basic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 06:53'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-06 11:16'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -25,6 +25,7 @@ priority: high
 ordinal: 77000
 pipeline_id: authoring
 phase: backlog
+parent_id: BACK-665
 role: primitive
 ---
 
