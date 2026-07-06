@@ -4677,7 +4677,7 @@ engineCmd
 engineCmd
 	.command("evaluate <taskId>")
 	.description(
-		"evaluate an epic in the evaluating phase: aggregates its children's terminal phases into the epic's own terminal phase (any child needs-human → epic needs-human; all done → epic done). Companion to the epic-eval-due dispatch payload (BACK-628.4).",
+		"evaluate an epic in the evaluating phase: runs the epic's own Integration Acceptance shell commands first (ADR-019), then aggregates children's terminal phases into the epic's own terminal phase — any IA command failure or any child needs-human → epic needs-human; IA all green AND all children done → epic done. Companion to the epic-eval-due dispatch payload (BACK-628.4).",
 	)
 	.action(async (taskId: string) => {
 		try {
