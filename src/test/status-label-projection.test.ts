@@ -80,11 +80,11 @@ describe("displayStatus(task, statuses) — the single display read", () => {
 		expect(displayStatus(task, STATUSES)).toBe("Needs Human");
 	});
 
-	it("is unaffected by compound-ness (children present or role stored)", () => {
+	it("is unaffected by compound-ness (children present or kind:epic label)", () => {
 		const withChildren = baseTask({ status: "Backlog", phase: "ready", subtasks: ["task-1.1"] });
-		const withRole = baseTask({ phase: "ready", role: "compound" });
+		const withEpicLabel = baseTask({ phase: "ready", labels: ["kind:epic"] });
 		expect(displayStatus(withChildren, STATUSES)).toBe("Ready");
-		expect(displayStatus(withRole, STATUSES)).toBe("Ready");
+		expect(displayStatus(withEpicLabel, STATUSES)).toBe("Ready");
 	});
 
 	it("falls back to the persisted status string when no engine phase is present", () => {

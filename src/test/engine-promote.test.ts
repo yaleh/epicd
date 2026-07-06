@@ -8,9 +8,10 @@
  * Asserts:
  *   1. Promoting a "Basic: Backlog" task sets pipeline_id: execution,
  *      phase: ready, status: "Basic: Ready".
- *   2. Promoting an "Epic: Backlog" task sets phase: decomposing, role: compound,
- *      status: "Epic: Decomposing" (BACK-631 — must NOT be phase: ready, which
- *      scan.ts's PHASE_PREFIX would misroute as basic-ready instead of epic-ready).
+ *   2. Promoting an "Epic: Backlog" task sets phase: decomposing (role derives to
+ *      "compound" via roleOf()), status: "Epic: Decomposing" (BACK-631 — must NOT
+ *      be phase: ready, which scan.ts's PHASE_PREFIX would misroute as
+ *      basic-ready instead of epic-ready).
  *   3. Promoting a task NOT at a Backlog status is rejected (non-zero exit,
  *      task unchanged).
  *   4. A promoted Basic task is reported by `engine scan --once` as `basic-ready:<id>`.
@@ -98,18 +99,16 @@ describe("engine promote CLI", () => {
 		expect(updated?.status).toBe("Decomposing");
 	});
 
-	it("promotes an Epic: Backlog task even with no pre-declared role or children (role derives from kind:epic label, BACK-643)", async () => {
-		// No `role` field written by promote anymore — roleOf() derives "compound"
-		// directly from the kind:epic label for a pre-decompose epic (BACK-643),
-		// so promote no longer needs to pre-declare `role: compound` (BACK-631).
-		const task = await createTaskWithStatus(core, "Epic with no role/children", "Epic: Backlog", ["kind:epic"]);
-		expect(task.role).toBeUndefined();
+	it("promotes an Epic: Backlog task even with no children (role derives from kind:epic label, BACK-643)", async () => {
+		// There is no `role` field to write or pre-declare anymore (BACK-664.2) —
+		// roleOf() derives "compound" directly from the kind:epic label for a
+		// pre-decompose epic (BACK-643), so promote never needs a stored role (BACK-631).
+		const task = await createTaskWithStatus(core, "Epic with no children", "Epic: Backlog", ["kind:epic"]);
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
 		expect(result.exitCode).toBe(0);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.role).toBeUndefined();
 		expect(updated && roleOf(updated)).toBe("compound");
 		expect(updated?.phase).toBe("decomposing");
 	});

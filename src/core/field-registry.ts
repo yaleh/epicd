@@ -330,18 +330,6 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		serialize: (v) => v,
 		present: (task) => Boolean(task.cap && task.cap.length > 0),
 	} as FieldDescriptor<CapMarker[] | undefined>,
-	{
-		yamlKey: "role",
-		tsName: "role",
-		type: "enum",
-		// role derivation (leaf ⇒ primitive, has-children ⇒ compound) lives in
-		// roleOf(); the *stored* field only carries an explicit pre-declaration.
-		parse: (fm) =>
-			fm.role === "compound" || fm.role === "primitive" ? (fm.role as "compound" | "primitive") : undefined,
-		serialize: (v) => v,
-		present: (task) => Boolean(task.role),
-		validate: (v) => v === undefined || v === "compound" || v === "primitive",
-	} as FieldDescriptor<"compound" | "primitive" | undefined>,
 	// Net-new field (BACK-601 A): round-trips like the others; absent by default.
 	{
 		yamlKey: "refine_log",

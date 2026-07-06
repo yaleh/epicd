@@ -17,7 +17,6 @@ ordinal: 1000
 pipeline_id: execution
 phase: done
 parent_id: BACK-605
-role: primitive
 ---
 
 ## Description

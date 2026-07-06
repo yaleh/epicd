@@ -20,7 +20,6 @@ ordinal: 78000
 pipeline_id: authoring
 phase: draft
 parent_id: BACK-665
-role: primitive
 ---
 
 ## Description

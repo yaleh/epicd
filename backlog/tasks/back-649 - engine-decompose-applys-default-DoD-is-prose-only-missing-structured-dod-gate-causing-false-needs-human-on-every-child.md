@@ -20,7 +20,6 @@ dod:
     checked: false
   - text: bun test --parallel
     checked: false
-role: primitive
 ---
 
 ## Description

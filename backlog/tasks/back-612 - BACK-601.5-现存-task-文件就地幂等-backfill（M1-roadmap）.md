@@ -18,7 +18,6 @@ dod:
     checked: false
   - text: bun run check .
     checked: false
-role: primitive
 ---
 
 ## Description

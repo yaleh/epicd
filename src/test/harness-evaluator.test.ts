@@ -80,7 +80,7 @@ describe("evaluateEpic", () => {
 	});
 
 	it("sets the epic to done when all children are done", async () => {
-		const epic = await createTask(core, "Epic", { phase: "evaluating", role: "compound" });
+		const epic = await createTask(core, "Epic", { phase: "evaluating" });
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
 		await createTask(core, "Child 2", { phase: "done", parent_id: epic.id });
 
@@ -92,7 +92,7 @@ describe("evaluateEpic", () => {
 	});
 
 	it("sets the epic to needs-human when any child is needs-human", async () => {
-		const epic = await createTask(core, "Epic", { phase: "evaluating", role: "compound" });
+		const epic = await createTask(core, "Epic", { phase: "evaluating" });
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
 		await createTask(core, "Child 2", { phase: "needs-human", parent_id: epic.id });
 

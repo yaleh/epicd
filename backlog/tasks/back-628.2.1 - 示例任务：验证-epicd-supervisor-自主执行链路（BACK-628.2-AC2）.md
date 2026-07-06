@@ -21,7 +21,6 @@ cap:
   - phase: ready-dispatched
     done: true
     ts: '2026-07-05T08:11:38.003Z'
-role: primitive
 ---
 
 ## Description

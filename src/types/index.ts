@@ -98,14 +98,6 @@ export interface Task {
 	dod?: DoDItem[];
 	cap?: CapMarker[];
 	/**
-	 * Optional pre-declared role (ADR-011 D-1.1).
-	 * Normally derived from the tree (has children → compound, leaf → primitive).
-	 * Stored only when the intent must be declared before children exist (e.g. an epic
-	 * that has not yet been decomposed). Consumers should prefer roleOf() which respects
-	 * both the stored value and the derived value.
-	 */
-	role?: "compound" | "primitive";
-	/**
 	 * Append-only log of authoring/refine steps (BACK-601 A). Net-new engine
 	 * field; absent by default and only written when non-empty.
 	 */
@@ -141,16 +133,14 @@ export function isLocalEditableTask(task: Task): boolean {
  * Resolve the effective role of a task (ADR-011 D-1.1).
  *
  * Priority:
- *  1. Stored `task.role` — explicit pre-declaration (e.g. an epic before decompose).
- *  2. Tree-derived — compound if the task has subtasks/children, primitive otherwise.
- *  3. `kind:epic` label — the only durable pre-decompose compound signal once the
- *     `role:` field is deleted (L3, docs/task-lifecycle-model.md §2/§4; BACK-643).
+ *  1. Tree-derived — compound if the task has subtasks/children, primitive otherwise.
+ *  2. `kind:epic` label — the only durable pre-decompose compound signal now that the
+ *     `role:` field is deleted (L3, docs/task-lifecycle-model.md §2/§4; BACK-643, BACK-664.2).
  *
  * Pass `childIds` when you have the live child list; otherwise the function falls back
  * to `task.subtasks` which is available after a normal load.
  */
 export function roleOf(task: Task, childIds?: string[]): "compound" | "primitive" {
-	if (task.role) return task.role;
 	const children = childIds ?? task.subtasks;
 	if (children && children.length > 0) return "compound";
 	return task.labels?.includes("kind:epic") ? "compound" : "primitive";

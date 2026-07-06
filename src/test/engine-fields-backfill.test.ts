@@ -1,6 +1,7 @@
 /**
  * BACK-612 (BACK-601.5) — in-place idempotent backfill of engine structural
- * fields (pipeline_id/phase/parent_id/role) on existing task files.
+ * fields (pipeline_id/phase/parent_id) on existing task files. `role` is
+ * 100% derived via `roleOf()` (BACK-664.2) and is never backfilled/persisted.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
@@ -89,72 +90,58 @@ describe("resolvePipelinePhase", () => {
 describe("computeBackfillFields", () => {
 	it("selects authoring/draft for a legacy Proposal task instead of execution", () => {
 		const task = baseTask({ status: "Basic: Proposal" });
-		const patch = computeBackfillFields(task, new Map());
+		const patch = computeBackfillFields(task);
 		expect(patch.pipeline_id).toBe("authoring");
 		expect(patch.phase).toBe("draft");
 	});
 
 	it("repositions a historically mis-tagged task (execution + illegal phase 'proposal') to authoring/draft", () => {
 		const task = baseTask({ pipeline_id: "execution", phase: "proposal", status: "Basic: Proposal" });
-		const patch = computeBackfillFields(task, new Map());
+		const patch = computeBackfillFields(task);
 		expect(patch.pipeline_id).toBe("authoring");
 		expect(patch.phase).toBe("draft");
 	});
 
 	it("leaves a legal (pipeline_id, phase) combo untouched", () => {
 		const task = baseTask({ pipeline_id: "execution", phase: "ready", status: "Basic: Proposal" });
-		const patch = computeBackfillFields(task, new Map());
+		const patch = computeBackfillFields(task);
 		expect(patch.pipeline_id).toBeUndefined();
 		expect(patch.phase).toBeUndefined();
 	});
 
 	it("derives phase from status when missing", () => {
 		const task = baseTask({ status: "Basic: In Progress" });
-		const patch = computeBackfillFields(task, new Map());
+		const patch = computeBackfillFields(task);
 		expect(patch.pipeline_id).toBe("execution");
 		expect(patch.phase).toBe("ready");
 	});
 
 	it("derives parent_id from legacy parentTaskId when parent_id is blank", () => {
 		const task = baseTask({ parentTaskId: "back-600" });
-		const patch = computeBackfillFields(task, new Map());
+		const patch = computeBackfillFields(task);
 		expect(patch.parent_id).toBe("back-600");
-	});
-
-	it("derives role from tree position (compound when task has children)", () => {
-		const parent = baseTask({ id: "back-600" });
-		const childIdsByParent = new Map<string, string[]>([["back-600", ["back-601"]]]);
-		const patch = computeBackfillFields(parent, childIdsByParent);
-		expect(patch.role).toBe("compound");
-	});
-
-	it("derives role: primitive for a leaf task with no children", () => {
-		const task = baseTask();
-		const patch = computeBackfillFields(task, new Map());
-		expect(patch.role).toBe("primitive");
 	});
 
 	it("repositions a legal-but-terminally-divergent task (execution/needs-human + status Done) to execution/done", () => {
 		const task = baseTask({ pipeline_id: "execution", phase: "needs-human", status: "Basic: Done" });
-		const patch = computeBackfillFields(task, new Map());
+		const patch = computeBackfillFields(task);
 		expect(patch.phase).toBe("done");
 		expect(patch.pipeline_id).toBe("execution");
 	});
 
-	it("returns no changes (empty object) when all four fields are already present", () => {
+	it("returns no changes (empty object) when all structural fields are already present", () => {
 		const task = baseTask({
 			pipeline_id: "execution",
 			phase: "ready",
 			parent_id: "back-600",
-			role: "primitive",
 		});
-		const patch = computeBackfillFields(task, new Map());
+		const patch = computeBackfillFields(task);
 		expect(patch).toEqual({});
 	});
 
 	it("never touches dod or cap", () => {
 		const task = baseTask();
-		const patch = computeBackfillFields(task, new Map());
+		const patch = computeBackfillFields(task);
 		expect(patch).not.toHaveProperty("dod");
 		expect(patch).not.toHaveProperty("cap");
 	});
@@ -190,12 +177,10 @@ describe("runBackfill", () => {
 
 		expect(reloadedParent?.pipeline_id).toBe("authoring");
 		expect(reloadedParent?.phase).toBe("draft");
-		expect(reloadedParent?.role).toBe("compound");
 
 		expect(reloadedChild?.pipeline_id).toBe("authoring");
 		expect(reloadedChild?.phase).toBe("draft");
 		expect(reloadedChild?.parent_id).toBe(parent.id);
-		expect(reloadedChild?.role).toBe("primitive");
 	});
 
 	it("does not move or rename any files", async () => {
@@ -238,7 +223,6 @@ describe("runBackfill", () => {
 		const reloadedB = await core.getTask(b.id);
 
 		expect(reloadedA?.pipeline_id).toBe("authoring");
-		expect(reloadedA?.role).toBe("primitive");
 		expect(reloadedB?.pipeline_id).toBe("execution");
 		expect(reloadedB?.phase).toBe("ready");
 	});

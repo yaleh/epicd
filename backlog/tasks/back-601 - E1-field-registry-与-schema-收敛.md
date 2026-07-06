@@ -13,7 +13,6 @@ dependencies:
 ordinal: 2000
 pipeline_id: execution
 phase: done
-role: compound
 ---
 
 ## Description

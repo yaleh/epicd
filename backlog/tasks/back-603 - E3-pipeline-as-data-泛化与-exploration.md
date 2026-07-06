@@ -14,7 +14,6 @@ dependencies:
 ordinal: 4000
 pipeline_id: execution
 phase: done
-role: compound
 ---
 
 ## Description

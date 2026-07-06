@@ -10,7 +10,6 @@ labels:
 dependencies: []
 pipeline_id: authoring
 phase: draft
-role: primitive
 ---
 
 ## Description

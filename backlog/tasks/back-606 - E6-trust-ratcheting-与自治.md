@@ -13,7 +13,6 @@ dependencies:
 ordinal: 7000
 pipeline_id: authoring
 phase: draft
-role: primitive
 ---
 
 ## Description

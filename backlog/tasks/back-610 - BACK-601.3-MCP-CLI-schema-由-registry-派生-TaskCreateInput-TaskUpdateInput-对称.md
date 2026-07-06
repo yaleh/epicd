@@ -18,7 +18,6 @@ dod:
     checked: false
   - text: bunx tsc --noEmit
     checked: false
-role: primitive
 ---
 
 ## Description

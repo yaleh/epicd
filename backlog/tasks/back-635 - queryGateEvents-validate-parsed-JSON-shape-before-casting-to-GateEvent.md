@@ -18,7 +18,6 @@ dod:
     checked: false
   - text: bun test src/test/gate-event-store.test.ts
     checked: false
-role: primitive
 ---
 
 ## Description

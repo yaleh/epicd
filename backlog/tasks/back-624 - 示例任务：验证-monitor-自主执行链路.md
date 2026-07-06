@@ -14,7 +14,6 @@ phase: done
 dod:
   - text: test -f docs/research/back-624-smoke-test.md
     checked: false
-role: primitive
 ---
 
 ## Description

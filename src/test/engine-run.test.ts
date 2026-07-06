@@ -121,7 +121,7 @@ describe("runEngine – fixpoint loop", () => {
 	it("E2E: compound epic decomposes, then engine drives the created children to done", async () => {
 		// A compound epic enrolled in the execution pipeline (this is the E1 shape).
 		const { task } = await core.createTaskFromInput({ title: "E2E epic", status: "To Do" }, false);
-		const epic = { ...task, role: "compound" as const, pipeline_id: "execution", phase: "ready" };
+		const epic = { ...task, labels: [...(task.labels ?? []), "kind:epic"], pipeline_id: "execution", phase: "ready" };
 		await core.updateTask(epic, false);
 
 		// Worker proposes two children; the engine creates them and drives them.

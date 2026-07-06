@@ -108,91 +108,7 @@ Test task with engine fields.
 		expect(serialized).not.toContain("role:");
 	});
 
-	it("parses role: compound from frontmatter", () => {
-		const markdown = `---
-id: task-epic
-title: Epic Task
-status: Backlog
-assignee: []
-created_date: 2026-07-04
-labels: []
-dependencies: []
-role: compound
----
-
-## Description
-
-An epic task pre-declared as compound before decompose.
-`;
-		const task = parseTask(markdown);
-		expect(task.role).toBe("compound");
-	});
-
-	it("parses role: primitive from frontmatter", () => {
-		const markdown = `---
-id: task-leaf
-title: Leaf Task
-status: Backlog
-assignee: []
-created_date: 2026-07-04
-labels: []
-dependencies: []
-role: primitive
----
-
-## Description
-
-A leaf task pre-declared as primitive.
-`;
-		const task = parseTask(markdown);
-		expect(task.role).toBe("primitive");
-	});
-
-	it("ignores unknown role values", () => {
-		const markdown = `---
-id: task-bad
-title: Bad Role Task
-status: Backlog
-assignee: []
-created_date: 2026-07-04
-labels: []
-dependencies: []
-role: epic
----
-
-## Description
-
-Task with an unrecognised role value.
-`;
-		const task = parseTask(markdown);
-		expect(task.role).toBeUndefined();
-	});
-
-	it("roundtrips role field (serialize then re-parse)", () => {
-		const markdown = `---
-id: task-epic
-title: Epic Task
-status: Backlog
-assignee: []
-created_date: 2026-07-04
-labels: []
-dependencies: []
-role: compound
----
-
-## Description
-
-An epic task pre-declared as compound before decompose.
-`;
-		const original = parseTask(markdown);
-		const serialized = serializeTask(original);
-		const reparsed = parseTask(serialized);
-
-		expect(reparsed.role).toBe("compound");
-		expect(serialized).toContain("role: compound");
-	});
-
-	it("does not write role key when role is absent", () => {
+	it("silently ignores a legacy role: key on parse and never re-serializes it (BACK-664.2 — 100% derived)", () => {
 		const markdown = `---
 id: task-plain
 title: Plain Task
@@ -201,49 +117,22 @@ assignee: []
 created_date: 2026-07-04
 labels: []
 dependencies: []
+role: compound
 ---
 
 ## Description
 
-A plain task with no role.
+A task with a legacy pre-BACK-664.2 pre-declared-role frontmatter key.
 `;
 		const task = parseTask(markdown);
+		expect((task as unknown as Record<string, unknown>).role).toBeUndefined();
+
 		const serialized = serializeTask(task);
 		expect(serialized).not.toContain("role:");
 	});
 
 	describe("roleOf", () => {
-		it("returns stored role when present (compound)", () => {
-			const task = parseTask(`---
-id: t1
-title: T
-status: Backlog
-assignee: []
-created_date: 2026-07-04
-labels: []
-dependencies: []
-role: compound
----
-`);
-			expect(roleOf(task)).toBe("compound");
-		});
-
-		it("returns stored role when present (primitive)", () => {
-			const task = parseTask(`---
-id: t1
-title: T
-status: Backlog
-assignee: []
-created_date: 2026-07-04
-labels: []
-dependencies: []
-role: primitive
----
-`);
-			expect(roleOf(task)).toBe("primitive");
-		});
-
-		it("derives compound from subtasks when no stored role", () => {
+		it("derives compound from subtasks", () => {
 			const task = parseTask(`---
 id: t1
 title: T
@@ -286,24 +175,6 @@ dependencies: []
 ---
 `);
 			expect(roleOf(task, ["t1.1"])).toBe("compound");
-		});
-
-		it("stored role takes priority over derived compound", () => {
-			const task = parseTask(`---
-id: t1
-title: T
-status: Backlog
-assignee: []
-created_date: 2026-07-04
-labels: []
-dependencies: []
-subtasks:
-  - t1.1
-role: primitive
----
-`);
-			// Explicit stored role wins even if tree says compound
-			expect(roleOf(task)).toBe("primitive");
 		});
 	});
 

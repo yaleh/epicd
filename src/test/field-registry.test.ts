@@ -50,7 +50,6 @@ const SAMPLES: Record<string, Partial<Task>> = {
 	provenance: { provenance: { spawned_from: "task-9" } },
 	dod: { dod: [{ text: "tests pass", checked: false }] },
 	cap: { cap: [{ kind: "safety", value: "L2" }] },
-	role: { role: "compound" },
 	refine_log: { refine_log: ["drafted", "reviewed"] },
 };
 
@@ -82,7 +81,6 @@ describe("FieldDescriptor registry", () => {
 			"provenance",
 			"dod",
 			"cap",
-			"role",
 			"refine_log",
 		]);
 	});
@@ -124,7 +122,6 @@ describe("FieldDescriptor registry", () => {
 		expect(Object.hasOwn(frontmatter, "provenance")).toBe(false);
 		expect(Object.hasOwn(frontmatter, "dod")).toBe(false);
 		expect(Object.hasOwn(frontmatter, "cap")).toBe(false);
-		expect(Object.hasOwn(frontmatter, "role")).toBe(false);
 		expect(Object.hasOwn(frontmatter, "refine_log")).toBe(false);
 
 		const serialized = serializeTask(task);
@@ -145,7 +142,7 @@ describe("FieldDescriptor registry", () => {
 	});
 
 	describe("mcpSchema exposure (ADR-011 D-5)", () => {
-		const invisibleFields = ["id", "created_date", "updated_date", "subtasks", "role", "cap", "refine_log", "reporter"];
+		const invisibleFields = ["id", "created_date", "updated_date", "subtasks", "cap", "refine_log", "reporter"];
 
 		it.each(invisibleFields)("%s has mcpSchema === undefined (MCP-invisible)", (yamlKey) => {
 			const descriptor = FIELD_DESCRIPTORS.find((d) => d.yamlKey === yamlKey);
@@ -176,17 +173,13 @@ describe("FieldDescriptor registry", () => {
 	});
 
 	describe("roleOf derivation (leaf vs compound)", () => {
-		it("derives primitive for a leaf (no children, no stored role)", () => {
+		it("derives primitive for a leaf (no children)", () => {
 			expect(roleOf(baseTask())).toBe("primitive");
 		});
 
 		it("derives compound when the task has children", () => {
 			expect(roleOf(baseTask({ subtasks: ["task-1.1"] }))).toBe("compound");
 			expect(roleOf(baseTask(), ["task-1.1"])).toBe("compound");
-		});
-
-		it("stored role wins over tree derivation", () => {
-			expect(roleOf(baseTask({ role: "primitive", subtasks: ["task-1.1"] }))).toBe("primitive");
 		});
 
 		it("derives compound for a pre-decompose epic via kind:epic label (BACK-643)", () => {

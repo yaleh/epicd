@@ -14,7 +14,6 @@ dependencies: []
 ordinal: 27000
 pipeline_id: execution
 phase: done
-role: primitive
 ---
 
 ## Description

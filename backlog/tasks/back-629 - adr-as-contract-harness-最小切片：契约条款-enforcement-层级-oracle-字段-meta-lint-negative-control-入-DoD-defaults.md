@@ -17,7 +17,6 @@ references:
 ordinal: 44000
 pipeline_id: authoring
 phase: draft
-role: primitive
 ---
 
 ## Description

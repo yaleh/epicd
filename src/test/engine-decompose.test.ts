@@ -33,7 +33,12 @@ const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 /** Create a compound epic on the real board, enrolled in the execution pipeline. */
 async function createEpic(core: Core, title: string): Promise<Task> {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do" }, false);
-	const epic: Task = { ...task, role: "compound", pipeline_id: "execution", phase: "decomposing" };
+	const epic: Task = {
+		...task,
+		labels: [...(task.labels ?? []), "kind:epic"],
+		pipeline_id: "execution",
+		phase: "decomposing",
+	};
 	await core.updateTask(epic, false);
 	return epic;
 }

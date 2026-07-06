@@ -1,14 +1,15 @@
 /**
  * BACK-601.5: in-place, idempotent backfill of engine structural fields
- * (pipeline_id/phase/parent_id/role) on existing task files.
+ * (pipeline_id/phase/parent_id) on existing task files.
  *
  * Only structural defaults are derived here (registry defaults + tree
- * position, per ADR-011 D-1.1 roleOf()); `dod`/`cap` are declarative content
- * and are never populated by this routine.
+ * position); `role` is 100% derived via `roleOf()` (BACK-664.2) and never
+ * persisted; `dod`/`cap` are declarative content and are never populated by
+ * this routine.
  */
 
 import { isLegalPhase, pipelineById } from "../engine/pipeline.ts";
-import { roleOf, type Task } from "../types/index.ts";
+import type { Task } from "../types/index.ts";
 import type { Core } from "./backlog.ts";
 
 /**
@@ -86,11 +87,8 @@ function isStatusTerminal(status: string): boolean {
  * `phase` agrees with `status`, the patch is empty — keeping a second run
  * byte-for-byte idempotent.
  */
-export function computeBackfillFields(
-	task: Task,
-	childIdsByParent: Map<string, string[]>,
-): Partial<Pick<Task, "pipeline_id" | "phase" | "parent_id" | "role">> {
-	const patch: Partial<Pick<Task, "pipeline_id" | "phase" | "parent_id" | "role">> = {};
+export function computeBackfillFields(task: Task): Partial<Pick<Task, "pipeline_id" | "phase" | "parent_id">> {
+	const patch: Partial<Pick<Task, "pipeline_id" | "phase" | "parent_id">> = {};
 
 	const legal = Boolean(task.pipeline_id && task.phase && isLegalPhase(task.pipeline_id, task.phase));
 	const resolved = resolvePipelinePhase(task.status);
@@ -106,9 +104,6 @@ export function computeBackfillFields(
 	if (!task.parent_id && task.parentTaskId) {
 		patch.parent_id = task.parentTaskId;
 	}
-	if (!task.role) {
-		patch.role = roleOf(task, childIdsByParent.get(task.id) ?? task.subtasks);
-	}
 
 	return patch;
 }
@@ -122,18 +117,10 @@ export function computeBackfillFields(
 export async function runBackfill(core: Core): Promise<{ updated: string[] }> {
 	const tasks = await core.queryTasks({});
 
-	const childIdsByParent = new Map<string, string[]>();
-	for (const task of tasks) {
-		if (!task.parentTaskId) continue;
-		const siblings = childIdsByParent.get(task.parentTaskId) ?? [];
-		siblings.push(task.id);
-		childIdsByParent.set(task.parentTaskId, siblings);
-	}
-
 	const changed: Task[] = [];
 	const updated: string[] = [];
 	for (const task of tasks) {
-		const patch = computeBackfillFields(task, childIdsByParent);
+		const patch = computeBackfillFields(task);
 		if (Object.keys(patch).length === 0) continue;
 		changed.push({ ...task, ...patch });
 		updated.push(task.id);

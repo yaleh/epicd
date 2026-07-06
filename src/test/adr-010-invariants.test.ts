@@ -184,7 +184,12 @@ describe("ADR-010 ENG-5: parent reconciliation gate — never re-fires once the 
 
 	it("ENG-5: a done epic is never re-advanced by advanceAwaitingChildrenToEvaluating", async () => {
 		const { task: epicTask } = await core.createTaskFromInput({ title: "Epic", status: "To Do" }, false);
-		const epic = { ...epicTask, role: "compound" as const, pipeline_id: "execution", phase: "done" as const };
+		const epic = {
+			...epicTask,
+			labels: [...(epicTask.labels ?? []), "kind:epic"],
+			pipeline_id: "execution",
+			phase: "done" as const,
+		};
 		await core.updateTask(epic, false);
 
 		const { task: childTask } = await core.createTaskFromInput({ title: "Child", status: "To Do" }, false);

@@ -41,6 +41,7 @@ import {
 	type DocumentSearchResult,
 	isLocalEditableTask,
 	type Milestone,
+	roleOf,
 	type SearchPriorityFilter,
 	type SearchResult,
 	type SearchResultType,
@@ -4774,11 +4775,12 @@ engineCmd
 				return;
 			}
 
-			const isEpic =
-				task.role === "compound" || task.status === "Epic: Backlog" || (task.labels ?? []).includes("kind:epic");
-			const phase = isEpic ? "decomposing" : "ready";
 			// roleOf() derives "compound" for a pre-decompose epic (no children yet) from
-			// the kind:epic label directly (BACK-643) — no need to pre-declare role: here.
+			// the kind:epic label directly (BACK-643) — role is never a stored field
+			// (BACK-664.2), so the "Epic: Backlog" status check remains as a legacy
+			// fallback for tasks predating the kind:epic label convention.
+			const isEpic = roleOf(task) === "compound" || task.status === "Epic: Backlog";
+			const phase = isEpic ? "decomposing" : "ready";
 			await store.updateTask({
 				...task,
 				pipeline_id: "execution",

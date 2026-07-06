@@ -16,7 +16,6 @@ priority: low
 ordinal: 76000
 pipeline_id: authoring
 phase: draft
-role: primitive
 ---
 
 ## Description

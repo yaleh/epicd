@@ -12,7 +12,6 @@ dependencies: []
 ordinal: 62000
 pipeline_id: authoring
 phase: backlog
-role: primitive
 ---
 
 ## Description

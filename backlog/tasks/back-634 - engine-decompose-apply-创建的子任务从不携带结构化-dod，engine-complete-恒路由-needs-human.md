@@ -18,7 +18,6 @@ dod:
     checked: false
   - text: bun test src/test/decomposer.test.ts
     checked: false
-role: primitive
 ---
 
 ## Description
