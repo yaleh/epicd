@@ -10,18 +10,52 @@
  *     Once in `evaluating`, the epic is picked up by the SAME generic
  *     `Interpreter.scan` machinery `decomposing`/`ready` already use — no special-casing
  *     needed in engine/scan.ts beyond the PHASE_PREFIX entry.
- *  2. `evaluateEpic` — the epic-eval-due dispatch handler: aggregates children terminal
- *     states into the epic's own terminal phase (any child needs-human → epic
- *     needs-human; all done → epic done).
+ *  2. `evaluateEpic` — the epic-eval-due dispatch handler. BACK-657.3 (ADR-019 gap fix):
+ *     this used to ONLY aggregate children's terminal phases, never running the epic's
+ *     own `## Integration Acceptance` — an epic could reach `done` with its own
+ *     end-to-end acceptance never having run ("all children green but the assembled
+ *     system doesn't actually work", the exact failure ADR-019 exists to prevent). Now
+ *     it first extracts and spawns (via `runShellCommands`, `Bun.spawn` under the hood)
+ *     every shell command in the epic Description's `## Integration Acceptance` fenced
+ *     code blocks; only if ALL exit 0 does it proceed to aggregate children terminal
+ *     states as before (any child needs-human → epic needs-human; all done → epic
+ *     done). Any failing Integration Acceptance command routes the epic straight to
+ *     `needs-human`, independent of children. An epic with no Integration Acceptance
+ *     section declared has nothing to gate on and falls back to children-only
+ *     aggregation, unchanged from before.
  */
 
 import type { Core } from "../core/backlog.js";
+import { extractSection } from "../markdown/parser.js";
 import type { Task } from "../types/index.js";
+import { runShellCommands } from "./dod-runner.js";
 
 const TERMINAL_PHASES = new Set(["done", "needs-human"]);
+const INTEGRATION_ACCEPTANCE_SECTION_TITLE = "Integration Acceptance";
+const FENCED_CODE_BLOCK_RE = /```(?:[\w-]+)?\n([\s\S]*?)```/g;
 
 function childrenOf(tasks: Task[], parentId: string): Task[] {
 	return tasks.filter((t) => t.parent_id === parentId);
+}
+
+/**
+ * Extract the shell commands to run for an epic's own Integration Acceptance: every
+ * fenced code block found inside the Description's `## Integration Acceptance`
+ * subsection, each run as one (possibly multi-line) shell script. Plain prose/inline
+ * code list items outside a fence are documentation, not machine-executable gates —
+ * an Integration Acceptance item that must be enforced needs a fenced shell block.
+ * Returns `[]` when the epic has no such section (nothing to gate on).
+ */
+export function extractIntegrationAcceptanceCommands(description: string): string[] {
+	const section = extractSection(description, INTEGRATION_ACCEPTANCE_SECTION_TITLE);
+	if (!section) return [];
+
+	const commands: string[] = [];
+	for (const match of section.matchAll(FENCED_CODE_BLOCK_RE)) {
+		const body = match[1]?.trim();
+		if (body) commands.push(body);
+	}
+	return commands;
 }
 
 /**
@@ -47,14 +81,27 @@ export async function advanceAwaitingChildrenToEvaluating(core: Core): Promise<s
 }
 
 /**
- * Evaluate an epic currently in `evaluating`: aggregate its children's terminal phases
- * into the epic's own terminal phase. Any child `needs-human` → epic `needs-human`;
- * otherwise (all children `done`) → epic `done`.
+ * Evaluate an epic currently in `evaluating`. BACK-657.3: first runs the epic's own
+ * `## Integration Acceptance` shell commands (if the Description declares any) — any
+ * failing command routes the epic straight to `needs-human`, never falling through to
+ * children aggregation. Only once Integration Acceptance is all-green (or absent) does
+ * it aggregate children's terminal phases into the epic's own terminal phase, as
+ * before: any child `needs-human` → epic `needs-human`; otherwise (all children
+ * `done`) → epic `done`.
  */
 export async function evaluateEpic(core: Core, epicId: string): Promise<void> {
 	const task = await core.getTask(epicId);
 	if (!task) {
 		throw new Error(`Task not found: ${epicId}`);
+	}
+
+	const iaCommands = extractIntegrationAcceptanceCommands(task.description ?? "");
+	if (iaCommands.length > 0) {
+		const iaResults = await runShellCommands(iaCommands, core.filesystem.rootDir);
+		if (iaResults.some((r) => !r.passed)) {
+			await core.updateTask({ ...task, phase: "needs-human" }, false);
+			return;
+		}
 	}
 
 	const children = (await core.queryTasks({})).filter((t) => t.parent_id === epicId);

@@ -5,26 +5,26 @@
  * `contract.json` `phase` matches `<pipeline_id>/<phase_name>`) OR explicitly
  * marked `experiment-pending` pointing at a real experiment task.
  *
- * Current expected state (this child, BACK-657.1, delivers only the gate itself —
- * no real phase-skill content, that is BACK-657.2/.3/.4):
+ * Current expected state (BACK-657.1 delivered the gate itself; BACK-657.2 registered
+ * execution/ready; BACK-657.3 registered execution/decomposing + execution/evaluating;
+ * BACK-657.4 registered authoring/draft + authoring/refining). All 6 machine-actor
+ * phases are now covered — see the full-coverage invariant test below, whose
+ * `.failing()` modifier has been removed now that it passes for real:
  *   - exploration/spike     -> experiment-pending -> BACK-658 (covered)
- *   - execution/ready       -> skill -> primitive-executor (covered, BACK-657.2)
- *   - authoring/draft       -> skill -> authoring-draft (covered, BACK-657.4)
- *   - authoring/refining    -> skill -> authoring-refining (covered, BACK-657.4)
- *   - execution/decomposing, execution/evaluating -> unregistered (gaps, tracked
- *     below; BACK-657.3, landing in a separate worktree, covers these)
+ *   - execution/ready       -> skill -> primitive-executor (covered)
+ *   - execution/decomposing -> skill -> epic-decompose (covered)
+ *   - execution/evaluating  -> skill -> epic-evaluate (covered)
+ *   - authoring/draft       -> skill -> authoring-draft (covered)
+ *   - authoring/refining    -> skill -> authoring-refining (covered)
  *
  * Per the task narrative this test must "fail loud" when phases are uncovered.
  * We prove that failure behavior with a real, deterministic, always-green
  * negative-control test (same pattern as pipeline-coupling-discipline.test.ts:
  * positive control on the real files/manifest, negative control on a fixture that
  * must trip the assertion) rather than by leaving a real assertion red in the
- * suite — that would break `bun test` for every unrelated change until
- * BACK-657.2/.3/.4 land. The one assertion that genuinely wants to be red right
- * now (full coverage across all 6 phases) is marked `.failing()` — Bun reports a
- * `.failing` test as PASS when it fails as expected, and turns RED the moment it
- * starts unexpectedly passing (i.e. the moment someone must remove the modifier
- * because coverage genuinely improved) — see https://bun.sh/docs/test/writing.
+ * suite. Now that BACK-657.2/.3/.4 have all landed their skills, the full-coverage
+ * invariant below asserts real, unconditional green (zero gaps) instead of being
+ * marked `.failing()` — see https://bun.sh/docs/test/writing.
  */
 import { describe, expect, it } from "bun:test";
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
@@ -110,9 +110,33 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 		expect(refining?.covered).toBe(true);
 	});
 
-	it("leaves exactly the remaining 2 machine phases uncovered — reported as gaps, not silently passed", () => {
+	it("registers execution/decomposing as a skill, resolved to the published epic-decompose skill (BACK-657.3)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		const entry = manifest.find((e) => e.phase === "execution/decomposing");
+		expect(entry).toBeDefined();
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("epic-decompose");
+
+		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
+		const decomposing = coverage.find((c) => c.phase === "execution/decomposing");
+		expect(decomposing?.covered).toBe(true);
+	});
+
+	it("registers execution/evaluating as a skill, resolved to the published epic-evaluate skill (BACK-657.3)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		const entry = manifest.find((e) => e.phase === "execution/evaluating");
+		expect(entry).toBeDefined();
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("epic-evaluate");
+
+		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
+		const evaluating = coverage.find((c) => c.phase === "execution/evaluating");
+		expect(evaluating?.covered).toBe(true);
+	});
+
+	it("leaves zero machine phases uncovered — full coverage achieved across all 6 phases", () => {
 		const gaps = uncoveredMachinePhases(REPO_ROOT).sort();
-		expect(gaps).toEqual(["execution/decomposing", "execution/evaluating"].sort());
+		expect(gaps).toEqual([]);
 	});
 
 	it("is exactly one manifest file — no second (pipeline_id, phase) -> skill registry exists", () => {
@@ -125,12 +149,10 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 	});
 });
 
-describe("full-coverage invariant — the eventual goal, currently unmet (expected)", () => {
-	// This is the assertion that SHOULD hold once BACK-657.2/.3/.4 land their skills.
-	// `.failing()` keeps `bun test` green today (Bun marks a `.failing` test PASS when
-	// it fails, and turns it RED the moment it starts passing unexpectedly) while still
-	// running the real assertion against the real repo state every single run.
-	it.failing("every machine-actor phase is covered by a published skill or experiment-pending pointer", () => {
+describe("full-coverage invariant — the eventual goal, now met", () => {
+	// BACK-657.2/.3/.4 have all landed their skills; this assertion now holds for
+	// real (no `.failing()` modifier — see the header comment for history).
+	it("every machine-actor phase is covered by a published skill or experiment-pending pointer", () => {
 		const gaps = uncoveredMachinePhases(REPO_ROOT);
 		expect(gaps).toEqual([]);
 	});

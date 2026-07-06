@@ -165,7 +165,14 @@ export function parseMilestone(content: string): Milestone {
 	};
 }
 
-function extractSection(content: string, sectionTitle: string): string | undefined {
+/**
+ * Extract a `## <sectionTitle>` subsection's body from raw markdown content (e.g. a
+ * task's `description` field, which itself commonly nests its own `## `-headed
+ * subsections like `## Integration Acceptance`). Exported so callers elsewhere in the
+ * codebase (e.g. `harness/evaluator.ts` extracting an epic's own Integration
+ * Acceptance) reuse this single regex-based extractor instead of re-implementing it.
+ */
+export function extractSection(content: string, sectionTitle: string): string | undefined {
 	// Normalize to LF for reliable matching across platforms
 	const src = content.replace(/\r\n/g, "\n");
 	const regex = new RegExp(`## ${sectionTitle}\\s*\\n([\\s\\S]*?)(?=\\n## |$)`, "i");

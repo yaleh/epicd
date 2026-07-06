@@ -7,6 +7,16 @@
 			"skill": "primitive-executor"
 		},
 		{
+			"phase": "execution/decomposing",
+			"status": "skill",
+			"skill": "epic-decompose"
+		},
+		{
+			"phase": "execution/evaluating",
+			"status": "skill",
+			"skill": "epic-evaluate"
+		},
+		{
 			"phase": "exploration/spike",
 			"status": "experiment-pending",
 			"pointer": "BACK-658"

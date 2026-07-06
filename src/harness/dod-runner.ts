@@ -26,19 +26,18 @@ export interface DodResult {
 }
 
 /**
- * Runs each structured `task.dod[].text` as a shell command inside `cwd`.
+ * Runs each given shell command string inside `cwd` via `sh -c <cmd>`, spawned with
+ * `Bun.spawn`, and reports per-command pass/fail (exit 0 = passed). Shared low-level
+ * primitive: `runDoD` below re-runs a task's structured `dod` gates through this, and
+ * `harness/evaluator.ts` re-runs an epic's own `## Integration Acceptance` commands
+ * through the same primitive — one shell-gate runner, not two divergent copies.
  *
- * - Empty/absent `dod` → returns `[]` (no machine gate declared).
- * - Each command is run with `sh -c <cmd>` in `cwd`; exit 0 = passed.
+ * - Empty input → returns `[]`.
  * - Errors during spawn are treated as failures (passed: false).
  */
-export async function runDoD(task: Task, cwd: string): Promise<DodResult[]> {
-	const items = task.dod ?? [];
-	if (items.length === 0) return [];
-
+export async function runShellCommands(commands: string[], cwd: string): Promise<DodResult[]> {
 	const results: DodResult[] = [];
-	for (const item of items) {
-		const cmd = item.text;
+	for (const cmd of commands) {
 		let passed = false;
 		try {
 			const proc = Bun.spawn(["sh", "-c", cmd], {
@@ -54,4 +53,20 @@ export async function runDoD(task: Task, cwd: string): Promise<DodResult[]> {
 		results.push({ cmd, passed });
 	}
 	return results;
+}
+
+/**
+ * Runs each structured `task.dod[].text` as a shell command inside `cwd`.
+ *
+ * - Empty/absent `dod` → returns `[]` (no machine gate declared).
+ * - Each command is run with `sh -c <cmd>` in `cwd`; exit 0 = passed.
+ * - Errors during spawn are treated as failures (passed: false).
+ */
+export async function runDoD(task: Task, cwd: string): Promise<DodResult[]> {
+	const items = task.dod ?? [];
+	if (items.length === 0) return [];
+	return runShellCommands(
+		items.map((item) => item.text),
+		cwd,
+	);
 }
