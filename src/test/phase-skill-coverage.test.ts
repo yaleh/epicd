@@ -5,10 +5,14 @@
  * `contract.json` `phase` matches `<pipeline_id>/<phase_name>`) OR explicitly
  * marked `experiment-pending` pointing at a real experiment task.
  *
- * Current expected state (this child, BACK-657.1, delivers only the gate itself —
- * no real phase-skill content, that is BACK-657.2/.3/.4):
- *   - exploration/spike  -> experiment-pending -> BACK-658 (covered)
- *   - the other 5 machine phases -> unregistered (gaps, tracked below)
+ * Current expected state (BACK-657.1 delivered the gate itself; BACK-657.2 registered
+ * execution/ready; BACK-657.3 registers execution/decomposing + execution/evaluating):
+ *   - exploration/spike            -> experiment-pending -> BACK-658 (covered)
+ *   - execution/ready               -> skill -> primitive-executor (covered)
+ *   - execution/decomposing         -> skill -> epic-decompose (covered)
+ *   - execution/evaluating          -> skill -> epic-evaluate (covered)
+ *   - authoring/draft, authoring/refining -> unregistered (gaps, tracked below;
+ *     BACK-657.4 scope)
  *
  * Per the task narrative this test must "fail loud" when phases are uncovered.
  * We prove that failure behavior with a real, deterministic, always-green
@@ -82,11 +86,33 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 		expect(ready?.covered).toBe(true);
 	});
 
-	it("leaves exactly the other 4 machine phases uncovered — reported as gaps, not silently passed", () => {
+	it("registers execution/decomposing as a skill, resolved to the published epic-decompose skill (BACK-657.3)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		const entry = manifest.find((e) => e.phase === "execution/decomposing");
+		expect(entry).toBeDefined();
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("epic-decompose");
+
+		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
+		const decomposing = coverage.find((c) => c.phase === "execution/decomposing");
+		expect(decomposing?.covered).toBe(true);
+	});
+
+	it("registers execution/evaluating as a skill, resolved to the published epic-evaluate skill (BACK-657.3)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		const entry = manifest.find((e) => e.phase === "execution/evaluating");
+		expect(entry).toBeDefined();
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("epic-evaluate");
+
+		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
+		const evaluating = coverage.find((c) => c.phase === "execution/evaluating");
+		expect(evaluating?.covered).toBe(true);
+	});
+
+	it("leaves exactly the remaining 2 authoring machine phases uncovered — reported as gaps, not silently passed", () => {
 		const gaps = uncoveredMachinePhases(REPO_ROOT).sort();
-		expect(gaps).toEqual(
-			["authoring/draft", "authoring/refining", "execution/decomposing", "execution/evaluating"].sort(),
-		);
+		expect(gaps).toEqual(["authoring/draft", "authoring/refining"].sort());
 	});
 
 	it("is exactly one manifest file — no second (pipeline_id, phase) -> skill registry exists", () => {
