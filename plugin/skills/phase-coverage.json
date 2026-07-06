@@ -2,6 +2,11 @@
 	"$comment": "Single source of truth for the (pipeline_id/phase) -> skill registry. Consumed today by src/test/phase-skill-coverage.test.ts; consumed later by the monitor runtime (BACK-660) for dispatch-time skill injection. Do NOT create a second manifest/registry file — edit this one. Entries are additive: BACK-657.2/.3/.4 each append their own phase's entry.",
 	"entries": [
 		{
+			"phase": "execution/ready",
+			"status": "skill",
+			"skill": "primitive-executor"
+		},
+		{
 			"phase": "exploration/spike",
 			"status": "experiment-pending",
 			"pointer": "BACK-658"
