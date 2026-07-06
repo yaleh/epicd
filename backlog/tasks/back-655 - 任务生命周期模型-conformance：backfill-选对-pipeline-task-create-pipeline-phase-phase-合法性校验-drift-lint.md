@@ -3,11 +3,11 @@ id: BACK-655
 title: >-
   任务生命周期模型 conformance：backfill 选对 pipeline + task create --pipeline/--phase +
   phase 合法性校验 + drift-lint
-status: 'Basic: Backlog'
+status: 'Basic: Needs Human'
 assignee:
   - '@claude'
 created_date: '2026-07-06 04:40'
-updated_date: '2026-07-06 06:11'
+updated_date: '2026-07-06 08:55'
 labels:
   - 'kind:feature'
   - 'area:engine'
@@ -21,6 +21,22 @@ references:
   - BACK-654
 priority: high
 ordinal: 75000
+phase: needs-human
+dod:
+  - text: bun test
+    checked: false
+  - text: bunx tsc --noEmit
+    checked: false
+  - text: bun test src/test/cli-engine-fields-edit.test.ts
+    checked: false
+  - text: bun test src/test/terminal-status.test.ts
+    checked: false
+  - text: bun test src/test/pipeline-coupling-discipline.test.ts
+    checked: false
+  - text: bun test src/test/status-label-projection.test.ts
+    checked: false
+  - text: '! grep -q executionPipeline.id src/core/engine-fields-backfill.ts'
+    checked: false
 ---
 
 ## Description
@@ -266,6 +282,10 @@ Proposal approved (task description authored as detailed proposal). Starting pla
 Plan review APPROVED (strict architect, GCL E=7 C=5 H=1). 4 phases: A shared phase-legality helper + edit validation; B computeBackfillFields pipeline-by-status + reposition; C task create --pipeline/--phase; D engine drift-lint. Ready for LFDD.
 
 追加 Phase E + AC#6：status↔phase 终态分歧 reconcile + isTerminalStatus 修复（BACK-654 同源残留的硬化，折入本 PR，不另建 task）。
+
+LFDD lightweight-path sample #4: declared structured dodGates (criterion ① of docs/research/lightweight-fixpoint/README.md) before dispatching implementation agent.
+
+claimed: 2026-07-06T08:21:13Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
