@@ -7,7 +7,7 @@ status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-06 04:40'
-updated_date: '2026-07-06 09:19'
+updated_date: '2026-07-06 09:27'
 labels:
   - 'kind:feature'
   - 'area:engine'
@@ -22,7 +22,7 @@ references:
 priority: high
 ordinal: 75000
 pipeline_id: execution
-phase: needs-human
+phase: done
 dod:
   - text: bun test
     checked: false

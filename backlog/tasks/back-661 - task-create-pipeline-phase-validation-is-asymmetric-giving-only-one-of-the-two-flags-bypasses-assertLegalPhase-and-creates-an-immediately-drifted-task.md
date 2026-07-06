@@ -8,6 +8,7 @@ status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:19'
+updated_date: '2026-07-06 09:27'
 labels:
   - 'kind:bug'
   - 'area:engine'
@@ -16,6 +17,7 @@ priority: medium
 ordinal: 79000
 pipeline_id: authoring
 phase: draft
+role: primitive
 ---
 
 ## Description
