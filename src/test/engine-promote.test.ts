@@ -22,7 +22,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { Core } from "../core/backlog.ts";
-import type { Task } from "../types/index.ts";
+import { roleOf, type Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
@@ -33,14 +33,9 @@ const CLI_PATH = join(process.cwd(), "src", "cli.ts");
  * project's default To Do/In Progress/Done vocabulary — not the four-axis
  * Basic/Epic statuses declared in backlog/config.yml).
  */
-async function createTaskWithStatus(
-	core: Core,
-	title: string,
-	status: string,
-	role?: "compound" | "primitive",
-): Promise<Task> {
+async function createTaskWithStatus(core: Core, title: string, status: string, labels?: string[]): Promise<Task> {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do" }, false);
-	const withStatus: Task = role ? { ...task, status, role } : { ...task, status };
+	const withStatus: Task = labels ? { ...task, status, labels } : { ...task, status };
 	await core.updateTask(withStatus, false);
 	return withStatus;
 }
@@ -90,7 +85,7 @@ describe("engine promote CLI", () => {
 	});
 
 	it("promotes an Epic: Backlog task to pipeline_id execution, phase decomposing, status Decomposing (BACK-631)", async () => {
-		const task = await createTaskWithStatus(core, "Epic backlog task", "Epic: Backlog");
+		const task = await createTaskWithStatus(core, "Epic backlog task", "Epic: Backlog", ["kind:epic"]);
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
 		expect(result.exitCode).toBe(0);
@@ -99,22 +94,23 @@ describe("engine promote CLI", () => {
 		const updated = await core.getTask(task.id);
 		expect(updated?.pipeline_id).toBe("execution");
 		expect(updated?.phase).toBe("decomposing");
-		expect(updated?.role).toBe("compound");
+		expect(updated && roleOf(updated)).toBe("compound");
 		expect(updated?.status).toBe("Decomposing");
 	});
 
-	it("promotes an Epic: Backlog task even with no pre-declared role or children (role can't be tree-derived yet)", async () => {
-		// No `role` passed — this is the exact pre-decompose state roleOf()'s doc
-		// comment describes: an epic before decompose has no children to derive
-		// "compound" from, so promote must pre-declare it explicitly (BACK-631).
-		const task = await createTaskWithStatus(core, "Epic with no role/children", "Epic: Backlog");
+	it("promotes an Epic: Backlog task even with no pre-declared role or children (role derives from kind:epic label, BACK-643)", async () => {
+		// No `role` field written by promote anymore — roleOf() derives "compound"
+		// directly from the kind:epic label for a pre-decompose epic (BACK-643),
+		// so promote no longer needs to pre-declare `role: compound` (BACK-631).
+		const task = await createTaskWithStatus(core, "Epic with no role/children", "Epic: Backlog", ["kind:epic"]);
 		expect(task.role).toBeUndefined();
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
 		expect(result.exitCode).toBe(0);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.role).toBe("compound");
+		expect(updated?.role).toBeUndefined();
+		expect(updated && roleOf(updated)).toBe("compound");
 		expect(updated?.phase).toBe("decomposing");
 	});
 
