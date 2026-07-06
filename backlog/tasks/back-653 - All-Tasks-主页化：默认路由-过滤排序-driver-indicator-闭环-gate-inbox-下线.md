@@ -1,11 +1,11 @@
 ---
 id: BACK-653
 title: All Tasks 主页化：默认路由/过滤排序/driver indicator 闭环 + gate-inbox 下线
-status: 'Basic: Needs Human'
+status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-06 02:02'
-updated_date: '2026-07-06 02:43'
+updated_date: '2026-07-06 02:52'
 labels:
   - 'kind:feature'
 dependencies: []
@@ -17,7 +17,7 @@ references:
   - BACK-605.10
 ordinal: 73000
 pipeline_id: execution
-phase: needs-human
+phase: done
 dod:
   - text: bunx tsc --noEmit
     checked: false
