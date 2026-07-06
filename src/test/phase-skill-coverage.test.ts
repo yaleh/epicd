@@ -57,7 +57,7 @@ describe("machineActorPhases() — positive control", () => {
 	});
 });
 
-describe("phase-coverage manifest — current, real state (BACK-657.1 scope)", () => {
+describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)", () => {
 	it("registers exploration/spike as experiment-pending, resolving to a real BACK-658 task file", () => {
 		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
 		const entry = manifest.find((e) => e.phase === "exploration/spike");
@@ -70,16 +70,22 @@ describe("phase-coverage manifest — current, real state (BACK-657.1 scope)", (
 		expect(spike?.covered).toBe(true);
 	});
 
-	it("leaves exactly the other 5 machine phases uncovered — reported as gaps, not silently passed", () => {
+	it("registers execution/ready as a skill, resolved to the published primitive-executor skill (BACK-657.2)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		const entry = manifest.find((e) => e.phase === "execution/ready");
+		expect(entry).toBeDefined();
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("primitive-executor");
+
+		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
+		const ready = coverage.find((c) => c.phase === "execution/ready");
+		expect(ready?.covered).toBe(true);
+	});
+
+	it("leaves exactly the other 4 machine phases uncovered — reported as gaps, not silently passed", () => {
 		const gaps = uncoveredMachinePhases(REPO_ROOT).sort();
 		expect(gaps).toEqual(
-			[
-				"authoring/draft",
-				"authoring/refining",
-				"execution/decomposing",
-				"execution/evaluating",
-				"execution/ready",
-			].sort(),
+			["authoring/draft", "authoring/refining", "execution/decomposing", "execution/evaluating"].sort(),
 		);
 	});
 
