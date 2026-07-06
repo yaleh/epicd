@@ -60,7 +60,6 @@ describe("evaluateEpic runs the epic's own Integration Acceptance (ADR-019 gap f
 	it("goes done when the epic's IA is all-green and all children are done", async () => {
 		const epic = await createTask(core, "Epic", {
 			phase: "evaluating",
-			role: "compound",
 			description: PASSING_IA_DESCRIPTION,
 		});
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
@@ -75,7 +74,6 @@ describe("evaluateEpic runs the epic's own Integration Acceptance (ADR-019 gap f
 	it("routes to needs-human when the epic's IA has a failing command, even though all children are done", async () => {
 		const epic = await createTask(core, "Epic", {
 			phase: "evaluating",
-			role: "compound",
 			description: FAILING_IA_DESCRIPTION,
 		});
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
@@ -90,7 +88,6 @@ describe("evaluateEpic runs the epic's own Integration Acceptance (ADR-019 gap f
 	it("still routes to needs-human when IA is all-green but a child is needs-human", async () => {
 		const epic = await createTask(core, "Epic", {
 			phase: "evaluating",
-			role: "compound",
 			description: PASSING_IA_DESCRIPTION,
 		});
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
@@ -105,7 +102,6 @@ describe("evaluateEpic runs the epic's own Integration Acceptance (ADR-019 gap f
 	it("falls back to today's children-only aggregation when the epic declares no Integration Acceptance section", async () => {
 		const epic = await createTask(core, "Epic without IA", {
 			phase: "evaluating",
-			role: "compound",
 			description: "Just a plain description, no IA section.",
 		});
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
