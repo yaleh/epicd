@@ -10,6 +10,16 @@
 			"phase": "exploration/spike",
 			"status": "experiment-pending",
 			"pointer": "BACK-658"
+		},
+		{
+			"phase": "authoring/draft",
+			"status": "skill",
+			"skill": "authoring-draft"
+		},
+		{
+			"phase": "authoring/refining",
+			"status": "skill",
+			"skill": "authoring-refining"
 		}
 	]
 }

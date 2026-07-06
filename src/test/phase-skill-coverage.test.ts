@@ -7,8 +7,12 @@
  *
  * Current expected state (this child, BACK-657.1, delivers only the gate itself —
  * no real phase-skill content, that is BACK-657.2/.3/.4):
- *   - exploration/spike  -> experiment-pending -> BACK-658 (covered)
- *   - the other 5 machine phases -> unregistered (gaps, tracked below)
+ *   - exploration/spike     -> experiment-pending -> BACK-658 (covered)
+ *   - execution/ready       -> skill -> primitive-executor (covered, BACK-657.2)
+ *   - authoring/draft       -> skill -> authoring-draft (covered, BACK-657.4)
+ *   - authoring/refining    -> skill -> authoring-refining (covered, BACK-657.4)
+ *   - execution/decomposing, execution/evaluating -> unregistered (gaps, tracked
+ *     below; BACK-657.3, landing in a separate worktree, covers these)
  *
  * Per the task narrative this test must "fail loud" when phases are uncovered.
  * We prove that failure behavior with a real, deterministic, always-green
@@ -82,11 +86,33 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 		expect(ready?.covered).toBe(true);
 	});
 
-	it("leaves exactly the other 4 machine phases uncovered — reported as gaps, not silently passed", () => {
+	it("registers authoring/draft as a skill, resolved to the published authoring-draft skill (BACK-657.4)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		const entry = manifest.find((e) => e.phase === "authoring/draft");
+		expect(entry).toBeDefined();
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("authoring-draft");
+
+		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
+		const draft = coverage.find((c) => c.phase === "authoring/draft");
+		expect(draft?.covered).toBe(true);
+	});
+
+	it("registers authoring/refining as a skill, resolved to the published authoring-refining skill (BACK-657.4)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		const entry = manifest.find((e) => e.phase === "authoring/refining");
+		expect(entry).toBeDefined();
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("authoring-refining");
+
+		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
+		const refining = coverage.find((c) => c.phase === "authoring/refining");
+		expect(refining?.covered).toBe(true);
+	});
+
+	it("leaves exactly the remaining 2 machine phases uncovered — reported as gaps, not silently passed", () => {
 		const gaps = uncoveredMachinePhases(REPO_ROOT).sort();
-		expect(gaps).toEqual(
-			["authoring/draft", "authoring/refining", "execution/decomposing", "execution/evaluating"].sort(),
-		);
+		expect(gaps).toEqual(["execution/decomposing", "execution/evaluating"].sort());
 	});
 
 	it("is exactly one manifest file — no second (pipeline_id, phase) -> skill registry exists", () => {
