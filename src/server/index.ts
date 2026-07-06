@@ -316,6 +316,7 @@ export class BacklogServer {
 				routes: {
 					"/": spaIndexHtml,
 					"/tasks": spaIndexHtml,
+					"/board": spaIndexHtml,
 					"/milestones": spaIndexHtml,
 					"/drafts": spaIndexHtml,
 					"/documentation": spaIndexHtml,
@@ -323,7 +324,6 @@ export class BacklogServer {
 					"/decisions": spaIndexHtml,
 					"/decisions/*": spaIndexHtml,
 					"/statistics": spaIndexHtml,
-					"/gate-inbox": spaIndexHtml,
 					"/settings": spaIndexHtml,
 
 					// API Routes using Bun's native route syntax
@@ -823,9 +823,12 @@ export class BacklogServer {
 	}
 
 	/**
-	 * Read-only GateEvent listing for the Web `GateInboxPage` (BACK-605.10).
-	 * Thin forwarder onto the same `runGateLogQuery` used by `engine gate-log`
-	 * (src/engine/gate-log.ts) — do not re-implement the query wrapper here.
+	 * `GET /api/gate-events` — read-only GateEvent listing (BACK-605.10). Its Web
+	 * consumer (`GateInboxPage`) was retired in BACK-653, but this REST endpoint is kept
+	 * intentionally (per BACK-653 non-goals) for other consumers (e.g. tooling, the inbox
+	 * skill). Thin forwarder onto the same `runGateLogQuery` used by the CLI's
+	 * `engine gate-log` command (src/engine/gate-log.ts) — do not re-implement the query
+	 * wrapper here.
 	 */
 	private async handleListGateEvents(req: Request): Promise<Response> {
 		try {

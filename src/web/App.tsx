@@ -9,7 +9,6 @@ import DraftsList from './components/DraftsList';
 import Settings from './components/Settings';
 import Statistics from './components/Statistics';
 import MilestonesPage from './components/MilestonesPage';
-import GateInboxPage from './components/GateInboxPage';
 import TaskDetailsModal from './components/TaskDetailsModal';
 import InitializationScreen from './components/InitializationScreen';
 import { SuccessToast } from './components/SuccessToast';
@@ -492,19 +491,21 @@ function App() {
             <Route
               index
               element={
-                <BoardPage
-                  onEditTask={handleEditTask}
-                  onNewTask={handleNewTask}
-                tasks={tasks}
-                onRefreshData={refreshData}
-                milestones={milestones}
-                availableLabels={availableLabels}
-                milestoneEntities={milestoneEntities}
-                archivedMilestones={archivedMilestones}
-                isLoading={isLoading}
-              />
-            }
-          />
+	                <TaskList
+	                  onEditTask={handleEditTask}
+	                  onNewTask={handleNewTask}
+	                  tasks={tasks}
+	                  availableStatuses={statuses}
+	                  availableLabels={availableLabels}
+	                  availableMilestones={milestones}
+	                  milestoneEntities={milestoneEntities}
+	                  archivedMilestones={archivedMilestones}
+	                  onRefreshData={refreshData}
+	                />
+	              }
+	            />
+            {/* All Tasks (BACK-653): "/" and "/tasks" render the same page — "/tasks" stays
+                reachable directly (e.g. bookmarks, SideNavigation's "All Tasks" link). */}
             <Route
               path="tasks"
               element={
@@ -521,6 +522,24 @@ function App() {
 	                />
 	              }
 	            />
+            {/* Kanban Board (BACK-653): deprecated from the default route and hidden from
+                SideNavigation (BACK-647), but still reachable directly at "/board". */}
+            <Route
+              path="board"
+              element={
+                <BoardPage
+                  onEditTask={handleEditTask}
+                  onNewTask={handleNewTask}
+                tasks={tasks}
+                onRefreshData={refreshData}
+                milestones={milestones}
+                availableLabels={availableLabels}
+                milestoneEntities={milestoneEntities}
+                archivedMilestones={archivedMilestones}
+                isLoading={isLoading}
+              />
+            }
+          />
             <Route
               path="milestones"
               element={
@@ -542,7 +561,6 @@ function App() {
             <Route path="decisions/:id" element={<DecisionDetail decisions={decisions} onRefreshData={refreshData} />} />
             <Route path="decisions/:id/:title" element={<DecisionDetail decisions={decisions} onRefreshData={refreshData} />} />
             <Route path="statistics" element={<Statistics tasks={tasks} isLoading={isLoading} onEditTask={handleEditTask} projectName={projectName} />} />
-            <Route path="gate-inbox" element={<GateInboxPage />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
