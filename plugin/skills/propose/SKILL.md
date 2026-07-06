@@ -22,13 +22,19 @@ draft, review, or iterate; it is the mechanical "write it onto the board" step.
 
 ```bash
 backlog task create "<title>" \
-  --status "<Basic: Backlog|Epic: Backlog>" \
+  --pipeline authoring --phase backlog \
   --labels "<kind:basic|kind:epic>" \
   --description "<description>"
 ```
 
-- `--status "Basic: Backlog"` + `--labels "kind:basic"` for a Basic (single-PR) task.
-- `--status "Epic: Backlog"` + `--labels "kind:epic"` for an Epic (multi-child) task.
+Status is a derived display projection (BACK-664 child 1) — it is never set directly;
+`--pipeline authoring --phase backlog` is what lands the task at the Backlog boundary
+`engine promote` reads from.
+
+- `--labels "kind:basic"` for a Basic (single-PR) task.
+- `--labels "kind:epic"` for an Epic (multi-child) task (`engine promote` recognizes
+  `kind:epic` to pre-declare `role: compound`, since a pre-decompose epic has no
+  children yet to derive it from).
 - Add `--parent <taskId>` when this task is a child of an existing epic.
 - Add `--ac "<criterion>"` (repeatable) for acceptance criteria, `--dod "<item>"` for
   Definition of Done checklist items, and `--dod-gate "<shell cmd>"` for a structured,

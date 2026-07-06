@@ -76,7 +76,7 @@ describe("engine promote CLI", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("promotes a Basic: Backlog task to pipeline_id execution, phase ready, status Basic: Ready", async () => {
+	it("promotes a Basic: Backlog task to pipeline_id execution, phase ready, status Ready", async () => {
 		const task = await createTaskWithStatus(core, "Backlog task", "Basic: Backlog");
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
@@ -86,10 +86,10 @@ describe("engine promote CLI", () => {
 		const updated = await core.getTask(task.id);
 		expect(updated?.pipeline_id).toBe("execution");
 		expect(updated?.phase).toBe("ready");
-		expect(updated?.status).toBe("Basic: Ready");
+		expect(updated?.status).toBe("Ready");
 	});
 
-	it("promotes an Epic: Backlog task to pipeline_id execution, phase decomposing, status Epic: Decomposing (BACK-631)", async () => {
+	it("promotes an Epic: Backlog task to pipeline_id execution, phase decomposing, status Decomposing (BACK-631)", async () => {
 		const task = await createTaskWithStatus(core, "Epic backlog task", "Epic: Backlog");
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
@@ -100,7 +100,7 @@ describe("engine promote CLI", () => {
 		expect(updated?.pipeline_id).toBe("execution");
 		expect(updated?.phase).toBe("decomposing");
 		expect(updated?.role).toBe("compound");
-		expect(updated?.status).toBe("Epic: Decomposing");
+		expect(updated?.status).toBe("Decomposing");
 	});
 
 	it("promotes an Epic: Backlog task even with no pre-declared role or children (role can't be tree-derived yet)", async () => {

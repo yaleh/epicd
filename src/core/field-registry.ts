@@ -389,26 +389,24 @@ function titleCasePhase(phase: string): string {
 }
 
 /**
- * The single `label(role, phase)` projection (BACK-601.4 / AC#5).
+ * The single `label(role, phase)` projection (BACK-601.4 / AC#5; collapsed to
+ * phase-only display by BACK-664 child 1 / BACK-665 AC#2).
  *
  * Per-task persists only structural axes `(pipeline_id, bare phase)` and a
- * derived `role`; the human-facing status *display* string is computed here and
- * nowhere else. Config declares the vocabulary as `"<Role>: <Phase>"`, so the
- * projection maps role→prefix (`primitive`⇒`Basic`, `compound`⇒`Epic`) and
- * resolves the bare kebab phase to the config-declared casing. When config has
- * no matching entry the phase is title-cased as a fallback.
+ * derived `role`; the human-facing status *display* string is computed here
+ * and nowhere else. The display string is purely a function of `phase` — no
+ * `Basic:`/`Epic:` role prefix is ever generated. Whether a task is compound
+ * (has children) is a *separate* has-children indicator rendered independently
+ * by callers, never concatenated into the status string. The `role` parameter
+ * is kept for call-site compatibility but no longer affects the output.
  *
  * `turn`/`role` remain derived and are never persisted (turn = pipeline actor,
  * generalized in E3; role = tree position via roleOf()).
  */
-export function label(role: "compound" | "primitive", phase: string, statuses: readonly string[] = []): string {
-	const prefix = role === "compound" ? "Epic" : "Basic";
+export function label(_role: "compound" | "primitive", phase: string, statuses: readonly string[] = []): string {
 	const target = titleCasePhase(phase).toLowerCase();
-	const configured = statuses.find((s) => {
-		const [statusRole, ...rest] = s.split(":");
-		return (statusRole ?? "").trim() === prefix && rest.join(":").trim().toLowerCase() === target;
-	});
-	return configured ?? `${prefix}: ${titleCasePhase(phase)}`;
+	const configured = statuses.find((s) => s.trim().toLowerCase() === target);
+	return configured ?? titleCasePhase(phase);
 }
 
 /**

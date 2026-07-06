@@ -123,7 +123,7 @@ describe("create commands", () => {
 		const task = await core.filesystem.loadTask("task-1");
 		expect(task?.pipeline_id).toBe("authoring");
 		expect(task?.phase).toBe("draft");
-		expect(task?.status).toBe("Basic: Draft");
+		expect(task?.status).toBe("Draft");
 	});
 
 	it("honors explicit --pipeline/--phase", async () => {
@@ -133,7 +133,7 @@ describe("create commands", () => {
 		const task = await core.filesystem.loadTask("task-1");
 		expect(task?.pipeline_id).toBe("execution");
 		expect(task?.phase).toBe("ready");
-		expect(task?.status).toBe("Basic: Ready");
+		expect(task?.status).toBe("Ready");
 	});
 
 	it("rejects an illegal --pipeline/--phase combo at create", async () => {

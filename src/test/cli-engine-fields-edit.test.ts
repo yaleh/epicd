@@ -50,7 +50,7 @@ describe("task edit --pipeline-id/--phase/--parent-id (BACK-628.3)", () => {
 		expect(task?.pipeline_id).toBe("execution");
 		expect(task?.phase).toBe("ready");
 		expect(task?.parent_id).toBe("task-1");
-		expect(task?.status).toBe("Basic: Ready");
+		expect(task?.status).toBe("Ready");
 	});
 
 	it("re-setting --phase alone keeps status in sync without a separate --status flag", async () => {
@@ -60,7 +60,7 @@ describe("task edit --pipeline-id/--phase/--parent-id (BACK-628.3)", () => {
 
 		const task = await core.filesystem.loadTask("task-1");
 		expect(task?.phase).toBe("done");
-		expect(task?.status).toBe("Basic: Done");
+		expect(task?.status).toBe("Done");
 	});
 
 	it("rejects an illegal --phase for the task's pipeline_id", async () => {
@@ -84,6 +84,6 @@ describe("task edit --pipeline-id/--phase/--parent-id (BACK-628.3)", () => {
 
 		const task = await core.filesystem.loadTask("task-1");
 		expect(task?.phase).toBe("ready");
-		expect(task?.status).toBe("Basic: Ready");
+		expect(task?.status).toBe("Ready");
 	});
 });

@@ -127,11 +127,10 @@ describe("backlog instructions command", () => {
 		expect(taskExecution).toContain(
 			'backlog task list --status "<active status>" --assignee @your-name --labels backend --search "auth" --limit 20 --plain',
 		);
-		expect(taskExecution).toContain('backlog task edit TASK-123 -s "<active status>" -a @your-name');
+		expect(taskExecution).toContain("backlog task edit TASK-123 -a @your-name");
 		expect(taskExecution).not.toContain('backlog task edit TASK-123 -s "In Progress" -a @your-name');
-		expect(taskFinalization).toContain("configured terminal status");
-		expect(taskFinalization).toContain("Inspect accepted statuses if needed: `backlog task edit TASK-123 --help`");
-		expect(taskFinalization).toContain('backlog task edit TASK-123 -s "<terminal status>"');
+		expect(taskFinalization).toContain("status reflects phase automatically");
+		expect(taskFinalization).toContain("backlog task edit TASK-123 --phase done");
 		expect(taskFinalization).not.toContain("backlog task edit TASK-123 -s Done");
 		expect(taskCreation).not.toContain("task_create");
 		expect(taskCreation).not.toContain("task_search");
@@ -165,7 +164,7 @@ describe("backlog instructions command", () => {
 		expect(taskCreation).toContain('backlog task create "Add bulk update UI" --dep FEAT-21');
 		expect(createHelp).toContain('backlog task create -p FEAT-1 "Add tests"');
 		expect(listHelp).toContain("backlog task list --parent FEAT-1");
-		expect(editHelp).toContain('backlog task edit FEAT-1 --status "<active status>" -a @sara');
+		expect(editHelp).toContain("backlog task edit FEAT-1 -a @sara");
 		for (const output of [overview, taskCreation, createHelp, listHelp, editHelp]) {
 			expect(output).not.toContain("BACK-");
 		}
@@ -194,10 +193,8 @@ describe("backlog instructions command", () => {
 		const editHelp = await $`bun ${CLI_PATH} task edit --help`.cwd(outsideDir).env(env).text();
 
 		expect(overview).toContain("backlog task view FEAT-123 --plain");
-		expect(createHelp).toContain("status: one of configured statuses: Draft, Ready, Review, Closed");
 		expect(createHelp).toContain('backlog task create -p FEAT-1 "Add tests"');
-		expect(editHelp).toContain("status: one of configured statuses: Ready, Review, Closed");
-		expect(editHelp).toContain('backlog task edit FEAT-1 --status "<active status>" -a @sara');
+		expect(editHelp).toContain("backlog task edit FEAT-1 -a @sara");
 		for (const output of [overview, createHelp, editHelp]) {
 			expect(output).not.toContain("BACK-");
 		}

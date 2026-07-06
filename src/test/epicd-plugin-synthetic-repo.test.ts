@@ -10,11 +10,11 @@
  *   2. Create a brand-new git repo under `os.tmpdir()`, copy in ONLY the packaged
  *      plugin assets (`plugin/`, `.claude-plugin/`) and the built binary.
  *   3. Run the `init` skill's command (`backlog init --defaults`) against it, then
- *      extend `backlog/config.yml`'s `statuses` list with the engine's Basic:/Epic:
+ *      extend `backlog/config.yml`'s `statuses` list with the engine's phase-derived
  *      pipeline vocabulary (a documented contract of `engine promote`/`engine scan`,
  *      not an epicd-repo path — any board wanting engine-driven pipelines configures
  *      this the same way epicd's own `backlog/config.yml` does).
- *   4. Run the `propose` skill's command (`task create --status "Basic: Backlog"`).
+ *   4. Run the `propose` skill's command (`task create --pipeline authoring --phase backlog`).
  *   5. Run the `promote` skill's command (`engine promote <id>`).
  *   6. Run the `run` skill's underlying worker chain — `handle-basic-ready.sh` (claim +
  *      worktree) with `EPICD_CLI_CMD` pointed at the scratch binary, a simulated agent
@@ -117,18 +117,19 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		const configPath = join(scratchDir, "backlog", "config.yml");
 		expect(existsSync(configPath)).toBe(true);
 
-		// Extend the engine's Basic:/Epic: pipeline status vocabulary — a documented
+		// Extend the engine's phase-derived status vocabulary — a documented
 		// contract of `engine promote`/`engine scan` (src/cli.ts), not an epicd-repo path.
 		let config = readFileSync(configPath, "utf8");
 		config = config.replace(
 			/^statuses:.*$/m,
-			'statuses: ["To Do", "In Progress", "Done", "Basic: Backlog", "Basic: Ready", "Basic: In Progress", "Basic: Done", "Basic: Needs Human"]',
+			'statuses: ["To Do", "In Progress", "Done", "Backlog", "Ready", "Needs Human"]',
 		);
 		writeFileSync(configPath, config);
 
-		// ---- propose skill: `backlog task create ... --status "Basic: Backlog"` ----
+		// ---- propose skill: `backlog task create ... --pipeline authoring --phase backlog` ----
+		// (status is a derived display projection, BACK-664 child 1 — never set directly)
 		const createOut = sh(
-			`${scratchBin} task create "Synthetic smoke task" --status "Basic: Backlog" --labels "kind:basic" --description "synthetic smoke task" --dod-gate "true" --plain`,
+			`${scratchBin} task create "Synthetic smoke task" --pipeline authoring --phase backlog --labels "kind:basic" --description "synthetic smoke task" --dod-gate "true" --plain`,
 			scratchDir,
 		);
 		const taskIdMatch = createOut.match(/^Task (\S+)/m);
@@ -171,7 +172,7 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		expect(taskFile).toBeDefined();
 		const taskContents = readFileSync(join(taskFileDir, taskFile as string), "utf8");
 		expect(taskContents).toContain("phase: done");
-		expect(taskContents).toContain("status: 'Basic: Done'");
+		expect(taskContents).toContain("status: Done");
 
 		// ---- inbox skill: `backlog engine gate-log` over a fabricated GateEvent ----
 		const gateLogDir = join(scratchDir, "docs", "research");

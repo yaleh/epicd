@@ -68,7 +68,7 @@ import { createMilestoneFilterValueResolver, resolveClosestMilestoneFilterValue 
 import { resolveMilestoneInputForStorage } from "./utils/milestone-storage.ts";
 import { hasAnyPrefix } from "./utils/prefix-config.ts";
 import { type RuntimeCwdResolution, resolveRuntimeCwd } from "./utils/runtime-cwd.ts";
-import { formatValidStatuses, getCanonicalStatus, getValidStatuses } from "./utils/status.ts";
+import { getValidStatuses } from "./utils/status.ts";
 import {
 	normalizeDependencies,
 	parseDelimitedStringList,
@@ -298,7 +298,6 @@ function hasCreateFieldFlags(options: Record<string, unknown>): boolean {
 		options.description !== undefined ||
 			options.desc !== undefined ||
 			options.assignee !== undefined ||
-			options.status !== undefined ||
 			options.pipeline !== undefined ||
 			options.phase !== undefined ||
 			options.labels !== undefined ||
@@ -329,7 +328,6 @@ function hasEditFieldFlags(options: Record<string, unknown>): boolean {
 			options.description !== undefined ||
 			options.desc !== undefined ||
 			options.assignee !== undefined ||
-			options.status !== undefined ||
 			options.label !== undefined ||
 			options.priority !== undefined ||
 			options.ordinal !== undefined ||
@@ -1543,11 +1541,6 @@ addHelpSchema(taskCmd.command("create [title]"), {
 	required: [{ name: "title", type: "String", description: "Task title; prompted when omitted in interactive mode" }],
 	optional: [
 		{ name: "description", type: "Markdown", description: "Task outcome and context" },
-		{
-			name: "status",
-			type: () => statusType({ includeDraft: true }),
-			description: "Project task status; case-insensitive",
-		},
 		{ name: "assignee", type: "Assignee list", description: "One or more @names" },
 		{ name: "labels", type: "Comma-separated strings", description: "Task labels" },
 		{ name: "priority", type: choiceType(["high", "medium", "low"]), description: "Task priority" },
@@ -1565,7 +1558,6 @@ addHelpSchema(taskCmd.command("create [title]"), {
 	.option("-d, --description <text>", "task description (multi-line: include real newlines inside the quoted string)")
 	.option("--desc <text>", "alias for --description")
 	.option("-a, --assignee <assignee>")
-	.option("-s, --status <status>")
 	.option("--pipeline <id>", "engine pipeline id (defaults to authoring)")
 	.option("--phase <phase>", "engine phase; status is derived from phase (defaults to draft)")
 	.option("-l, --labels <labels>")
@@ -1658,11 +1650,13 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		const usePlainOutput = isPlainRequested(options);
 		let ordinalValue: number | undefined;
 
-		// Default a bare `task create` (no --pipeline/--phase/--status/--draft) to
+		// Default a bare `task create` (no --pipeline/--phase/--draft) to
 		// authoring/draft — canonical born-in-authoring, replacing the legacy
 		// "Basic: Proposal" default (docs/task-lifecycle-model.md §4.1, BACK-655).
+		// Status is a derived display projection (BACK-664 child 1) — there is no
+		// standalone --status write flag to check here anymore.
 		const hasExplicitLifecycleInput = Boolean(
-			options.pipeline !== undefined || options.phase !== undefined || options.status !== undefined || createAsDraft,
+			options.pipeline !== undefined || options.phase !== undefined || createAsDraft,
 		);
 		const pipelineId = options.pipeline
 			? String(options.pipeline)
@@ -1688,7 +1682,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 			const { task, filePath } = await core.createTaskFromInput({
 				title: title ?? "",
 				description: options.description || options.desc ? String(options.description || options.desc) : undefined,
-				status: createAsDraft ? "Draft" : options.status ? String(options.status) : undefined,
+				status: createAsDraft ? "Draft" : undefined,
 				pipeline_id: pipelineId,
 				phase: phaseValue,
 				assignee: options.assignee ? [String(options.assignee)] : undefined,
@@ -2060,7 +2054,7 @@ addHelpSchema(taskCmd.command("list"), {
 	],
 })
 	.description("list tasks grouped by status")
-	.option("-s, --status <status>", "filter tasks by status (case-insensitive)")
+	.option("--status <status>", "filter tasks by status (case-insensitive)")
 	.option("-a, --assignee <assignee>", "filter tasks by assignee")
 	.option("-m, --milestone <milestone>", "filter tasks by milestone (closest match, case-insensitive)")
 	.option("-p, --parent <taskId>", "filter tasks by parent task ID")
@@ -2141,6 +2135,11 @@ addHelpSchema(taskCmd.command("list"), {
 				includeCrossBranch: false,
 			});
 			const config = await core.filesystem.loadConfig();
+			// Has-children indicator (BACK-664 child 1): independent of status,
+			// derived from tree position (parentTaskId) across the full query
+			// result so it doesn't depend on which page/filter a child falls into.
+			const { hasChildren } = await import("./utils/task-subtasks.ts");
+			const childMarker = (t: Task) => (hasChildren(t, tasks) ? "▸ " : "  ");
 
 			if (parentId) {
 				const parentExists = (await core.queryTasks({ includeCrossBranch: false })).some((task) =>
@@ -2195,7 +2194,7 @@ addHelpSchema(taskCmd.command("list"), {
 				for (const t of displayTasks) {
 					const priorityIndicator = t.priority ? `[${t.priority.toUpperCase()}] ` : "";
 					const statusIndicator = t.status ? ` (${t.status})` : "";
-					console.log(`  ${priorityIndicator}${t.id} - ${t.title}${statusIndicator}`);
+					console.log(`${childMarker(t)}${priorityIndicator}${t.id} - ${t.title}${statusIndicator}`);
 				}
 				cleanup();
 				return;
@@ -2227,7 +2226,7 @@ addHelpSchema(taskCmd.command("list"), {
 				console.log(`${status || "No Status"}:`);
 				list.forEach((task) => {
 					const priorityIndicator = task.priority ? `[${task.priority.toUpperCase()}] ` : "";
-					console.log(`  ${priorityIndicator}${task.id} - ${task.title}`);
+					console.log(`${childMarker(task)}${priorityIndicator}${task.id} - ${task.title}`);
 				});
 				console.log();
 			}
@@ -2374,7 +2373,6 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 	optional: [
 		{ name: "title", type: "String", description: "Replacement task title" },
 		{ name: "description", type: "Markdown", description: "Replacement description" },
-		{ name: "status", type: statusType, description: "Project task status; case-insensitive" },
 		{ name: "plan", type: "Markdown", description: "Replacement implementation plan" },
 		{ name: "notes", type: "Markdown", description: "Replacement implementation notes" },
 		{ name: "comment", type: "Markdown", description: "Append a discussion comment" },
@@ -2383,17 +2381,13 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 	],
 	writes: "Updates task metadata and structured task sections through Backlog.md",
 	output: "Updated task details; use --plain for text output",
-	examples: [
-		'backlog task edit {{TASK_ID:1}} --status "<active status>" -a @sara',
-		"backlog task edit {{TASK_ID:1}} --check-ac 1",
-	],
+	examples: ["backlog task edit {{TASK_ID:1}} -a @sara", "backlog task edit {{TASK_ID:1}} --check-ac 1"],
 })
 	.description("edit an existing task")
 	.option("-t, --title <title>")
 	.option("-d, --description <text>", "task description (multi-line: include real newlines inside the quoted string)")
 	.option("--desc <text>", "alias for --description")
 	.option("-a, --assignee <assignee>")
-	.option("-s, --status <status>")
 	.option("-l, --label <labels>")
 	.option("--priority <priority>", "set task priority (high, medium, low)")
 	.option("--ordinal <number>", "set task ordinal for custom ordering")
@@ -2558,20 +2552,6 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 			return;
 		}
 
-		let canonicalStatus: string | undefined;
-		if (options.status) {
-			const canonical = await getCanonicalStatus(String(options.status), core);
-			if (!canonical) {
-				const configuredStatuses = await getValidStatuses(core);
-				console.error(
-					`Invalid status: ${options.status}. Valid statuses are: ${formatValidStatuses(configuredStatuses)}`,
-				);
-				process.exitCode = 1;
-				return;
-			}
-			canonicalStatus = canonical;
-		}
-
 		let normalizedPriority: "high" | "medium" | "low" | undefined;
 		if (options.priority) {
 			const priority = String(options.priority).toLowerCase();
@@ -2673,9 +2653,6 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 		const descriptionOption = options.description ?? options.desc;
 		if (descriptionOption !== undefined) {
 			editArgs.description = String(descriptionOption);
-		}
-		if (canonicalStatus) {
-			editArgs.status = canonicalStatus;
 		}
 		if (normalizedPriority) {
 			editArgs.priority = normalizedPriority;
@@ -3091,7 +3068,6 @@ draftCmd
 	.option("-d, --description <text>", "task description (multi-line: include real newlines inside the quoted string)")
 	.option("--desc <text>", "alias for --description")
 	.option("-a, --assignee <assignee>")
-	.option("-s, --status <status>")
 	.option("-l, --labels <labels>")
 	.action(async (title: string, options) => {
 		const cwd = await requireProjectRoot();
@@ -3779,7 +3755,7 @@ const decisionCmd = program.command("decision");
 
 decisionCmd
 	.command("create <title>")
-	.option("-s, --status <status>")
+	.option("--status <status>", "decision status (proposed, accepted, rejected, superseded)")
 	.action(async (title: string, options) => {
 		const cwd = await requireProjectRoot();
 		const core = new Core(cwd);
@@ -4783,13 +4759,23 @@ engineCmd
 				return;
 			}
 
-			if (task.status !== "Basic: Backlog" && task.status !== "Epic: Backlog") {
+			// Backlog boundary: the phase-only projection (BACK-664 child 1) means a
+			// newly created task's `status` is just "Backlog" (no role prefix), so the
+			// structural (pipeline_id, phase) pair is the primary check; the legacy
+			// "Basic: Backlog"/"Epic: Backlog" strings are kept as a fallback for
+			// tasks whose status was persisted before the phase-only migration.
+			const atBacklogBoundary =
+				(task.pipeline_id === "authoring" && task.phase === "backlog") ||
+				task.status === "Basic: Backlog" ||
+				task.status === "Epic: Backlog";
+			if (!atBacklogBoundary) {
 				console.error(`engine promote: ${id} is at status "${task.status}", must be at Backlog to promote`);
 				process.exitCode = 1;
 				return;
 			}
 
-			const isEpic = task.status === "Epic: Backlog";
+			const isEpic =
+				task.role === "compound" || task.status === "Epic: Backlog" || (task.labels ?? []).includes("kind:epic");
 			const phase = isEpic ? "decomposing" : "ready";
 			await store.updateTask({
 				...task,

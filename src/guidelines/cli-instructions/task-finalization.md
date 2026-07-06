@@ -14,11 +14,10 @@ Use this guide when implementation is complete and you are ready to hand off the
    - `backlog task edit {{TASK_ID:123}} --append-notes "Validation passed: bun test ..."`
 5. Write a concise final summary:
    - `backlog task edit {{TASK_ID:123}} --final-summary "Changed X, verified with Y."`
-6. Mark the task with the configured terminal status:
-   - Inspect accepted statuses if needed: `backlog task edit {{TASK_ID:123}} --help`
-   - `backlog task edit {{TASK_ID:123}} -s "<terminal status>"`
+6. Mark the task done or needing human review (status reflects phase automatically and is not set directly):
+   - `backlog task edit {{TASK_ID:123}} --phase done` (or `--phase needs-human` if human review is required)
 
-Tasks in the terminal status stay there until periodic cleanup moves them to completed. Do not archive completed work.
+Tasks in the terminal phase stay there until periodic cleanup moves them to completed. Do not archive completed work.
 
 ### Definition of Done Checklist
 
