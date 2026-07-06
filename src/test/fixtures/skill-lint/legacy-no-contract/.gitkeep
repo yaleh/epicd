@@ -1,0 +1,4 @@
+Fixture: a skill directory with no contract.json — used to test skill-lint.sh's
+graceful-skip (--all mode) vs hard-fail (single-skill mode) behavior for
+pre-existing/non-participating skills. This file only exists to keep the empty
+directory tracked by git.

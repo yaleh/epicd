@@ -1,0 +1,6 @@
+{
+	"skill": "fixture-extract-unresolvable",
+	"phase": "execution/ready",
+	"creation_path": "extract",
+	"provenance": "docs/research/does-not-exist-experiment.md"
+}

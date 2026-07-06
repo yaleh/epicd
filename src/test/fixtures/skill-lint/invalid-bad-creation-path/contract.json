@@ -1,0 +1,6 @@
+{
+	"skill": "fixture-bad-creation-path",
+	"phase": "execution/ready",
+	"creation_path": "handwritten",
+	"provenance": "docs/task-lifecycle-model.md"
+}
