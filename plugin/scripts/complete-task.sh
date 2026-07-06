@@ -51,10 +51,17 @@ if [ -f "$ACTIVE_FILE" ]; then
 fi
 
 # ── pre-merge independent DoD re-verify (only when agent signalled done + worktree live) ─
+# BACK-654: re-runs the STRUCTURED "DoD Gates:" section (task.dod[].text, via
+# buildDodGateLines in src/formatters/task-plain-text.ts) — NOT the human-facing
+# "Definition of Done:" prose checklist. The prose section is never valid shell
+# and must never be executed (that was the BACK-654 root cause: this script used
+# to awk-scan the prose section and execute it as literal shell commands).
 if [ "$SIGNAL_CONTENT" = "done" ] && [ -n "$WT_PATH" ] && [ -d "$WT_PATH" ]; then
   dod_n=0
+  gates_found=0
   while IFS= read -r dod_line; do
-    dod_cmd="$(printf '%s' "$dod_line" | sed 's/^- \[.\] #[0-9]* //')"
+    gates_found=$((gates_found + 1))
+    dod_cmd="$(printf '%s' "$dod_line" | sed 's/^- #[0-9]* //')"
     [ -z "$dod_cmd" ] && continue
     dod_out="$(cd "$WT_PATH" && bash -c "$dod_cmd" 2>&1)" || {
       backlog task edit "$TASK_ID" \
@@ -66,7 +73,13 @@ $(printf '%s\n' "$dod_out" | head -5)"
     backlog task edit "$TASK_ID" \
       --append-notes "workerLoop DoD #${dod_n}: PASS — ${dod_cmd}" >/dev/null 2>&1 || true
     dod_n=$((dod_n + 1))
-  done < <(printf '%s\n' "$TASK_VIEW" | awk '/^Definition of Done:/{found=1;next} found && /^[A-Z]/{found=0} found && /^- \[.\] #[0-9]/' | grep -oP '^- \[.\] #\d+ .+')
+  done < <(printf '%s\n' "$TASK_VIEW" | awk '/^DoD Gates:/{found=1;next} found && /^[A-Z]/{found=0} found && /^- #[0-9]/' | grep -oP '^- #\d+ .+')
+
+  # BACK-654: no structured gates declared -> never auto-merge (mirrors
+  # dod-runner.ts's "no dod -> completeTask always routes needs-human" semantics).
+  if [ "$SIGNAL_CONTENT" = "done" ] && [ "$gates_found" -eq 0 ]; then
+    SIGNAL_CONTENT="needs-human: no structured DoD gates found for ${TASK_ID}"
+  fi
 fi
 
 # ── Steps 8-9: merge OR escalate (merge-serialised) ──────────────────────────

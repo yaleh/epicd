@@ -36,6 +36,19 @@ export function buildDefinitionOfDoneItems(task: Task): ChecklistItem[] {
 	return buildChecklistItems(task.definitionOfDoneItems);
 }
 
+/**
+ * Renders the STRUCTURED, machine-executed `task.dod[].text` gates (BACK-613)
+ * as plain-text lines — distinct in format from the prose `- [ ] #N` checklist
+ * lines (no checkbox prefix) so callers that parse this output (e.g.
+ * plugin/scripts/complete-task.sh's pre-merge DoD re-verify, BACK-654) can
+ * anchor on a machine-parseable section instead of accidentally scanning the
+ * human-facing "Definition of Done:" prose and executing it as shell.
+ */
+export function buildDodGateLines(task: Task): string[] {
+	const gates = task.dod ?? [];
+	return gates.map((gate, index) => `- #${index + 1} ${gate.text}`);
+}
+
 export function formatAcceptanceCriteriaLines(items: ChecklistItem[]): string[] {
 	if (items.length === 0) return [];
 	return items.map((item) => {
@@ -174,6 +187,16 @@ export function formatTaskPlainText(task: Task, options: TaskPlainTextOptions = 
 		lines.push(...formatAcceptanceCriteriaLines(definitionItems));
 	} else {
 		lines.push("No Definition of Done items defined");
+	}
+	lines.push("");
+
+	lines.push("DoD Gates:");
+	lines.push("-".repeat(50));
+	const dodGateLines = buildDodGateLines(task);
+	if (dodGateLines.length > 0) {
+		lines.push(...dodGateLines);
+	} else {
+		lines.push("No DoD gates defined");
 	}
 	lines.push("");
 
