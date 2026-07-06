@@ -50,14 +50,14 @@ describe("makeDecomposer (integration, real Core)", () => {
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-decompose-test");
 
-		// Children are created with the engine-derived "Basic: Ready" status
+		// Children are created with the engine-derived "Ready" status
 		// (label("primitive", "ready")) — add it to the configured statuses
 		// (mirroring this repo's own board, backlog/config.yml) so
 		// createTaskFromInput's canonical-status validation accepts it,
 		// alongside the default vocabulary createEpic's "To Do" needs.
 		const config = await core.filesystem.loadConfig();
 		if (config) {
-			config.statuses = [...(config.statuses ?? []), "Basic: Ready"];
+			config.statuses = [...(config.statuses ?? []), "Ready"];
 			await core.filesystem.saveConfig(config);
 		}
 	});
@@ -476,7 +476,7 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-decompose-default-board-test");
 		// No config.statuses patch here — this is the regression case from finding #2:
-		// a board that never declares "Basic: Ready" must not fail child creation.
+		// a board that never declares "Ready" must not fail child creation.
 
 		const epic = await createEpic(core, "Epic on default board");
 		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
@@ -486,8 +486,8 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
 		expect(children.length).toBe(2);
 		for (const child of children) {
-			expect(child.status).toBe("Basic: Ready");
-			expect(displayStatus(child)).toBe("Basic: Ready");
+			expect(child.status).toBe("Ready");
+			expect(displayStatus(child)).toBe("Ready");
 		}
 	});
 
@@ -497,10 +497,10 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		await initializeTestProject(core, "engine-decompose-custom-casing-test");
 
 		// A board that declares off-title-case vocabulary for the "ready" phase
-		// (role prefix "Basic"/"Epic" is fixed by label(); only the phase casing varies).
+		// (status is phase-only now — no role prefix; only the phase casing varies).
 		const config = await core.filesystem.loadConfig();
 		if (config) {
-			config.statuses = [...(config.statuses ?? []), "Basic: READY"];
+			config.statuses = [...(config.statuses ?? []), "READY"];
 			await core.filesystem.saveConfig(config);
 		}
 
@@ -512,7 +512,7 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
 		expect(children.length).toBe(2);
 		for (const child of children) {
-			expect(child.status).toBe("Basic: READY");
+			expect(child.status).toBe("READY");
 		}
 	});
 });

@@ -34,19 +34,19 @@ describe("handle-basic-ready.sh — claim preserves engine structural fields (BA
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "handle-basic-ready-claim-test");
 
-		// handle-basic-ready.sh claims via the "Basic: ..." pipeline statuses
-		// used by this repo's own board (backlog/config.yml) — mirror that
-		// here so the claim's status transition is valid.
+		// handle-basic-ready.sh claims via the engine's phase-derived statuses
+		// (BACK-664 child 1: status is a bare phase projection) used by this
+		// repo's own board (backlog/config.yml) — mirror that here.
 		const config = await core.filesystem.loadConfig();
 		if (config) {
-			config.statuses = ["Basic: Proposal", "Basic: In Progress", "Basic: Done"];
+			config.statuses = ["Ready", "In Progress", "Done"];
 			await core.filesystem.saveConfig(config);
 		}
 
 		const { task } = await core.createTaskFromInput(
 			{
 				title: "Claim preserves structural fields",
-				status: "Basic: Proposal",
+				status: "Ready",
 				dodGates: ["true", "bunx tsc --noEmit"],
 			},
 			false,
@@ -71,7 +71,7 @@ describe("handle-basic-ready.sh — claim preserves engine structural fields (BA
 		await rm(projectRoot, { recursive: true, force: true }).catch(() => {});
 	});
 
-	it("preserves pipeline_id/phase/parent_id/dod after claim; only status/assignee/notes change", async () => {
+	it("preserves pipeline_id/phase/parent_id/dod/status after claim; only notes change", async () => {
 		// Read directly off disk (not through Core's cached ContentStore) so we
 		// see the real file the script wrote, not a stale in-memory snapshot.
 		const before = await core.filesystem.loadTask(taskId);
@@ -101,7 +101,9 @@ describe("handle-basic-ready.sh — claim preserves engine structural fields (BA
 		expect(after?.parent_id).toBe(before?.parent_id);
 		expect(after?.dod).toEqual(before?.dod);
 
-		// The claim itself is expected to have taken effect.
-		expect(after?.status).toBe("Basic: In Progress");
+		// The claim script no longer writes --status (BACK-664 child 1: status is
+		// a pure phase projection, "In Progress" is not a persisted concept —
+		// the claim is recorded via --append-notes instead, so status is unchanged).
+		expect(after?.status).toBe(before?.status);
 	});
 });

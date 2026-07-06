@@ -20,7 +20,7 @@ import {
 	computeDriverIndicator,
 	getPhaseActor,
 } from "../lib/driver-indicator";
-import { buildLanes, groupTasksByLaneAndStatus, groupTasksByPhase, type LaneMode } from "../lib/lanes";
+import { buildLanes, groupTasksByLaneAndStatus, groupTasksByPhase, hasChildren, type LaneMode } from "../lib/lanes";
 import { getStatusBadgeClass } from "../lib/status-label";
 import {
 	canShowGateActions,
@@ -643,6 +643,9 @@ const TaskList: React.FC<TaskListProps> = ({
 		const actor = getPhaseActor(task.pipeline_id, task.phase);
 		const claimState: ClaimState = claimStates[task.id] ?? "unclaimed";
 		const driverIndicator = computeDriverIndicator(actor, claimState);
+		// Has-children indicator (BACK-664 child 1): independent of status, never
+		// concatenated into it — derived purely from tree position.
+		const taskHasChildren = hasChildren(task, tasks);
 
 		return (
 			<tr
@@ -663,6 +666,15 @@ const TaskList: React.FC<TaskListProps> = ({
 								aria-label={DRIVER_INDICATOR_LABEL[driverIndicator]}
 							>
 								{DRIVER_INDICATOR_ICON[driverIndicator]}
+							</span>
+						)}
+						{taskHasChildren && (
+							<span
+								className="shrink-0 text-[13px] leading-none text-gray-400 dark:text-gray-500"
+								title="Has subtasks"
+								aria-label="Has subtasks"
+							>
+								▸
 							</span>
 						)}
 						{task.id}

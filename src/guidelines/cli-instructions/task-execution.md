@@ -8,9 +8,8 @@ Before writing code for non-trivial work:
 
 1. Read the task:
    - `backlog task view {{TASK_ID:123}} --plain`
-2. Mark it in progress and assign yourself:
-   - Inspect accepted statuses if needed: `backlog task edit {{TASK_ID:123}} --help`
-   - `backlog task edit {{TASK_ID:123}} -s "<active status>" -a @your-name`
+2. Assign yourself (status reflects the task's phase automatically and is not set directly):
+   - `backlog task edit {{TASK_ID:123}} -a @your-name`
 3. Review description, acceptance criteria, dependencies, references, and documentation.
 4. Inspect relevant code and tests.
 5. Draft an implementation plan.

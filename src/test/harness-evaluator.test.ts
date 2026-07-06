@@ -88,7 +88,7 @@ describe("evaluateEpic", () => {
 
 		const reloaded = await core.getTask(epic.id);
 		expect(reloaded?.phase).toBe("done");
-		expect(displayStatus(reloaded as Task)).toBe("Epic: Done");
+		expect(displayStatus(reloaded as Task)).toBe("Done");
 	});
 
 	it("sets the epic to needs-human when any child is needs-human", async () => {
@@ -100,7 +100,7 @@ describe("evaluateEpic", () => {
 
 		const reloaded = await core.getTask(epic.id);
 		expect(reloaded?.phase).toBe("needs-human");
-		expect(displayStatus(reloaded as Task)).toBe("Epic: Needs Human");
+		expect(displayStatus(reloaded as Task)).toBe("Needs Human");
 	});
 
 	it("throws for an unknown epic id", async () => {

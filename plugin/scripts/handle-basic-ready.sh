@@ -46,10 +46,13 @@ flock -n 9 || { echo "[handle-basic-ready] lock held for $TASK_ID — another wo
 release_lock() { flock -u 9 2>/dev/null || true; rm -f "$LOCK_FILE"; }
 trap 'release_lock; git -C "$REPO_ROOT" worktree remove "$WT_PATH" --force 2>/dev/null || true' EXIT
 
-# Step 2: status → In Progress + cap marker. Clear any stale completion signal FIRST
+# Step 2: claim marker + cap marker. Clear any stale completion signal FIRST
 # so a leftover .agent-done-TASK from a prior run cannot cause a false-done merge.
+# "In Progress" is a claim/runtime concept, never a persisted status (status is a
+# pure phase projection, BACK-664 child 1) — the append-notes timestamp below IS
+# the claim record.
 rm -f "$SIGNAL_FILE"
-(cd "$REPO_ROOT" && $CLI_CMD task edit "$TASK_ID" --status "Basic: In Progress" \
+(cd "$REPO_ROOT" && $CLI_CMD task edit "$TASK_ID" \
   --append-notes "claimed: $(date -u +%Y-%m-%dT%H:%M:%SZ)") 2>/dev/null || true
 printf 'cap:claim=started\n' >> "${CAPS_DIR}/${TASK_ID}"
 

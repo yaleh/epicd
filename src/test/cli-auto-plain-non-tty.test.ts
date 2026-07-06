@@ -81,7 +81,7 @@ describe("CLI auto-plain behavior in non-TTY runs", () => {
 
 	test("task edit preserves legacy concise output without --plain", async () => {
 		// CLI-CONTRACT: verifies legacy concise edit output format ("Updated task TASK-X") without --plain in non-TTY
-		const result = await $`bun ${CLI_PATH} task edit 1 -s "In Progress"`.cwd(TEST_DIR).quiet();
+		const result = await $`bun ${CLI_PATH} task edit 1 -a "@sara"`.cwd(TEST_DIR).quiet();
 		expect(result.exitCode).toBe(0);
 		expect(result.stdout.toString()).toContain("Updated task TASK-1");
 	});

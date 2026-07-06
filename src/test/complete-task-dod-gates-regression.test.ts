@@ -60,7 +60,7 @@ async function createReadyTask(core: Core, title: string, opts: { dodGates: stri
 	const { task } = await core.createTaskFromInput(
 		{
 			title,
-			status: "Basic: Proposal",
+			status: "Ready",
 			dodGates: opts.dodGates,
 			definitionOfDoneAdd: opts.proseDoD,
 			disableDefinitionOfDoneDefaults: true,
@@ -135,12 +135,13 @@ describe("BACK-654 regression: complete-task.sh vs structured task.dod gates", (
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "back654-regression-test");
 
-		// handle-basic-ready.sh / complete-task.sh transition through the
-		// "Basic: ..." pipeline statuses used by this repo's own board
-		// (backlog/config.yml) — mirror that here so the transitions are valid.
+		// handle-basic-ready.sh / complete-task.sh transition through the engine's
+		// phase-derived statuses (BACK-664 child 1: status is a bare phase
+		// projection, no "Basic:"/"Epic:" prefix) — mirror that here so the
+		// transitions are valid.
 		const config = await core.filesystem.loadConfig();
 		if (config) {
-			config.statuses = ["Basic: Proposal", "Basic: In Progress", "Basic: Done", "Basic: Needs Human"];
+			config.statuses = ["Ready", "In Progress", "Done", "Needs Human"];
 			await core.filesystem.saveConfig(config);
 		}
 
@@ -164,7 +165,7 @@ describe("BACK-654 regression: complete-task.sh vs structured task.dod gates", (
 	// handle-basic-ready.sh, complete-task.sh) in sequence; under heavy
 	// `bun test --parallel` contention that can comfortably exceed the default
 	// per-test timeout, so both use a generous explicit timeout.
-	it("structured dod gates all pass but prose DoD is not valid shell -> merges (Basic: Done), does not escalate", async () => {
+	it("structured dod gates all pass but prose DoD is not valid shell -> merges (Done), does not escalate", async () => {
 		const task = await createReadyTask(core, "BACK-654 sample: passing structured gate", {
 			dodGates: ["true"],
 			proseDoD: ["bun test (or scoped test) passes"],
@@ -180,7 +181,7 @@ describe("BACK-654 regression: complete-task.sh vs structured task.dod gates", (
 		expect(result.exitCode).toBe(0);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.status).toBe("Basic: Done");
+		expect(updated?.status).toBe("Done");
 
 		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
 		expect(log).toContain(`work for ${task.id}`);
@@ -203,7 +204,7 @@ describe("BACK-654 regression: complete-task.sh vs structured task.dod gates", (
 		expect(result.exitCode).toBe(0);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.status).toBe("Basic: Needs Human");
+		expect(updated?.status).toBe("Needs Human");
 
 		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
 		expect(log).not.toContain(`work for ${task.id}`);

@@ -61,7 +61,7 @@ describe("command help input schemas", () => {
 
 		expect(createHelp).toContain("title: String");
 		expect(createHelp).toContain("description: Markdown");
-		expect(createHelp).toContain("status: one of configured statuses: Draft, To Do, In Progress, Done");
+		expect(createHelp).not.toContain("status:");
 		expect(createHelp).toContain("priority: one of: high, medium, low");
 		expect(createHelp).toContain("ordinal: Integer");
 		expect(listHelp).toContain("status: one of configured statuses: To Do, In Progress, Done");
@@ -73,8 +73,7 @@ describe("command help input schemas", () => {
 		expect(listHelp).toContain("sort: one of: priority, id");
 		expect(listHelp).toContain('backlog task list --labels frontend,bug --search "login" --limit 10 --plain');
 		expect(editHelp).toContain("taskId: Task ID");
-		expect(editHelp).toContain("status: one of configured statuses: To Do, In Progress, Done");
-		expect(editHelp).not.toContain("status: one of configured statuses: Draft, To Do, In Progress, Done");
+		expect(editHelp).not.toContain("status:");
 		expect(editHelp).toContain("plan: Markdown");
 		expect(editHelp).toContain("Writes:");
 		expect(completeHelp).toContain("cleanup procedure");
@@ -104,11 +103,11 @@ describe("command help input schemas", () => {
 			$`bun ${CLI_PATH} task edit --help`.cwd(TEST_DIR).env(env).text(),
 		]);
 
-		expect(createHelp).toContain("status: one of configured statuses: Draft, Ready, Review, Closed");
+		expect(createHelp).not.toContain("status:");
 		expect(listHelp).toContain("status: one of configured statuses: Ready, Review, Closed");
 		expect(searchHelp).toContain("status: one of configured statuses: Ready, Review, Closed");
-		expect(editHelp).toContain("status: one of configured statuses: Ready, Review, Closed");
-		for (const output of [listHelp, searchHelp, editHelp]) {
+		expect(editHelp).not.toContain("status:");
+		for (const output of [listHelp, searchHelp]) {
 			expect(output).not.toContain("status: one of configured statuses: Draft, Ready, Review, Closed");
 		}
 	}, 15000);

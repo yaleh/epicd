@@ -3,8 +3,10 @@
 # Called by the worker after the background Agent writes its signal file:
 #   1. read + clear the signal (and drop the .active-agents entry)
 #   2. independently re-verify every DoD shell-gate inside the worktree (pre-merge guard)
-#   3. on done: git merge --no-ff → Basic: Done + cap:execute=done + notifyParent + worktree/branch cleanup
-#      on failure/conflict/escalation: Basic: Needs Human + the matching cap: marker
+#   3. on done: git merge --no-ff → phase=done + cap:execute=done + notifyParent + worktree/branch cleanup
+#      on failure/conflict/escalation: phase=needs-human + the matching cap: marker
+# Status is a pure phase projection (BACK-664 child 1): this script sets --phase,
+# never --status, and the human-facing status string is derived automatically.
 # Behavior-equivalent port of the old SKILL.md merge pseudocode. Merge-serialised via
 # backlog/.merge-lock so a /clear mid-merge cannot leave a half-merged main worktree.
 #
@@ -92,7 +94,7 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
   if git merge --no-ff "$BRANCH" -m "merge: ${TITLE} (${TASK_ID})"; then
     # guard: MERGE_HEAD / unmerged files present → never mark Done
     if [ -f ".git/MERGE_HEAD" ] || [ -n "$(git diff --name-only --diff-filter=U)" ]; then
-      backlog task edit "$TASK_ID" --status "Basic: Needs Human" \
+      backlog task edit "$TASK_ID" --phase needs-human \
         --append-notes "Merge guard: MERGE_HEAD/unmerged files present — worktree preserved." \
         >/dev/null 2>&1 || true
       printf 'cap:merge=failed %s\n' "$(now_iso)" >> "$CAP_FILE"
@@ -108,7 +110,7 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
         --append-notes "WARNING: agent-summary missing for ${TASK_ID} — execution trace unavailable" \
         >/dev/null 2>&1 || true
     fi
-    backlog task edit "$TASK_ID" --status "Basic: Done" \
+    backlog task edit "$TASK_ID" --phase done \
       --append-notes "Completed: $(now_iso)" >/dev/null 2>&1 || true
     printf 'cap:execute=done %s\n' "$(now_iso)" >> "$CAP_FILE"
     # notifyParent (parent_task_id in task frontmatter)
@@ -121,10 +123,10 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
       git worktree remove "$WT_PATH" 2>/dev/null || true
     fi
     git branch -d "$BRANCH" 2>/dev/null || true
-    echo "[complete-task] $TASK_ID → Basic: Done"
+    echo "[complete-task] $TASK_ID → Done"
   else
     # merge conflict
-    backlog task edit "$TASK_ID" --status "Basic: Needs Human" \
+    backlog task edit "$TASK_ID" --phase needs-human \
       --append-notes "Merge conflict: $(now_iso)" >/dev/null 2>&1 || true
     printf 'cap:merge=failed %s\n' "$(now_iso)" >> "$CAP_FILE"
     echo "[complete-task] $TASK_ID merge conflict — Needs Human (worktree preserved)"
@@ -132,9 +134,9 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
 else
   # agent escalated, or pre-merge DoD failed
   reason="$(printf '%s' "$SIGNAL_CONTENT" | sed 's/^needs-human: //')"
-  backlog task edit "$TASK_ID" --status "Basic: Needs Human" \
+  backlog task edit "$TASK_ID" --phase needs-human \
     --append-notes "Escalated: ${reason}
-To continue: answer in Implementation Notes, then set status → Basic: Ready." \
+To continue: answer in Implementation Notes, then set --phase ready." \
     >/dev/null 2>&1 || true
   printf 'cap:execute=failed %s\n' "$(now_iso)" >> "$CAP_FILE"
   echo "[complete-task] $TASK_ID escalated — Needs Human"

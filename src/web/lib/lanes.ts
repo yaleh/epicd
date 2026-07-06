@@ -255,6 +255,22 @@ function sortTasksByPriority(tasks: Task[]): Task[] {
 	});
 }
 
+/**
+ * Independent has-children indicator (BACK-664 child 1 / BACK-665 AC#3):
+ * whether a task has any children, derived purely from tree position
+ * (`parentTaskId`), never concatenated into the status display string.
+ *
+ * A web-local reimplementation of `utils/task-subtasks.ts`'s `hasChildren` —
+ * that module imports `utils/task-path.ts`, which imports `core/backlog.ts`
+ * (Core), so importing it from a browser bundle drags in Bun/Node-only
+ * modules and breaks the web build. Task IDs served by the API are already
+ * canonical, so a case-insensitive string comparison is sufficient here.
+ */
+export function hasChildren(task: Task, tasks: Task[]): boolean {
+	const id = task.id.trim().toLowerCase();
+	return tasks.some((candidate) => (candidate.parentTaskId ?? "").trim().toLowerCase() === id);
+}
+
 export const NO_PHASE_KEY = "__none";
 export const NO_PHASE_LABEL = "No phase";
 

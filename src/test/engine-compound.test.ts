@@ -144,7 +144,7 @@ describe("Driver compound branch", () => {
 
 		const epic2 = all().find((t) => t.id === "epic-2") as Task;
 		expect(epic2.phase).toBe("needs-human");
-		expect(displayStatus(epic2)).toBe("Epic: Needs Human");
+		expect(displayStatus(epic2)).toBe("Needs Human");
 	});
 
 	it("compound task in decomposing phase calls decompose handler", async () => {

@@ -9,6 +9,8 @@ import MermaidMarkdown from './MermaidMarkdown';
 import ChipInput from "./ChipInput";
 import DependencyInput from "./DependencyInput";
 import { formatStoredUtcDateForDisplay } from "../utils/date-display";
+import { getStatusBadgeClass } from "../lib/status-label";
+import { hasChildren } from "../lib/lanes";
 
 interface Props {
   task?: Task; // Optional for create mode
@@ -1095,10 +1097,22 @@ export const TaskDetailsModal: React.FC<Props> = ({
             </div>
           )}
 
-          {/* Status */}
+          {/* Status (read-only: a phase-derived projection, never set directly — BACK-664 child 1) */}
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
             <SectionHeader title="Status" />
-            <StatusSelect current={status} onChange={(val) => handleInlineMetaUpdate({ status: val })} disabled={isFromOtherBranch} />
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`inline-flex rounded-circle px-2 py-0.5 text-xs font-medium ${getStatusBadgeClass(status, task?.phase, task?.pipeline_id)}`}
+              >
+                {status}
+              </span>
+              {/* Has-children indicator: independent of status, never concatenated into it (BACK-664 child 1) */}
+              {task && hasChildren(task, availableTasks) && (
+                <span className="inline-flex items-center rounded-circle px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                  Has subtasks
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Assignee */}
@@ -1198,25 +1212,6 @@ export const TaskDetailsModal: React.FC<Props> = ({
         </div>
       </div>
     </Modal>
-  );
-};
-
-const StatusSelect: React.FC<{ current: string; onChange: (v: string) => void; disabled?: boolean }> = ({ current, onChange, disabled }) => {
-  const [statuses, setStatuses] = useState<string[]>([]);
-  useEffect(() => {
-    apiClient.fetchStatuses().then(setStatuses).catch(() => setStatuses(["To Do", "In Progress", "Done"]));
-  }, []);
-  return (
-    <select
-      className={`w-full h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-      value={current}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-    >
-      {statuses.map((s) => (
-        <option key={s} value={s}>{s}</option>
-      ))}
-    </select>
   );
 };
 
