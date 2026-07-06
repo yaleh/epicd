@@ -1,0 +1,6 @@
+{
+	"skill": "fixture-extract",
+	"phase": "execution/ready",
+	"creation_path": "extract",
+	"provenance": "docs/task-lifecycle-model.md"
+}
