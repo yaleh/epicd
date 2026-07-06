@@ -5,7 +5,7 @@ status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 14:00'
-updated_date: '2026-07-06 14:43'
+updated_date: '2026-07-06 17:01'
 labels:
   - 'kind:basic'
 dependencies: []
@@ -43,4 +43,6 @@ role 100% 由 roleOf(tree) 派生（BACK-643 已使 pre-decompose epic 通过 ki
 Merged to main (fast-forward, f2e1849). role: field fully removed from Task type, field-registry, engine-fields-backfill, and all 89 task files that had it. roleOf() now purely tree/kind:epic-label derived. no-persisted-status-role meter check confirms 0 files with role: remaining (status: remains, that's BACK-664 child 4). tsc clean, biome clean, full suite green modulo known parallel-load flakiness (confirmed passes in isolation).
 
 Follow-up (2026-07-06, this session): the f2e1849 commit above had branched off before BACK-657.1-4 landed and was never actually merged into main (board-state-only commit had landed instead) — 89 files still carried role: on disk. Cherry-picked f2e1849 onto main to land the real deletion; resolved this task file's own add/add conflict.
+
+2026-07-06 (续): cherry-pick 已提交 main（e4b9a33, 476d416，另修复一处 BACK-657.3 之后新增、仍写 role: 的测试）。独立验证：tsc/biome/full suite 全绿（唯一失败为已知 has-children-indicator 并行竞态，单跑通过）。grep 确认 0/102 role: 残留，field-registry 已移除 role descriptor。fixpoint meter 的 no-persisted-status-role 已拆分为 no-persisted-role（绿）与 no-persisted-status（红，待 BACK-660）。
 <!-- SECTION:NOTES:END -->

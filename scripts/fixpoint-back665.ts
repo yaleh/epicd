@@ -65,13 +65,23 @@ const machinePhases = ALL_PIPELINES.flatMap((p) =>
 
 const checks: Check[] = [
 	{
-		id: "no-persisted-status-role",
+		id: "no-persisted-role",
 		ac: "AC1/AC2",
-		owner: "BACK-664 (del role field / del status field)",
+		owner: "BACK-664.2 (del role field) — monitor-free, delivered",
 		run: () => {
 			const files = readdirSync(TASKS_DIR).filter((f) => f.endsWith(".md"));
-			const bad = files.filter((f) => /^(status|role):/m.test(frontmatter(join(TASKS_DIR, f))));
-			return { pass: bad.length === 0, detail: `${bad.length}/${files.length} task files still persist status:/role:` };
+			const bad = files.filter((f) => /^role:/m.test(frontmatter(join(TASKS_DIR, f))));
+			return { pass: bad.length === 0, detail: `${bad.length}/${files.length} task files still persist role:` };
+		},
+	},
+	{
+		id: "no-persisted-status",
+		ac: "AC1/AC2",
+		owner: "BACK-664 (del status field) — monitor-gated, blocked on BACK-660",
+		run: () => {
+			const files = readdirSync(TASKS_DIR).filter((f) => f.endsWith(".md"));
+			const bad = files.filter((f) => /^status:/m.test(frontmatter(join(TASKS_DIR, f))));
+			return { pass: bad.length === 0, detail: `${bad.length}/${files.length} task files still persist status:` };
 		},
 	},
 	{

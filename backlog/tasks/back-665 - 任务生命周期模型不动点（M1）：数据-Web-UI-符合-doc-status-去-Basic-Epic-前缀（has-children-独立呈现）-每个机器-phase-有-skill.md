@@ -7,7 +7,7 @@ status: 'Epic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 11:15'
-updated_date: '2026-07-06 12:15'
+updated_date: '2026-07-06 17:01'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -99,7 +99,7 @@ ordinal: 83000
 ## 收敛信号（单一 value function）
 
 `bun scripts/fixpoint-back665.ts`（快，结构检查）/ `--with-suite`（含全量 `bun test`）。
-当前 **0/10**。每个 check 标注它证明的 AC 与交付它的 child。10/10 且 suite 全绿 = 不动点达成。
+当前 **9/11**（role/status 拆分为两条独立 check 后）。每个 check 标注它证明的 AC 与交付它的 child。全绿且 suite 全绿 = 不动点达成。
 
 ## Sub-Task Decomposition（children，已 `--parent-id` 挂到本 epic）
 
@@ -111,9 +111,9 @@ ordinal: 83000
 
 ## Sequencing（三条轨 + 跨 child 依赖）
 
-- **轨 A｜数据/UI monitor-free（即刻启动）**：BACK-664 child1（投影 phase-only + 移编辑面）→ BACK-643 → BACK-664 child2（删 role 字段）。翻绿：projection-phase-only / no-prefix-generator / no-cli-status-edit / no-web-status-select / has-children-indicator / web-lifecycle-conformance / (role 部分) no-persisted-status-role。
+- **轨 A｜数据/UI monitor-free（即刻启动）**：BACK-664 child1（投影 phase-only + 移编辑面）→ BACK-643 → BACK-664 child2（删 role 字段）。翻绿：projection-phase-only / no-prefix-generator / no-cli-status-edit / no-web-status-select / has-children-indicator / web-lifecycle-conformance / no-persisted-role（已翻绿，BACK-664.2 已交付真实删除，2026-07-06）。
 - **轨 B｜skills（与 A 并行）**：BACK-657 child1（infra→coverage 测试）→ child2（primitive-executor）∥ child3（epic-lifecycle，evaluate 跑集成验收）∥ child4（authoring）；BACK-658（spike 实验收敛）→ 回 657 补 spike skill。翻绿：phase-skill-coverage / evaluate-runs-integration-acceptance。
-- **轨 C｜数据 monitor-gated**：BACK-660（monitor 原生运行时）→ BACK-664 child3（claim 轴）→ child4（删 status 字段）→ child5（lint）。翻绿：epicd-self-sufficient-no-baime / (status 部分) no-persisted-status-role。
+- **轨 C｜数据 monitor-gated**：BACK-660（monitor 原生运行时）→ BACK-664 child3（claim 轴）→ child4（删 status 字段）→ child5（lint）。翻绿：epicd-self-sufficient-no-baime / no-persisted-status。
 - 轨 A、B 并行即刻启动；轨 C 由 BACK-660 就绪解锁。全绿后 baime 卸载由人外部执行（出 scope）。
 
 ## 迭代执行契约（LFDD）——「同意」即按此驱动
@@ -155,4 +155,6 @@ ordinal: 83000
 
 <!-- SECTION:NOTES:BEGIN -->
 不动点 evaluate 门 = 可执行 gauge src/test/back665-fixpoint.ts，显式运行：`bun test ./src/test/back665-fixpoint.ts`（文件名不含 .test.，bare `bun test` 不收录、不打断其它任务 DoD）。现 0/8 RED，每断言映射到负责 child（IA-2/3/4/5→BACK-664、IA-6→BACK-657 c1、IA-7→BACK-660+664C、IA-eval→BACK-657 c3）。随 child 落地逐条转绿，全绿=不动点达成——这是迭代收敛信号，防「child 全绿但业务目标未达」。
+
+2026-07-06: 修正 BACK-664.2 的假 done（board 提交落地但真实删除提交 f2e1849 从未合入 main）——cherry-pick f2e1849 到 main（e4b9a33 + 476d416），role: 字段 0/102 残留，field-registry 已移除 role descriptor。将 fixpoint meter 的 no-persisted-status-role 拆分为 no-persisted-role（已绿）与 no-persisted-status（仍红，阻塞于 BACK-660）。9/11 checks green。BACK-660 按用户指示暂缓，先手动调用已交付的 phase skill 执行任务。
 <!-- SECTION:NOTES:END -->
