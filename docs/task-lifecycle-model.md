@@ -81,7 +81,21 @@ exploration spike(machine) ──▶ done(none)     // 侧track：未 authoring 
 - exploration 与 execution 靠 `provenance.spawned_from`（跨 pipeline 派生边，区别于
   `parent_id` 的 containment）连接。
 
-## 4. status 是投影，不是真值
+## 4. status / role 是投影，不落盘（L3，无妥协）
+
+**目标态（L3）**：唯一真值 = `(pipeline_id, phase)`。`status` 与 `role` **不持久化到
+task 文件**，只在渲染边界由纯函数实时算；**没有任何独立编辑面**（无 `task edit -s`、
+无 `task create -s`、web status 为只读派生 badge）；运行时「谁在动」是**独立 claim 轴**
+（`Coordinator.claims`），永不借道 status——`In Progress` 从数据模型消失。一条 CI lint
+**挡死回流**：任何 task 文件含 `status:`/`role:`、或任何代码写它们即构建失败。
+
+> **本文档定的是 L3，不是 L1「兼容缓存」。** 早先「phase 迁移时把 status 回写进
+> frontmatter 供外部 raw-`status:` 消费者使用」的 compat-cache 立场**已作废**——那只是
+> 迁移途中的临时态。删除 `status:` 的唯一前置是：**epicd 自建原生运行时（monitor 前台
+> loop + Coordinator claim + engine-native staleness reaping，全读 `phase`+claim、不读
+> status）替代掉 baime 的 `scan-loop.js` reaper**。**不改 baime**——epicd 自足后由人外部
+> 卸载 baime（对 baime 零依赖 = M1 自举方向，ADR-011 D-7-bis）。迁移序列见承载此目标的
+> epic。
 
 人看到的 `"Basic: Ready"` / `"Epic: Needs Human"` 是**派生显示串**，由单向纯函数
 产出，只存在于渲染边界：
@@ -95,9 +109,12 @@ status = label(role, phase)
   **从不解读串里的英文字**。
 - config 的 `Basic: Ready`、旧 UI 的 `To Do/In Progress/Done` 都只是投影词汇，
   **禁止反喂引擎逻辑**（三平面原则 R3）。
-- 兼容侧信道：`Core.updateTask` 在 phase 迁移时把派生 status 回写进 frontmatter，
-  供只读 raw `status:` 的外部消费者（如 baime reaper）使用；这是**单向**（phase→status），
-  status→phase 不同步。
+- **`role` 同理**：`role = roleOf(tree)`（有子节点⇒compound，否则 primitive；未分解的
+  epic 由 `kind:epic` label 声明），派生、不落盘、无编辑面。
+- **过渡期（L1，将被 L3 取代）**：当前实现仍在 phase 迁移时把派生 status 回写 frontmatter、
+  且 `role`/`status` 仍在文件里——这是迁移**途中**态，不是目标。终态是删除这两个字段、
+  移除全部写入路径与编辑 UI、并由 lint 挡死。`In Progress` 当前经 status 承载 claim，
+  终态必须移到独立 claim 轴。
 
 ### 4.1 旧扁平 status 词汇与本模型的映射
 

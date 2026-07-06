@@ -1,14 +1,18 @@
 ---
-id: DRAFT-16
+id: BACK-660
 title: monitor 前台顺序 loop 执行（取代 scan-loop push + 座席外包受限后台 Agent），解锁前台全工具/skill 调用
-status: Draft
+status: 'Basic: Draft'
 assignee: []
 created_date: '2026-07-06 07:44'
+updated_date: '2026-07-06 09:16'
 labels:
   - 'kind:feature'
   - 'area:engine'
   - 'area:runtime'
 dependencies: []
+pipeline_id: authoring
+phase: draft
+role: primitive
 ---
 
 ## Description
