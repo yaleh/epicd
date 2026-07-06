@@ -21,7 +21,7 @@ import {
 	getPhaseActor,
 } from "../lib/driver-indicator";
 import { buildLanes, groupTasksByLaneAndStatus, groupTasksByPhase, hasChildren, type LaneMode } from "../lib/lanes";
-import { getStatusBadgeClass } from "../lib/status-label";
+import { displayStatus, getStatusBadgeClass } from "../lib/status-label";
 import {
 	canShowGateActions,
 	compareTaskIdsAscending,
@@ -742,7 +742,7 @@ const TaskList: React.FC<TaskListProps> = ({
 					<span
 						className={`inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getStatusBadgeClass(task.status, task.phase, task.pipeline_id)}`}
 					>
-						{task.status}
+						{displayStatus(task, availableStatuses)}
 					</span>
 				</td>
 				<td className="px-3 py-2.5">

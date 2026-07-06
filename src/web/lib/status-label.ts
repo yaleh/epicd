@@ -1,5 +1,14 @@
+import { displayStatus } from "../../core/field-registry";
 import type { PipelineState } from "../../engine/pipeline";
 import { getPhaseActor } from "./driver-indicator";
+
+/**
+ * Re-exported so web components have one import for the phase-derived status TEXT
+ * (this file already owns the status badge COLOR via getStatusBadgeClass below).
+ * field-registry.ts is pure logic (no node:fs) — safe for the browser bundle,
+ * verified by `bun build` against this file.
+ */
+export { displayStatus };
 
 // Browser-safe (no `node:fs`): imported directly by TaskList.tsx / TaskColumn.tsx /
 // MilestonesPage.tsx.

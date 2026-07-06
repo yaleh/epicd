@@ -7,7 +7,7 @@ status: 'Epic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 11:15'
-updated_date: '2026-07-06 17:01'
+updated_date: '2026-07-06 19:10'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -157,4 +157,21 @@ ordinal: 83000
 不动点 evaluate 门 = 可执行 gauge src/test/back665-fixpoint.ts，显式运行：`bun test ./src/test/back665-fixpoint.ts`（文件名不含 .test.，bare `bun test` 不收录、不打断其它任务 DoD）。现 0/8 RED，每断言映射到负责 child（IA-2/3/4/5→BACK-664、IA-6→BACK-657 c1、IA-7→BACK-660+664C、IA-eval→BACK-657 c3）。随 child 落地逐条转绿，全绿=不动点达成——这是迭代收敛信号，防「child 全绿但业务目标未达」。
 
 2026-07-06: 修正 BACK-664.2 的假 done（board 提交落地但真实删除提交 f2e1849 从未合入 main）——cherry-pick f2e1849 到 main（e4b9a33 + 476d416），role: 字段 0/102 残留，field-registry 已移除 role descriptor。将 fixpoint meter 的 no-persisted-status-role 拆分为 no-persisted-role（已绿）与 no-persisted-status（仍红，阻塞于 BACK-660）。9/11 checks green。BACK-660 按用户指示暂缓，先手动调用已交付的 phase skill 执行任务。
+
+LFDD 迭代（浏览器扫描轮）：发现并修复根因级 bug — status-projection-phase-only 此前只在隔离环境单测 label()，从未验证真实渲染点；实际上 4 个 web 组件（TaskList.tsx/TaskDetailsModal.tsx/MilestonesPage.tsx+MilestoneTaskRow.tsx）和 src/core/statistics.ts 都直接渲染/按 raw task.status 分桶，绕过 displayStatus()，导致遗留 Basic:/Epic: 前缀在 web UI（含 Statistics 页聚合数字）持续出现，即使 BACK-664.1 曾声称已修。
+
+修复：
+- 4 个 web 组件改为调用 displayStatus(task, statuses) 渲染状态文本（颜色徽章逻辑本就是 phase-aware，未变）。
+- statistics.ts 的 getTaskStatistics 改用 displayStatus() 分桶/判定 Done/staleness/blocked-dependency，不再按 raw status 字符串比较。
+- 加固 fixpoint 检查 status-projection-phase-only：新增对 src/web/components/*.tsx 中 `{task.status}` 反模式的静态 grep（排除 Statistics.tsx 的图标用途），使其不再可被"隔离单测绿"绕过。通过 git stash 验证：还原 TaskList.tsx 后检查正确变红并报告文件路径。
+
+浏览器全页扫描验证（/, /tasks(含 done)、/board、/drafts、/milestones、/statistics、/settings，及 TaskDetailsModal 编辑态）：0 个非预期的 Basic:/Epic: 前缀残留。唯二可接受的例外：
+1. BACK-664、BACK-665 自身——两者 frontmatter 完全没有 phase/pipeline_id 字段（自举悖论：追踪本收敛工作的顶层 epic 尚未被引擎接管），displayStatus() 按文档设计的 fallback 行为回退到 raw status，仍显示 "Epic: Backlog"。
+2. Settings 页与 filter 下拉框保留完整历史 Basic:/Epic: 词汇表——这是既定设计（只读过滤器/配置项保留，BACK-664.1 notes 已述）。
+
+fixpoint meter：9/11 green（不变，无回归）。两个仍红的检查（no-persisted-status、epicd-self-sufficient-no-baime）均明确 gated on BACK-660（用户已决定保持 deferred），非本轮范围。
+
+bun test --parallel ./src 跑了两轮：稳定 2001 pass/1 fail，失败项 CLI task-list has-children marker 在独立跑 (bun test src/test/has-children-indicator.test.ts) 时 5/5 pass——确认是 BACK-607 已知的 --parallel 隔离 flake，非本轮改动引入的回归。
+
+bun run check . 与 bunx tsc --noEmit 均干净。
 <!-- SECTION:NOTES:END -->

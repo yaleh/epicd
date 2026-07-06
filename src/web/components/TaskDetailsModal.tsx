@@ -9,7 +9,7 @@ import MermaidMarkdown from './MermaidMarkdown';
 import ChipInput from "./ChipInput";
 import DependencyInput from "./DependencyInput";
 import { formatStoredUtcDateForDisplay } from "../utils/date-display";
-import { getStatusBadgeClass } from "../lib/status-label";
+import { displayStatus, getStatusBadgeClass } from "../lib/status-label";
 import { hasChildren } from "../lib/lanes";
 
 interface Props {
@@ -234,7 +234,9 @@ export const TaskDetailsModal: React.FC<Props> = ({
   }, [milestoneEntities, archivedMilestoneEntities]);
 
   // Sidebar metadata (inline edit)
-  const [status, setStatus] = useState(task?.status || (isDraftMode ? "Draft" : (availableStatuses?.[0] || "To Do")));
+  const [status, setStatus] = useState(
+    task ? displayStatus(task, availableStatuses ?? []) : isDraftMode ? "Draft" : availableStatuses?.[0] || "To Do",
+  );
   const [assignee, setAssignee] = useState<string[]>(task?.assignee || []);
   const [labels, setLabels] = useState<string[]>(task?.labels || []);
   const [priority, setPriority] = useState<string>(task?.priority || "");
@@ -321,7 +323,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
     setFinalSummary(task?.finalSummary || "");
     setCriteria(task?.acceptanceCriteriaItems || []);
     setDefinitionOfDone(task?.definitionOfDoneItems || (isCreateMode ? defaultDefinitionOfDone : []));
-    setStatus(task?.status || (isDraftMode ? "Draft" : (availableStatuses?.[0] || "To Do")));
+    setStatus(task ? displayStatus(task, availableStatuses ?? []) : isDraftMode ? "Draft" : availableStatuses?.[0] || "To Do");
     setAssignee(task?.assignee || []);
     setLabels(task?.labels || []);
     setPriority(task?.priority || "");

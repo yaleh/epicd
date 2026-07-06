@@ -4,6 +4,7 @@ import type { Task } from "../../types";
 interface MilestoneTaskRowProps {
 	task: Task;
 	isDone: boolean;
+	statusText: string;
 	statusBadgeClass: string;
 	priorityBadgeClass: string;
 	onEditTask: (task: Task) => void;
@@ -25,6 +26,7 @@ const DragHandle = () => (
 const MilestoneTaskRow: React.FC<MilestoneTaskRowProps> = ({
 	task,
 	isDone,
+	statusText,
 	statusBadgeClass,
 	priorityBadgeClass,
 	onEditTask,
@@ -57,7 +59,7 @@ const MilestoneTaskRow: React.FC<MilestoneTaskRowProps> = ({
 		</div>
 
 		<div className="w-24 flex justify-center">
-			<span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusBadgeClass}`}>{task.status}</span>
+			<span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusBadgeClass}`}>{statusText}</span>
 		</div>
 
 		<div className="w-20 flex justify-center">

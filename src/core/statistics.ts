@@ -1,4 +1,5 @@
 import type { Task } from "../types/index.ts";
+import { displayStatus } from "./field-registry.ts";
 
 export interface TaskStatistics {
 	statusCounts: Map<string, number>;
@@ -55,12 +56,17 @@ export function getTaskStatistics(tasks: Task[], drafts: Task[], statuses: strin
 			continue;
 		}
 
+		// Display status: phase-derived projection when engine-managed, else the
+		// persisted status string (BACK-665 AC2 — never bucket/compare on a raw
+		// Basic:/Epic:-prefixed legacy string when a phase projection is available).
+		const status = displayStatus(task, statuses);
+
 		// Count by status
-		const currentCount = statusCounts.get(task.status) || 0;
-		statusCounts.set(task.status, currentCount + 1);
+		const currentCount = statusCounts.get(status) || 0;
+		statusCounts.set(status, currentCount + 1);
 
 		// Count completed tasks
-		if (task.status === "Done") {
+		if (status === "Done") {
 			completedTasks++;
 		}
 
@@ -80,7 +86,7 @@ export function getTaskStatistics(tasks: Task[], drafts: Task[], statuses: strin
 			// For completed tasks, use the time from creation to completion
 			// For active tasks, use the time from creation to now
 			let ageInDays: number;
-			if (task.status === "Done" && task.updatedDate) {
+			if (status === "Done" && task.updatedDate) {
 				const updatedDate = new Date(task.updatedDate);
 				ageInDays = Math.floor((updatedDate.getTime() - createdDate.getTime()) / (24 * 60 * 60 * 1000));
 			} else {
@@ -98,7 +104,7 @@ export function getTaskStatistics(tasks: Task[], drafts: Task[], statuses: strin
 		}
 
 		// Identify stale tasks (not updated in 30 days and not done)
-		if (task.status !== "Done") {
+		if (status !== "Done") {
 			const lastDate = task.updatedDate || task.createdDate;
 			if (lastDate) {
 				const date = new Date(lastDate);
@@ -109,11 +115,11 @@ export function getTaskStatistics(tasks: Task[], drafts: Task[], statuses: strin
 		}
 
 		// Identify blocked tasks (has dependencies that are not done)
-		if (task.dependencies && task.dependencies.length > 0 && task.status !== "Done") {
+		if (task.dependencies && task.dependencies.length > 0 && status !== "Done") {
 			// Check if any dependency is not done
 			const hasBlockingDependency = task.dependencies.some((depId) => {
 				const dep = tasks.find((t) => t.id === depId);
-				return dep && dep.status !== "Done";
+				return dep && displayStatus(dep, statuses) !== "Done";
 			});
 
 			if (hasBlockingDependency) {

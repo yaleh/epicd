@@ -4,7 +4,7 @@ import Fuse from "fuse.js";
 import { apiClient } from "../lib/api";
 import { buildMilestoneBuckets, collectArchivedMilestoneKeys, isDoneStatus, milestoneKey } from "../utils/milestones";
 import { type Milestone, type MilestoneBucket, type Task } from "../../types";
-import { getStatusBadgeClass } from "../lib/status-label";
+import { displayStatus, getStatusBadgeClass } from "../lib/status-label";
 import MilestoneTaskRow from "./MilestoneTaskRow";
 import Modal from "./Modal";
 
@@ -618,6 +618,7 @@ const MilestonesPage: React.FC<MilestonesPageProps> = ({
 											key={task.id}
 											task={task}
 											isDone={isDoneStatus(task.status)}
+											statusText={displayStatus(task, statuses)}
 											statusBadgeClass={getStatusBadgeClass(task.status, task.phase, task.pipeline_id)}
 											priorityBadgeClass={getPriorityBadgeClass(task.priority)}
 											onEditTask={onEditTask}
@@ -701,6 +702,7 @@ const MilestonesPage: React.FC<MilestonesPageProps> = ({
 													key={task.id}
 													task={task}
 													isDone={isDoneStatus(task.status)}
+													statusText={displayStatus(task, statuses)}
 													statusBadgeClass={getStatusBadgeClass(task.status, task.phase, task.pipeline_id)}
 													priorityBadgeClass={getPriorityBadgeClass(task.priority)}
 													onEditTask={onEditTask}

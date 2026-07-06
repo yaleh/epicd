@@ -90,8 +90,25 @@ const checks: Check[] = [
 		owner: "BACK-664 child 1 (projection)",
 		run: () => {
 			const out = label("compound", "needs-human");
-			const pass = out === "Needs Human";
-			return { pass, detail: `label(compound,"needs-human") = "${out}" (want "Needs Human", no Basic:/Epic: prefix)` };
+			const unitPass = out === "Needs Human";
+
+			// Unit-testing label() in isolation is gameable — it stays green even if
+			// every real web render site bypasses displayStatus() and prints the raw
+			// (possibly Basic:/Epic:-prefixed) persisted task.status string instead
+			// (found live in the browser during BACK-665 iteration: TaskDetailsModal/
+			// TaskList/MilestoneTaskRow badges rendered `{task.status}` directly).
+			// So also grep the actual render sites for that anti-pattern.
+			const webComponents = join(SRC, "web", "components");
+			const rawStatusBadgeHits = grep(webComponents, /\{task\.status\}/).filter(
+				(hit) => !hit.includes("Statistics.tsx"), // icon-only, not a visible text badge
+			);
+			const pass = unitPass && rawStatusBadgeHits.length === 0;
+			const detail =
+				`label(compound,"needs-human") = "${out}" (want "Needs Human", no Basic:/Epic: prefix); ` +
+				`raw {task.status} badge renders in web/components: ${rawStatusBadgeHits.length} (want 0)${
+					rawStatusBadgeHits.length ? ` — ${rawStatusBadgeHits.join(", ")}` : ""
+				}`;
+			return { pass, detail };
 		},
 	},
 	{
