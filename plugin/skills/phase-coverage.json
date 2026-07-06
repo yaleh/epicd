@@ -18,8 +18,8 @@
 		},
 		{
 			"phase": "exploration/spike",
-			"status": "experiment-pending",
-			"pointer": "BACK-658"
+			"status": "skill",
+			"skill": "exploration-spike"
 		},
 		{
 			"phase": "authoring/draft",

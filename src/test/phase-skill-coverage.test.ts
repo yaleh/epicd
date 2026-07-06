@@ -7,10 +7,11 @@
  *
  * Current expected state (BACK-657.1 delivered the gate itself; BACK-657.2 registered
  * execution/ready; BACK-657.3 registered execution/decomposing + execution/evaluating;
- * BACK-657.4 registered authoring/draft + authoring/refining). All 6 machine-actor
- * phases are now covered — see the full-coverage invariant test below, whose
- * `.failing()` modifier has been removed now that it passes for real:
- *   - exploration/spike     -> experiment-pending -> BACK-658 (covered)
+ * BACK-657.4 registered authoring/draft + authoring/refining; BACK-658 converged its
+ * spike/exploration methodology experiment and registered exploration/spike as a real
+ * skill). All 6 machine-actor phases are now covered — see the full-coverage invariant
+ * test below, whose `.failing()` modifier has been removed now that it passes for real:
+ *   - exploration/spike     -> skill -> exploration-spike (covered)
  *   - execution/ready       -> skill -> primitive-executor (covered)
  *   - execution/decomposing -> skill -> epic-decompose (covered)
  *   - execution/evaluating  -> skill -> epic-evaluate (covered)
@@ -62,12 +63,12 @@ describe("machineActorPhases() — positive control", () => {
 });
 
 describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)", () => {
-	it("registers exploration/spike as experiment-pending, resolving to a real BACK-658 task file", () => {
+	it("registers exploration/spike as a skill, resolved to the published exploration-spike skill (BACK-658)", () => {
 		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
 		const entry = manifest.find((e) => e.phase === "exploration/spike");
 		expect(entry).toBeDefined();
-		expect(entry?.status).toBe("experiment-pending");
-		expect(entry?.pointer).toBe("BACK-658");
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("exploration-spike");
 
 		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
 		const spike = coverage.find((c) => c.phase === "exploration/spike");

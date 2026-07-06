@@ -5,7 +5,7 @@ status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-06 07:44'
-updated_date: '2026-07-06 11:16'
+updated_date: '2026-07-06 18:11'
 labels:
   - 'kind:experiment'
   - 'area:engine'
@@ -65,3 +65,11 @@ BACK-657（phase 执行 skill 集）按 extract/mechanical/experiment 三分建 
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-07-06: 启动 BAIME methodology-bootstrapping 实验，目录 docs/experiments/back-658-spike-methodology/。
+
+Skill extraction complete: converged methodology from docs/experiments/back-658-spike-methodology/ (results.md) published as plugin/skills/exploration-spike/ (SKILL.md + contract.json, creation_path=extract, provenance=docs/experiments/back-658-spike-methodology/results.md). plugin/skills/phase-coverage.json's exploration/spike entry updated from experiment-pending/BACK-658 to status=skill/skill=exploration-spike. src/test/phase-skill-coverage.test.ts updated to match (registers exploration/spike as a skill test); full suite + tsc + biome check green. Known limitations (harder ceiling sub-branch untested, effectiveness's strongest form unobserved, self-referential validation, reusability hypothetical-only) carried into the skill's own 'Known limitations' section verbatim, not smoothed over.
+<!-- SECTION:NOTES:END -->
