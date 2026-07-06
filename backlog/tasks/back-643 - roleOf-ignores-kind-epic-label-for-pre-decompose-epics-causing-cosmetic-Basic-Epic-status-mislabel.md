@@ -7,14 +7,11 @@ status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 14:56'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-06 10:35'
 labels:
   - 'kind:bug'
 dependencies: []
 ordinal: 63000
-pipeline_id: authoring
-phase: draft
-role: primitive
 ---
 
 ## Description
@@ -29,3 +26,9 @@ role: primitive
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+L3 承重升级（BACK-664）：docs/task-lifecycle-model.md §2/§4 已定 L3——删除 role: 持久字段后，pre-decompose epic（尚无 children）声明 compound 的唯一 durable 途径就是 kind:epic label。故本任务从「cosmetic 前缀修正」升为 L3 承重前置：roleOf 必须认 kind:epic，否则 BACK-664 child 2（删 role 字段）落地后未分解 epic 会派生错。修复应让 roleOf(task) 在无 children、无 role 字段时读 labels 含 kind:epic ⇒ compound。BACK-664 child 2 依赖本任务先行。
+<!-- SECTION:NOTES:END -->
