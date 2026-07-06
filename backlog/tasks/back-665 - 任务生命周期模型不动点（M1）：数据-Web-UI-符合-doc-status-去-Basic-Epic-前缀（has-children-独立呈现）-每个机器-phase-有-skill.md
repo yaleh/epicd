@@ -7,7 +7,7 @@ status: 'Epic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 11:15'
-updated_date: '2026-07-06 11:16'
+updated_date: '2026-07-06 11:44'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -47,6 +47,21 @@ ordinal: 83000
 - 三平面原则：状态机是唯一词汇源，CLI/TUI/Web 只投影、永不反喂。
 - 每个 leaf child = 一个可独立评审 PR（ADR-018）；本 epic 手动/LFDD 驱动，不依赖尚未建成的自动 decompose/monitor。
 <!-- SECTION:DESCRIPTION:END -->
+
+## Definition of Done
+<!-- DOD:BEGIN -->
+- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
+- [ ] #2 bun run check . passes when formatting/linting touched
+- [ ] #3 bun test (or scoped test) passes
+<!-- DOD:END -->
+
+## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [ ] #1 数据结构+Web UI 全面符合 docs/task-lifecycle-model.md：per-task 仅持久化 (pipeline_id,phase)；status/role 不落盘、渲染边界实时算；Web=pipeline 泳道+phase 列+actor⟗claim 驱动指示；有测试/组件测试断言之
+- [ ] #2 status 中无 Basic:/Epic: 字样：displayStatus==titleCasePhase(phase) 且全仓无代码生成该前缀；compound 由独立 has-children 指示器在合适位置呈现（web+CLI），永不进 status 串；无任何独立 status 编辑面（无 -s/--status、无 web status 下拉）
+- [ ] #3 每个 actor==machine 的 phase（ready/decomposing/evaluating/draft/refining/spike）都有执行 skill：随 epicd 发布、contracts 合法、provenance 溯源、零 baime 运行时依赖；phase-skill-coverage 测试断言全覆盖（spike 允许 experiment-pending 指向其实验）
+- [ ] #4 epicd 原生运行时自足：停用 baime scan-loop.js reaper 后 epicd 仍全程驱动任务 draft→…→done（证明替代成功、baime 可由人外部卸载）；全程不修改 baime 内部
+<!-- AC:END -->
 
 ## Implementation Plan
 
@@ -99,17 +114,8 @@ ordinal: 83000
 本 epic 是里程碑级不动点锚点。children 含两个大 sub-epic（BACK-664 数据/UI、BACK-657 skills，各已数千行量级）+ 三个 enabler（643/658/660）。合计规模远超单 epic 上限，且含 ≥2 独立可评审可合并交付（数据/UI 轨、skills 轨各自独立成立、互不为彼此的步骤），符合 epic 判据；作为顶层锚点提供单一不动点验收（Integration Acceptance = 三要求的可执行定义）。
 <!-- SECTION:PLAN:END -->
 
-## Definition of Done
-<!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
-<!-- DOD:END -->
+## Implementation Notes
 
-## Acceptance Criteria
-<!-- AC:BEGIN -->
-- [ ] #1 数据结构+Web UI 全面符合 docs/task-lifecycle-model.md：per-task 仅持久化 (pipeline_id,phase)；status/role 不落盘、渲染边界实时算；Web=pipeline 泳道+phase 列+actor⟗claim 驱动指示；有测试/组件测试断言之
-- [ ] #2 status 中无 Basic:/Epic: 字样：displayStatus==titleCasePhase(phase) 且全仓无代码生成该前缀；compound 由独立 has-children 指示器在合适位置呈现（web+CLI），永不进 status 串；无任何独立 status 编辑面（无 -s/--status、无 web status 下拉）
-- [ ] #3 每个 actor==machine 的 phase（ready/decomposing/evaluating/draft/refining/spike）都有执行 skill：随 epicd 发布、contracts 合法、provenance 溯源、零 baime 运行时依赖；phase-skill-coverage 测试断言全覆盖（spike 允许 experiment-pending 指向其实验）
-- [ ] #4 epicd 原生运行时自足：停用 baime scan-loop.js reaper 后 epicd 仍全程驱动任务 draft→…→done（证明替代成功、baime 可由人外部卸载）；全程不修改 baime 内部
-<!-- AC:END -->
+<!-- SECTION:NOTES:BEGIN -->
+不动点 evaluate 门 = 可执行 gauge src/test/back665-fixpoint.ts，显式运行：`bun test ./src/test/back665-fixpoint.ts`（文件名不含 .test.，bare `bun test` 不收录、不打断其它任务 DoD）。现 0/8 RED，每断言映射到负责 child（IA-2/3/4/5→BACK-664、IA-6→BACK-657 c1、IA-7→BACK-660+664C、IA-eval→BACK-657 c3）。随 child 落地逐条转绿，全绿=不动点达成——这是迭代收敛信号，防「child 全绿但业务目标未达」。
+<!-- SECTION:NOTES:END -->
