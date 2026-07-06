@@ -1,6 +1,7 @@
 import { rename as moveFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_STATUSES, FALLBACK_STATUS } from "../constants/index.ts";
+import { assertLegalPhase } from "../engine/pipeline.ts";
 import { FileSystem } from "../file-system/operations.ts";
 import { GitOperations } from "../git/operations.ts";
 import {
@@ -1006,6 +1007,10 @@ export class Core {
 
 		let status = "";
 		if (typeof input.phase === "string") {
+			// Write boundary: an illegal phase for the (effective) pipeline_id must be
+			// rejected before create, symmetrically with the `task edit` boundary
+			// (BACK-655 Phase C). `src/engine/pipeline.ts` is the single source of truth.
+			assertLegalPhase(input.pipeline_id, input.phase);
 			// Engine-managed create (decompose/promote child tasks): derive status from
 			// phase via the same projection updateTask uses, rather than validating
 			// against the board's declared status vocabulary — a board that doesn't
@@ -1236,6 +1241,13 @@ export class Core {
 		applyStringField(input.phase, task.phase, (next) => {
 			task.phase = next;
 		});
+
+		// Write boundary: an illegal phase for the task's pipeline_id must be rejected
+		// before it can be persisted. `src/engine/pipeline.ts` is the single source of
+		// truth for legal phases (BACK-655 Phase A).
+		if (task.phase) {
+			assertLegalPhase(task.pipeline_id, task.phase);
+		}
 
 		applyStringField(input.parent_id, task.parent_id, (next) => {
 			task.parent_id = next;

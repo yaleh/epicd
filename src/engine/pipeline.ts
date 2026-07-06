@@ -63,3 +63,25 @@ export const explorationPipeline: Pipeline = {
 		{ name: "done", actor: "none" },
 	],
 };
+
+/** All declared pipelines — the single source of truth other modules (CLI/backfill/web) resolve against. */
+export const ALL_PIPELINES: Pipeline[] = [executionPipeline, authoringPipeline, explorationPipeline];
+
+/** Looks up a pipeline by its id, or `undefined` if unknown. */
+export function pipelineById(id: string | undefined): Pipeline | undefined {
+	return ALL_PIPELINES.find((p) => p.id === id);
+}
+
+/** True when `phase` is a declared state of the pipeline identified by `pipelineId`. */
+export function isLegalPhase(pipelineId: string | undefined, phase: string | undefined): boolean {
+	if (!phase) return false;
+	return pipelineById(pipelineId)?.states.some((s) => s.name === phase) ?? false;
+}
+
+/** Throws a clear error naming the pipeline, the offending phase, and the pipeline's legal states. */
+export function assertLegalPhase(pipelineId: string | undefined, phase: string | undefined): void {
+	if (isLegalPhase(pipelineId, phase)) return;
+	const pipeline = pipelineById(pipelineId);
+	const legalStates = pipeline ? pipeline.states.map((s) => s.name).join(", ") : "(unknown pipeline)";
+	throw new Error(`Illegal phase "${phase}" for pipeline "${pipelineId}": legal phases are [${legalStates}]`);
+}

@@ -16,4 +16,12 @@ describe("terminal status helpers", () => {
 		expect(isTerminalStatus("InProgress", ["To Do", "In Progress", "InProgress"])).toBe(true);
 		expect(isTerminalStatus("In Progress", ["To Do", "In Progress", "InProgress"])).toBe(false);
 	});
+
+	it("recognizes a Done status as terminal regardless of its position in the configured list", () => {
+		expect(isTerminalStatus("Basic: Done", ["Basic: Proposal", "Basic: Done", "Basic: Refining"])).toBe(true);
+	});
+
+	it("still treats a non-terminal status (e.g. Basic: Ready) as non-terminal", () => {
+		expect(isTerminalStatus("Basic: Ready", ["Basic: Proposal", "Basic: Done", "Basic: Refining"])).toBe(false);
+	});
 });

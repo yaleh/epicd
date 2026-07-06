@@ -62,4 +62,28 @@ describe("task edit --pipeline-id/--phase/--parent-id (BACK-628.3)", () => {
 		expect(task?.phase).toBe("done");
 		expect(task?.status).toBe("Basic: Done");
 	});
+
+	it("rejects an illegal --phase for the task's pipeline_id", async () => {
+		const core = new Core(TEST_DIR);
+		await core.createTaskFromInput({ title: "Solo task", pipeline_id: "execution", phase: "ready" }, false);
+
+		const result = await $`bun ${CLI_PATH} task edit task-1 --pipeline-id execution --phase proposal`
+			.cwd(TEST_DIR)
+			.nothrow()
+			.quiet();
+		expect(result.exitCode).not.toBe(0);
+
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task?.phase).not.toBe("proposal");
+	});
+
+	it("still accepts a legal --phase (regression on BACK-617 phase→status sync)", async () => {
+		const core = new Core(TEST_DIR);
+		await core.createTaskFromInput({ title: "Solo task", pipeline_id: "execution", phase: "decomposing" }, false);
+		await $`bun ${CLI_PATH} task edit task-1 --pipeline-id execution --phase ready`.cwd(TEST_DIR).quiet();
+
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task?.phase).toBe("ready");
+		expect(task?.status).toBe("Basic: Ready");
+	});
 });

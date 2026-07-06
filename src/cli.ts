@@ -299,6 +299,8 @@ function hasCreateFieldFlags(options: Record<string, unknown>): boolean {
 			options.desc !== undefined ||
 			options.assignee !== undefined ||
 			options.status !== undefined ||
+			options.pipeline !== undefined ||
+			options.phase !== undefined ||
 			options.labels !== undefined ||
 			options.priority !== undefined ||
 			options.ordinal !== undefined ||
@@ -1564,6 +1566,8 @@ addHelpSchema(taskCmd.command("create [title]"), {
 	.option("--desc <text>", "alias for --description")
 	.option("-a, --assignee <assignee>")
 	.option("-s, --status <status>")
+	.option("--pipeline <id>", "engine pipeline id (defaults to authoring)")
+	.option("--phase <phase>", "engine phase; status is derived from phase (defaults to draft)")
 	.option("-l, --labels <labels>")
 	.option("--priority <priority>", "set task priority (high, medium, low)")
 	.option("--plain", "use plain text output after creating")
@@ -1654,6 +1658,19 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		const usePlainOutput = isPlainRequested(options);
 		let ordinalValue: number | undefined;
 
+		// Default a bare `task create` (no --pipeline/--phase/--status/--draft) to
+		// authoring/draft — canonical born-in-authoring, replacing the legacy
+		// "Basic: Proposal" default (docs/task-lifecycle-model.md §4.1, BACK-655).
+		const hasExplicitLifecycleInput = Boolean(
+			options.pipeline !== undefined || options.phase !== undefined || options.status !== undefined || createAsDraft,
+		);
+		const pipelineId = options.pipeline
+			? String(options.pipeline)
+			: !hasExplicitLifecycleInput
+				? "authoring"
+				: undefined;
+		const phaseValue = options.phase ? String(options.phase) : !hasExplicitLifecycleInput ? "draft" : undefined;
+
 		if (options.ordinal !== undefined) {
 			const parsed = Number(options.ordinal);
 			if (!Number.isFinite(parsed) || parsed < 0) {
@@ -1672,6 +1689,8 @@ addHelpSchema(taskCmd.command("create [title]"), {
 				title: title ?? "",
 				description: options.description || options.desc ? String(options.description || options.desc) : undefined,
 				status: createAsDraft ? "Draft" : options.status ? String(options.status) : undefined,
+				pipeline_id: pipelineId,
+				phase: phaseValue,
 				assignee: options.assignee ? [String(options.assignee)] : undefined,
 				labels: options.labels
 					? String(options.labels)
@@ -4812,6 +4831,36 @@ engineCmd
 			}
 		} catch (err) {
 			console.error("engine backfill failed:", err instanceof Error ? err.message : String(err));
+			process.exitCode = 1;
+		}
+	});
+
+engineCmd
+	.command("drift-lint")
+	.description(
+		"list tasks whose status is set but pipeline_id/phase is empty, or whose phase is illegal for its pipeline_id (BACK-655). Exits non-zero when drift is found — CI-usable.",
+	)
+	.action(async () => {
+		try {
+			const cwd = await requireProjectRoot();
+			const { Core } = await import("./core/backlog.ts");
+			const { computeDrift } = await import("./core/engine-fields-backfill.ts");
+
+			const core = new Core(cwd);
+			const tasks = await core.queryTasks({});
+			const drift = computeDrift(tasks);
+
+			if (drift.length === 0) {
+				console.log("engine drift-lint: clean board, no drift found");
+				return;
+			}
+
+			for (const { id, reason } of drift) {
+				console.log(`${id}: ${reason}`);
+			}
+			process.exitCode = 1;
+		} catch (err) {
+			console.error("engine drift-lint failed:", err instanceof Error ? err.message : String(err));
 			process.exitCode = 1;
 		}
 	});
