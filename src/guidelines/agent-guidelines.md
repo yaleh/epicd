@@ -56,7 +56,7 @@ remains fully synchronized and up-to-date.
 
 ### 📖 **UNDERSTANDING** (What you'll see when reading)
 
-- Markdown task files live under **`backlog/tasks/`** (drafts under **`backlog/drafts/`**)
+- Markdown task files live under **`backlog/tasks/`**
 - Files are named: `task-<id> - <title>.md` (e.g., `task-42 - Add GraphQL resolver.md`)
 - Project documentation is in **`backlog/docs/`**
 - Project decisions are in **`backlog/decisions/`**
@@ -514,7 +514,6 @@ backlog search --modified-file src/server/api.ts --plain
 | With documentation | `backlog task create "Title" --doc https://design-docs.example.com`               |
 | With modified files | `backlog task create "Title" --modified-file src/api.ts --modified-file src/ui.ts` |
 | With all options | `backlog task create "Title" -d "Desc" -a @sara -s "To Do" -l auth --priority high --ref src/api.ts --doc docs/spec.md --modified-file src/api.ts` |
-| Create draft     | `backlog task create "Title" --draft`                                               |
 | Create subtask   | `backlog task create "Title" -p 42`                                                 |
 
 ### Task Modification
@@ -678,7 +677,7 @@ Tasks may include images for screenshots, diagrams, or visual references. Local 
 
 ### Document Management
 
-> Docs are used for long-term project reference information, such as development standards, configuration guides, architecture documentation, etc. They differ from `tasks/` (specific tasks), `decisions/` (decision records), and `drafts/` (drafts).
+> Docs are used for long-term project reference information, such as development standards, configuration guides, architecture documentation, etc. They differ from `tasks/` (specific tasks) and `decisions/` (decision records).
 
 Use Backlog.md public interfaces for document creation and updates so IDs, frontmatter, paths, and search metadata stay consistent.
 
@@ -734,7 +733,6 @@ backlog doc view doc-1
 | Filter by status   | `backlog task list -s "In Progress" --plain` |
 | Filter by assignee | `backlog task list -a @sara --plain`         |
 | Archive task       | `backlog task archive 42`                    |
-| Demote to draft    | `backlog task demote 42`                     |
 
 ---
 

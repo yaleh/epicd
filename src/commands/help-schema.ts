@@ -156,17 +156,11 @@ function getRuntimeConfigStartDir(): string {
 	return override ? resolve(override) : process.cwd();
 }
 
-function includeDraftStatus(statuses: string[]): string[] {
-	const normalizedStatuses = normalizeStatusValues(statuses);
-	const hasDraft = normalizedStatuses.some((status) => status.toLowerCase() === "draft");
-	return hasDraft ? normalizedStatuses : ["Draft", ...normalizedStatuses];
-}
-
 function normalizeStatusValues(statuses: string[]): string[] {
 	return statuses.map((status) => status.trim()).filter(Boolean);
 }
 
-export function getCliStatusValues(options?: { includeDraft?: boolean }): string[] {
+export function getCliStatusValues(): string[] {
 	let configuredStatuses: string[] = [...DEFAULT_STATUSES];
 	const configPath = findBacklogConfigPathSync(getRuntimeConfigStartDir());
 	if (configPath) {
@@ -180,8 +174,7 @@ export function getCliStatusValues(options?: { includeDraft?: boolean }): string
 		}
 	}
 
-	const normalizedStatuses = normalizeStatusValues(configuredStatuses);
-	return options?.includeDraft ? includeDraftStatus(normalizedStatuses) : normalizedStatuses;
+	return normalizeStatusValues(configuredStatuses);
 }
 
 export function getCliTaskPrefix(): string {
@@ -210,6 +203,6 @@ export function choiceType(values: readonly string[], options?: { multiple?: boo
 	return `${options?.multiple ? "one or more of" : "one of"}: ${values.join(", ")}`;
 }
 
-export function statusType(options?: { includeDraft?: boolean }): string {
-	return `one of configured statuses: ${getCliStatusValues(options).join(", ")}`;
+export function statusType(): string {
+	return `one of configured statuses: ${getCliStatusValues().join(", ")}`;
 }

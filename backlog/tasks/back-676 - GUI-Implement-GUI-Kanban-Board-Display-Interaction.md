@@ -1,7 +1,8 @@
 ---
-id: DRAFT-6
+id: BACK-676
+pipeline_id: authoring
+phase: draft
 title: 'GUI: Implement GUI Kanban Board Display & Interaction'
-status: To Do
 assignee: []
 reporter: '@MrLesk'
 created_date: '2025-06-04'

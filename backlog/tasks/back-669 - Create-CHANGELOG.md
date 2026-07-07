@@ -1,7 +1,8 @@
 ---
-id: DRAFT-13
+id: BACK-669
+pipeline_id: authoring
+phase: draft
 title: Create CHANGELOG
-status: To Do
 assignee: []
 created_date: '2025-06-09'
 labels:

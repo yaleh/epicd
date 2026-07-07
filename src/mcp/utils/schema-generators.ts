@@ -25,9 +25,7 @@ function propertiesFromRegistry(): Record<string, JsonSchema> {
 export function getStatusFieldEnumValues(config: Pick<BacklogConfig, "statuses">): string[] {
 	const configuredStatuses =
 		config.statuses && config.statuses.length > 0 ? [...config.statuses] : [...DEFAULT_STATUSES];
-	const normalizedStatuses = configuredStatuses.map((status) => status.trim());
-	const hasDraft = normalizedStatuses.some((status) => status.toLowerCase() === "draft");
-	return hasDraft ? normalizedStatuses : ["Draft", ...normalizedStatuses];
+	return configuredStatuses.map((status) => status.trim());
 }
 
 /**

@@ -318,7 +318,6 @@ export class BacklogServer {
 					"/tasks": spaIndexHtml,
 					"/board": spaIndexHtml,
 					"/milestones": spaIndexHtml,
-					"/drafts": spaIndexHtml,
 					"/documentation": spaIndexHtml,
 					"/documentation/*": spaIndexHtml,
 					"/decisions": spaIndexHtml,
@@ -376,12 +375,6 @@ export class BacklogServer {
 						GET: async (req: Request & { params: { id: string } }) => await this.handleGetDecision(req.params.id),
 						PUT: async (req: Request & { params: { id: string } }) =>
 							await this.handleUpdateDecision(req, req.params.id),
-					},
-					"/api/drafts": {
-						GET: async () => await this.handleListDrafts(),
-					},
-					"/api/drafts/:id/promote": {
-						POST: async (req: Request & { params: { id: string } }) => await this.handlePromoteDraft(req.params.id),
 					},
 					"/api/milestones": {
 						GET: async () => await this.handleListMilestones(),
@@ -1338,33 +1331,6 @@ export class BacklogServer {
 		return new Response("Internal Server Error", { status: 500 });
 	}
 
-	// Draft handlers
-	private async handleListDrafts(): Promise<Response> {
-		try {
-			const drafts = await this.core.filesystem.listDrafts();
-			return Response.json(drafts);
-		} catch (error) {
-			console.error("Error listing drafts:", error);
-			return Response.json([]);
-		}
-	}
-
-	private async handlePromoteDraft(draftId: string): Promise<Response> {
-		try {
-			const success = await this.core.promoteDraft(draftId);
-			if (!success) {
-				return Response.json({ error: "Draft not found" }, { status: 404 });
-			}
-			return Response.json({ success: true });
-		} catch (error) {
-			console.error("Error promoting draft:", error);
-			if (isCreateLockError(error)) {
-				return Response.json({ error: error.message }, { status: 409 });
-			}
-			return Response.json({ error: "Failed to promote draft" }, { status: 500 });
-		}
-	}
-
 	// Milestone handlers
 	private async readOptionalJsonBody(req: Request): Promise<Record<string, unknown>> {
 		const text = await req.text();
@@ -1748,10 +1714,10 @@ export class BacklogServer {
 	private async handleGetStatistics(): Promise<Response> {
 		try {
 			// Load tasks using the same logic as CLI overview
-			const { tasks, drafts, statuses } = await this.core.loadAllTasksForStatistics();
+			const { tasks, statuses } = await this.core.loadAllTasksForStatistics();
 
 			// Calculate statistics using the exact same function as CLI
-			const statistics = getTaskStatistics(tasks, drafts, statuses);
+			const statistics = getTaskStatistics(tasks, statuses);
 
 			// Convert Maps to objects for JSON serialization
 			const response = {

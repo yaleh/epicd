@@ -313,7 +313,6 @@ function hasCreateFieldFlags(options: Record<string, unknown>): boolean {
 			options.plan !== undefined ||
 			options.notes !== undefined ||
 			options.finalSummary !== undefined ||
-			options.draft ||
 			options.parent !== undefined ||
 			options.dependsOn !== undefined ||
 			options.dep !== undefined ||
@@ -1549,7 +1548,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		{ name: "ordinal", type: "Integer", description: "Non-negative manual ordering value" },
 		{ name: "parent", type: "Task ID", description: "Parent task for subtasks" },
 	],
-	writes: "Creates a task or draft markdown file through Backlog.md",
+	writes: "Creates a task markdown file through Backlog.md",
 	output: "Created task details; use --plain for text output",
 	examples: [
 		'backlog task create "Add OAuth" --ac "Login succeeds"',
@@ -1582,7 +1581,6 @@ addHelpSchema(taskCmd.command("create [title]"), {
 	.option("--final-summary <text>", "add final summary")
 	.option("--ordinal <number>", "set task ordinal for custom ordering")
 	.option("-m, --milestone <milestone>", "assign task to milestone by ID or title")
-	.option("--draft")
 	.option("-p, --parent <taskId>", "specify parent task ID")
 	.option(
 		"--depends-on <taskIds>",
@@ -1647,11 +1645,10 @@ addHelpSchema(taskCmd.command("create [title]"), {
 			return;
 		}
 
-		const createAsDraft = Boolean(options.draft);
 		const usePlainOutput = isPlainRequested(options);
 		let ordinalValue: number | undefined;
 
-		// Default a bare `task create` (no --pipeline/--phase/--draft) to
+		// Default a bare `task create` (no --pipeline/--phase) to
 		// authoring/draft — canonical born-in-authoring, replacing the legacy
 		// "Basic: Proposal" default (docs/task-lifecycle-model.md §4.1, BACK-655).
 		// Status is a derived display projection (BACK-664 child 1) — there is no
@@ -1661,7 +1658,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		// `Core.createTaskFromInput` (BACK-661), which throws and is caught below.
 		const explicitPipeline = options.pipeline !== undefined;
 		const explicitPhase = options.phase !== undefined;
-		const hasExplicitLifecycleInput = Boolean(explicitPipeline || createAsDraft);
+		const hasExplicitLifecycleInput = Boolean(explicitPipeline);
 		const pipelineId = explicitPipeline
 			? String(options.pipeline)
 			: !hasExplicitLifecycleInput
@@ -1686,7 +1683,6 @@ addHelpSchema(taskCmd.command("create [title]"), {
 			const { task, filePath } = await core.createTaskFromInput({
 				title: title ?? "",
 				description: options.description || options.desc ? String(options.description || options.desc) : undefined,
-				status: createAsDraft ? "Draft" : undefined,
 				pipeline_id: pipelineId,
 				phase: phaseValue,
 				assignee: options.assignee ? [String(options.assignee)] : undefined,
@@ -1716,12 +1712,6 @@ addHelpSchema(taskCmd.command("create [title]"), {
 
 			if (usePlainOutput) {
 				console.log(formatTaskPlainText(task, { filePathOverride: filePath }));
-				return;
-			}
-
-			if (createAsDraft) {
-				console.log(`Created draft ${task.id}`);
-				console.log(`File: ${filePath}`);
 				return;
 			}
 
@@ -2936,25 +2926,6 @@ addHelpSchema(taskCmd.command("complete <taskId>"), {
 	});
 
 taskCmd
-	.command("demote <taskId>")
-	.description("move task back to drafts")
-	.action(async (taskId: string) => {
-		const cwd = await requireProjectRoot();
-		const core = new Core(cwd);
-		try {
-			const success = await core.demoteTask(taskId);
-			if (success) {
-				console.log(`Demoted task ${taskId}`);
-			} else {
-				console.error(`Task ${taskId} not found.`);
-			}
-		} catch (error) {
-			console.error(error instanceof Error ? error.message : String(error));
-			process.exitCode = 1;
-		}
-	});
-
-taskCmd
 	.argument("[taskId]")
 	.option("--plain", "use plain text output")
 	.action(async (taskId: string | undefined, options: { plain?: boolean }) => {
@@ -2962,7 +2933,7 @@ taskCmd
 		const core = new Core(cwd);
 
 		// Don't handle commands that should be handled by specific command handlers
-		const reservedCommands = ["create", "list", "edit", "view", "archive", "complete", "demote"];
+		const reservedCommands = ["create", "list", "edit", "view", "archive", "complete"];
 		if (taskId && reservedCommands.includes(taskId)) {
 			console.error(`Unknown command: ${taskId}`);
 			taskCmd.help();
@@ -3002,201 +2973,6 @@ taskCmd
 			selectedTask: task,
 			tasks: allTasks,
 		});
-	});
-
-const draftCmd = program.command("draft");
-
-draftCmd
-	.command("list")
-	.description("list all drafts")
-	.option("--sort <field>", "sort drafts by field (priority, id)")
-	.option("--plain", "use plain text output")
-	.action(async (options: { plain?: boolean; sort?: string }) => {
-		const cwd = await requireProjectRoot();
-		const core = new Core(cwd);
-		await core.ensureConfigLoaded();
-		const drafts = await core.filesystem.listDrafts();
-
-		if (!drafts || drafts.length === 0) {
-			console.log("No drafts found.");
-			return;
-		}
-
-		// Apply sorting - default to priority sorting like the web UI
-		const { sortTasks } = await import("./utils/task-sorting.ts");
-		let sortedDrafts = drafts;
-
-		if (options.sort) {
-			const validSortFields = ["priority", "id"];
-			const sortField = options.sort.toLowerCase();
-			if (!validSortFields.includes(sortField)) {
-				console.error(`Invalid sort field: ${options.sort}. Valid values are: priority, id`);
-				process.exitCode = 1;
-				return;
-			}
-			sortedDrafts = sortTasks(drafts, sortField);
-		} else {
-			// Default to priority sorting to match web UI behavior
-			sortedDrafts = sortTasks(drafts, "priority");
-		}
-
-		const usePlainOutput = isPlainRequested(options) || shouldAutoPlain;
-		if (usePlainOutput) {
-			// Plain text output for non-interactive environments
-			console.log("Drafts:");
-			for (const draft of sortedDrafts) {
-				const priorityIndicator = draft.priority ? `[${draft.priority.toUpperCase()}] ` : "";
-				console.log(`  ${priorityIndicator}${draft.id} - ${draft.title}`);
-			}
-		} else {
-			// Interactive UI - use unified view with draft support
-			const firstDraft = sortedDrafts[0];
-			if (!firstDraft) return;
-
-			const { runUnifiedView } = await import("./ui/unified-view.ts");
-			await runUnifiedView({
-				core,
-				initialView: "task-list",
-				selectedTask: firstDraft,
-				tasks: sortedDrafts,
-				filter: {
-					filterDescription: "All Drafts",
-				},
-				title: "Drafts",
-			});
-		}
-	});
-
-draftCmd
-	.command("create <title>")
-	.option("-d, --description <text>", "task description (multi-line: include real newlines inside the quoted string)")
-	.option("--desc <text>", "alias for --description")
-	.option("-a, --assignee <assignee>")
-	.option("-l, --labels <labels>")
-	.action(async (title: string, options) => {
-		const cwd = await requireProjectRoot();
-		const core = new Core(cwd);
-		await core.ensureConfigLoaded();
-		try {
-			const { task, filePath } = await core.createTaskFromInput({
-				title,
-				description: options.description || options.desc ? String(options.description || options.desc) : undefined,
-				status: "Draft",
-				assignee: options.assignee ? [String(options.assignee)] : undefined,
-				labels: options.labels
-					? String(options.labels)
-							.split(",")
-							.map((label: string) => label.trim())
-							.filter(Boolean)
-					: undefined,
-			});
-			console.log(`Created draft ${task.id}`);
-			console.log(`File: ${filePath}`);
-		} catch (error) {
-			console.error(error instanceof Error ? error.message : String(error));
-			process.exitCode = 1;
-		}
-	});
-
-draftCmd
-	.command("archive <taskId>")
-	.description("archive a draft")
-	.action(async (taskId: string) => {
-		const cwd = await requireProjectRoot();
-		const core = new Core(cwd);
-		const success = await core.archiveDraft(taskId);
-		if (success) {
-			console.log(`Archived draft ${taskId}`);
-		} else {
-			console.error(`Draft ${taskId} not found.`);
-		}
-	});
-
-draftCmd
-	.command("promote <taskId>")
-	.description("promote draft to task")
-	.action(async (taskId: string) => {
-		const cwd = await requireProjectRoot();
-		const core = new Core(cwd);
-		try {
-			const success = await core.promoteDraft(taskId);
-			if (success) {
-				console.log(`Promoted draft ${taskId}`);
-			} else {
-				console.error(`Draft ${taskId} not found.`);
-			}
-		} catch (error) {
-			console.error(error instanceof Error ? error.message : String(error));
-			process.exitCode = 1;
-		}
-	});
-
-draftCmd
-	.command("view <taskId>")
-	.description("display draft details")
-	.option("--plain", "use plain text output instead of interactive UI")
-	.action(async (taskId: string, options) => {
-		const cwd = await requireProjectRoot();
-		const core = new Core(cwd);
-		const { getDraftPath } = await import("./utils/task-path.ts");
-		const filePath = await getDraftPath(taskId, core);
-
-		if (!filePath) {
-			console.error(`Draft ${taskId} not found.`);
-			return;
-		}
-		const draft = await core.filesystem.loadDraft(taskId);
-
-		if (!draft) {
-			console.error(`Draft ${taskId} not found.`);
-			return;
-		}
-
-		// Plain text output for non-interactive environments
-		const usePlainOutput = isPlainRequested(options) || shouldAutoPlain;
-		if (usePlainOutput) {
-			console.log(formatTaskPlainText(draft));
-			return;
-		}
-
-		// Use enhanced task viewer with detail focus
-		await viewTaskEnhanced(draft, { startWithDetailFocus: true, core });
-	});
-
-draftCmd
-	.argument("[taskId]")
-	.option("--plain", "use plain text output")
-	.action(async (taskId: string | undefined, options: { plain?: boolean }) => {
-		if (!taskId) {
-			draftCmd.help();
-			return;
-		}
-
-		const cwd = await requireProjectRoot();
-		const core = new Core(cwd);
-		const { getDraftPath } = await import("./utils/task-path.ts");
-		const filePath = await getDraftPath(taskId, core);
-
-		if (!filePath) {
-			console.error(`Draft ${taskId} not found.`);
-			return;
-		}
-		const draft = await core.filesystem.loadDraft(taskId);
-
-		if (!draft) {
-			console.error(`Draft ${taskId} not found.`);
-			return;
-		}
-
-		// Plain text output for non-interactive environments
-		const usePlainOutput = isPlainRequested(options) || shouldAutoPlain;
-		if (usePlainOutput) {
-			console.log(formatTaskPlainText(draft, { filePathOverride: filePath }));
-			return;
-		}
-
-		// Use enhanced task viewer with detail focus
-		await viewTaskEnhanced(draft, { startWithDetailFocus: true, core });
 	});
 
 const milestoneCmd = program.command("milestone").aliases(["milestones"]);

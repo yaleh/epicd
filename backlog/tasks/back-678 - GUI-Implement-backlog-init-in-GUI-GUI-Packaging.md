@@ -1,7 +1,8 @@
 ---
-id: DRAFT-8
+id: BACK-678
+pipeline_id: authoring
+phase: draft
 title: 'GUI: Implement `backlog init` in GUI & GUI Packaging'
-status: To Do
 assignee: []
 reporter: '@MrLesk'
 created_date: '2025-06-04'

@@ -1,11 +1,11 @@
 ---
-id: DRAFT-10
+id: BACK-667
+pipeline_id: authoring
+phase: draft
 title: 'CLI: Add Agent Instruction Prompt'
-status: Done
 assignee: []
 reporter: '@MrLesk'
 created_date: '2025-06-08'
-updated_date: '2025-06-09'
 labels:
   - cli
   - agents

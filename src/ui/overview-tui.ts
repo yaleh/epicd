@@ -63,9 +63,6 @@ export async function renderOverviewTui(statistics: TaskStatistics, projectName:
 		}
 		statusContent += `\n  {cyan-fg}Total Tasks:{/cyan-fg} ${statistics.totalTasks}\n`;
 		statusContent += `  {green-fg}Completion:{/green-fg} ${statistics.completionPercentage}%\n`;
-		if (statistics.draftCount > 0) {
-			statusContent += `  {yellow-fg}Drafts:{/yellow-fg} ${statistics.draftCount}\n`;
-		}
 		statusBox.setContent(statusContent);
 
 		// Priority Breakdown Section (Top Right)
@@ -226,9 +223,6 @@ function renderPlainTextOverview(statistics: TaskStatistics, projectName: string
 	}
 	console.log(`\n  Total Tasks: ${statistics.totalTasks}`);
 	console.log(`  Completion: ${statistics.completionPercentage}%`);
-	if (statistics.draftCount > 0) {
-		console.log(`  Drafts: ${statistics.draftCount}`);
-	}
 
 	console.log("\nPriority Breakdown:");
 	for (const [priority, count] of statistics.priorityCounts) {

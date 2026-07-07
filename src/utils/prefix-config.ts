@@ -8,11 +8,6 @@ export const DEFAULT_PREFIX_CONFIG: PrefixConfig = {
 };
 
 /**
- * Hardcoded draft prefix. Not configurable - always "draft".
- */
-export const DRAFT_PREFIX = "draft";
-
-/**
  * Returns the default prefix configuration.
  * Use this when no custom config is specified.
  */
@@ -375,7 +370,6 @@ export function escapeRegex(str: string): string {
  * @example
  * getPrefixForType(EntityType.Task) // => "task"
  * getPrefixForType(EntityType.Task, { prefixes: { task: "JIRA" } }) // => "JIRA"
- * getPrefixForType(EntityType.Draft) // => "draft"
  * getPrefixForType(EntityType.Document) // => "doc"
  * getPrefixForType(EntityType.Decision) // => "decision"
  */
@@ -383,8 +377,6 @@ export function getPrefixForType(type: EntityType, config?: BacklogConfig): stri
 	switch (type) {
 		case EntityType.Task:
 			return config?.prefixes?.task ?? DEFAULT_PREFIX_CONFIG.task;
-		case EntityType.Draft:
-			return DRAFT_PREFIX;
 		case EntityType.Document:
 			return "doc";
 		case EntityType.Decision:

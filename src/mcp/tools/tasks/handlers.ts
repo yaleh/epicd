@@ -8,11 +8,6 @@ import {
 	type TaskListFilter,
 } from "../../../types/index.ts";
 import type { TaskEditArgs, TaskEditRequest } from "../../../types/task-edit-args.ts";
-import {
-	createMilestoneFilterValueResolver,
-	normalizeMilestoneFilterValue,
-	resolveClosestMilestoneFilterValue,
-} from "../../../utils/milestone-filter.ts";
 import { resolveMilestoneInputForStorage } from "../../../utils/milestone-storage.ts";
 import { buildTaskUpdateInput } from "../../../utils/task-edit-builder.ts";
 import { createTaskSearchIndex } from "../../../utils/task-search.ts";
@@ -79,10 +74,6 @@ export class TaskHandlers {
 	private async getConfiguredStatuses(): Promise<string[]> {
 		const config = await this.core.filesystem.loadConfig();
 		return config?.statuses ?? [...DEFAULT_STATUSES];
-	}
-
-	private isDraftStatus(status?: string | null): boolean {
-		return (status ?? "").trim().toLowerCase() === "draft";
 	}
 
 	private formatTaskSummaryLine(task: Task, options: { includeStatus?: boolean } = {}): string {
@@ -153,73 +144,6 @@ export class TaskHandlers {
 	}
 
 	async listTasks(args: TaskListArgs = {}): Promise<CallToolResult> {
-		if (this.isDraftStatus(args.status)) {
-			let drafts = await this.core.filesystem.listDrafts();
-			if (args.search) {
-				const draftSearch = createTaskSearchIndex(drafts);
-				drafts = draftSearch.search({ query: args.search, status: "Draft" });
-			}
-
-			if (args.assignee) {
-				drafts = drafts.filter((draft) => (draft.assignee ?? []).includes(args.assignee ?? ""));
-			}
-			if (args.milestone) {
-				const [activeMilestones, archivedMilestones] = await Promise.all([
-					this.core.filesystem.listMilestones(),
-					this.core.filesystem.listArchivedMilestones(),
-				]);
-				const resolveMilestoneFilterValue = createMilestoneFilterValueResolver([
-					...activeMilestones,
-					...archivedMilestones,
-				]);
-				const milestoneFilter = resolveClosestMilestoneFilterValue(
-					args.milestone,
-					drafts.map((draft) => resolveMilestoneFilterValue(draft.milestone ?? "")),
-				);
-				drafts = drafts.filter(
-					(draft) =>
-						normalizeMilestoneFilterValue(resolveMilestoneFilterValue(draft.milestone ?? "")) === milestoneFilter,
-				);
-			}
-
-			const labelFilters = args.labels ?? [];
-			if (labelFilters.length > 0) {
-				drafts = drafts.filter((draft) => {
-					const draftLabels = draft.labels ?? [];
-					return labelFilters.every((label) => draftLabels.includes(label));
-				});
-			}
-
-			if (drafts.length === 0) {
-				return {
-					content: [
-						{
-							type: "text",
-							text: "No tasks found.",
-						},
-					],
-				};
-			}
-
-			let sortedDrafts = sortByOrdinalAndPriority(drafts);
-			if (typeof args.limit === "number" && args.limit >= 0) {
-				sortedDrafts = sortedDrafts.slice(0, args.limit);
-			}
-			const lines = ["Draft:"];
-			for (const draft of sortedDrafts) {
-				lines.push(this.formatTaskSummaryLine(draft));
-			}
-
-			return {
-				content: [
-					{
-						type: "text",
-						text: lines.join("\n"),
-					},
-				],
-			};
-		}
-
 		const filters: TaskListFilter = {};
 		if (args.status) {
 			filters.status = args.status;
@@ -321,45 +245,6 @@ export class TaskHandlers {
 			throw new BacklogToolError("Search query or modifiedFiles filter is required", "VALIDATION_ERROR");
 		}
 
-		if (this.isDraftStatus(args.status)) {
-			const drafts = await this.core.filesystem.listDrafts();
-			const searchIndex = createTaskSearchIndex(drafts);
-			let draftMatches = searchIndex.search({
-				query,
-				status: "Draft",
-				priority: args.priority,
-				modifiedFiles,
-			});
-			if (typeof args.limit === "number" && args.limit >= 0) {
-				draftMatches = draftMatches.slice(0, args.limit);
-			}
-
-			if (draftMatches.length === 0) {
-				return {
-					content: [
-						{
-							type: "text",
-							text: `No tasks found for "${query || modifiedFiles?.join(", ")}".`,
-						},
-					],
-				};
-			}
-
-			const lines: string[] = ["Tasks:"];
-			for (const draft of draftMatches) {
-				lines.push(this.formatTaskSummaryLine(draft, { includeStatus: true }));
-			}
-
-			return {
-				content: [
-					{
-						type: "text",
-						text: lines.join("\n"),
-					},
-				],
-			};
-		}
-
 		const tasks = await this.core.loadTasks(undefined, undefined, { includeCompleted: true });
 		const searchIndex = createTaskSearchIndex(tasks);
 		let taskMatches = searchIndex.search({
@@ -400,11 +285,6 @@ export class TaskHandlers {
 	}
 
 	async viewTask(args: { id: string }): Promise<CallToolResult> {
-		const draft = await this.core.filesystem.loadDraft(args.id);
-		if (draft) {
-			return await formatTaskCallResult(draft);
-		}
-
 		const task = await this.core.getTaskWithSubtasks(args.id);
 		if (!task) {
 			throw new BacklogToolError(`Task not found: ${args.id}`, "TASK_NOT_FOUND");
@@ -413,16 +293,6 @@ export class TaskHandlers {
 	}
 
 	async archiveTask(args: { id: string }): Promise<CallToolResult> {
-		const draft = await this.core.filesystem.loadDraft(args.id);
-		if (draft) {
-			const success = await this.core.archiveDraft(draft.id);
-			if (!success) {
-				throw new BacklogToolError(`Failed to archive task: ${args.id}`, "OPERATION_FAILED");
-			}
-
-			return await formatTaskCallResult(draft, [`Archived draft ${draft.id}.`]);
-		}
-
 		const task = await this.loadTaskOrThrow(args.id);
 
 		if (!isLocalEditableTask(task)) {
@@ -474,25 +344,6 @@ export class TaskHandlers {
 		return await formatTaskCallResult(task, [`Completed task ${task.id}.`], {
 			filePathOverride: completedFilePath,
 		});
-	}
-
-	async demoteTask(args: { id: string }): Promise<CallToolResult> {
-		const task = await this.loadTaskOrThrow(args.id);
-		let success: boolean;
-		try {
-			success = await this.core.demoteTask(task.id, false);
-		} catch (error) {
-			if (isCreateLockError(error)) {
-				throw new BacklogToolError(error.message, "OPERATION_FAILED");
-			}
-			throw error;
-		}
-		if (!success) {
-			throw new BacklogToolError(`Failed to demote task: ${args.id}`, "OPERATION_FAILED");
-		}
-
-		const refreshed = (await this.core.getTask(task.id)) ?? task;
-		return await formatTaskCallResult(refreshed);
 	}
 
 	async editTask(args: TaskEditRequest): Promise<CallToolResult> {

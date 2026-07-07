@@ -61,7 +61,6 @@ export interface TaskCreateOptions {
 	ac?: string | string[];
 	plan?: string;
 	notes?: string;
-	draft?: boolean;
 	parent?: string;
 	dependencies?: string;
 	ref?: string[];
@@ -98,7 +97,7 @@ async function createTaskViaCore(
 	const createInput: TaskCreateInput = {
 		title: options.title.trim(),
 		description: options.description,
-		status: options.status ?? (options.draft ? "Draft" : undefined),
+		status: options.status,
 		priority: normalizedPriority as TaskCreateInput["priority"],
 		labels: options.labels
 			? options.labels
@@ -176,8 +175,7 @@ async function createTaskViaCore(
 
 	try {
 		const { task } = await core.createTaskFromInput(createInput, options.autoCommit);
-		const isDraft = (task.status ?? "").toLowerCase() === "draft";
-		const header = isDraft ? `Created draft ${task.id}` : `Created task ${task.id}`;
+		const header = `Created task ${task.id}`;
 		const stdout = options.plain ? `${header}\n\n${formatTaskPlainText(task)}` : header;
 		return {
 			exitCode: 0,
@@ -364,8 +362,6 @@ export interface TaskViewOptions {
 	taskId: string;
 	plain?: boolean;
 	useViewCommand?: boolean;
-	/** When true, loads from the drafts directory instead of tasks */
-	draft?: boolean;
 }
 
 /**
@@ -386,11 +382,10 @@ async function viewTaskViaCore(
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
 	try {
 		const core = new Core(testDir);
-		const prefix = options.draft ? "draft" : "task";
-		const taskId = hasAnyPrefix(options.taskId) ? options.taskId : `${prefix}-${options.taskId}`;
+		const taskId = hasAnyPrefix(options.taskId) ? options.taskId : `task-${options.taskId}`;
 
 		// Use getTaskWithSubtasks to include subtask summaries (same as CLI view command)
-		const task = options.draft ? await core.filesystem.loadDraft(taskId) : await core.getTaskWithSubtasks(taskId);
+		const task = await core.getTaskWithSubtasks(taskId);
 		if (!task) {
 			return {
 				exitCode: 1,
@@ -440,7 +435,6 @@ Options:
   --dod <item>                    add Definition of Done item (can be used multiple times)
   --no-dod-defaults               disable Definition of Done defaults
   --plan <plan>                   implementation plan
-  --draft                         create as draft
   -p, --parent <taskId>           specify parent task ID
   --dep <dependencies>            task dependencies (comma-separated)
   --depends-on <dependencies>     task dependencies (comma-separated)

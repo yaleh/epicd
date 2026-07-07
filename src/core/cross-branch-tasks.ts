@@ -11,7 +11,7 @@ import { buildPathIdRegex, normalizeId } from "../utils/prefix-config.ts";
 /** Default prefix for tasks */
 const DEFAULT_TASK_PREFIX = "task";
 
-export type TaskDirectoryType = "task" | "draft" | "archived" | "completed";
+export type TaskDirectoryType = "task" | "archived" | "completed";
 
 export interface TaskDirectoryInfo {
 	taskId: string;
@@ -84,7 +84,6 @@ export async function getLatestTaskStatesForIds(
 		// Create all file path combinations we need to check
 		const directoryChecks: Array<{ path: string; type: TaskDirectoryType }> = [
 			{ path: `${backlogDir}/tasks`, type: "task" },
-			{ path: `${backlogDir}/drafts`, type: "draft" },
 			{ path: `${backlogDir}/archive/tasks`, type: "archived" },
 			{ path: `${backlogDir}/completed`, type: "completed" },
 		];
@@ -252,7 +251,7 @@ export function filterTasksByLatestState(tasks: Task[], latestDirectories: Map<s
 		}
 
 		// Only show tasks whose latest directory type is "task"
-		// Completed, archived, and draft tasks should not appear on the main board
+		// Completed and archived tasks should not appear on the main board
 		return latestDirectory.type === "task";
 	});
 }

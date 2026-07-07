@@ -61,10 +61,8 @@ describe("backlog init command", () => {
 		const expectedDirs = [
 			"backlog",
 			"backlog/tasks",
-			"backlog/drafts",
 			"backlog/archive",
 			"backlog/archive/tasks",
-			"backlog/archive/drafts",
 			"backlog/archive/milestones",
 			"backlog/milestones",
 			"backlog/docs",

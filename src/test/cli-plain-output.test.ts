@@ -75,16 +75,6 @@ describe("CLI plain output for AI agents", () => {
 			},
 			false,
 		);
-
-		// Create a test draft through the canonical create path
-		await core.createTaskFromInput(
-			{
-				title: "Test draft for plain output",
-				status: "Draft",
-				description: "Test draft description",
-			},
-			false,
-		);
 	});
 
 	afterEach(async () => {
@@ -155,50 +145,6 @@ describe("CLI plain output for AI agents", () => {
 		expect(result.stdout).toContain("Task TASK-2 - Standalone task for plain output");
 		expect(result.stdout).not.toContain("Subtasks (");
 		expect(result.stdout).not.toContain("Subtasks:");
-	});
-
-	it("should output plain text with draft view --plain", async () => {
-		const result = await viewTaskPlatformAware({ taskId: "1", plain: true, draft: true }, TEST_DIR);
-
-		expect(result.exitCode).toBe(0);
-		// Should contain the file path as first line
-		expect(result.stdout).toContain("File: ");
-		expect(result.stdout).toContain("draft-1 - Test-draft-for-plain-output.md");
-		// Should contain the formatted draft output
-		expect(result.stdout).toContain("Task DRAFT-1 - Test draft for plain output");
-		expect(result.stdout).toContain("Status: ○ Draft");
-		expect(result.stdout).toMatch(/Created:\s+\d{4}-\d{2}-\d{2}/);
-		expect(result.stdout).toContain("Description:");
-		expect(result.stdout).toContain("Test draft description");
-		expect(result.stdout).toContain("Definition of Done:");
-		// Should not contain TUI escape codes
-		expect(result.stdout).not.toContain("[?1049h");
-		expect(result.stdout).not.toContain("\x1b");
-	});
-
-	it("should output plain text with draft <id> --plain shortcut", async () => {
-		// Verify draft exists before running
-		const core = new Core(TEST_DIR);
-		const draft = await core.filesystem.loadDraft("draft-1");
-		expect(draft).not.toBeNull();
-		expect(draft?.id).toBe("DRAFT-1");
-
-		const result = await viewTaskPlatformAware({ taskId: "1", plain: true, draft: true }, TEST_DIR);
-
-		expect(result.exitCode).toBe(0);
-		// Should contain the file path as first line
-		expect(result.stdout).toContain("File: ");
-		expect(result.stdout).toContain("draft-1 - Test-draft-for-plain-output.md");
-		// Should contain the formatted draft output
-		expect(result.stdout).toContain("Task DRAFT-1 - Test draft for plain output");
-		expect(result.stdout).toContain("Status: ○ Draft");
-		expect(result.stdout).toMatch(/Created:\s+\d{4}-\d{2}-\d{2}/);
-		expect(result.stdout).toContain("Description:");
-		expect(result.stdout).toContain("Test draft description");
-		expect(result.stdout).toContain("Definition of Done:");
-		// Should not contain TUI escape codes
-		expect(result.stdout).not.toContain("[?1049h");
-		expect(result.stdout).not.toContain("\x1b");
 	});
 
 	// Task list already has --plain support and works correctly

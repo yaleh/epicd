@@ -6,7 +6,6 @@ export type TaskStatus = string;
  */
 export enum EntityType {
 	Task = "task",
-	Draft = "draft",
 	Document = "document",
 	Decision = "decision",
 }

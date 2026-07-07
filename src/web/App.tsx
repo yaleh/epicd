@@ -5,7 +5,6 @@ import BoardPage from './components/BoardPage';
 import DocumentationDetail from './components/DocumentationDetail';
 import DecisionDetail from './components/DecisionDetail';
 import TaskList from './components/TaskList';
-import DraftsList from './components/DraftsList';
 import Settings from './components/Settings';
 import Statistics from './components/Statistics';
 import MilestonesPage from './components/MilestonesPage';
@@ -163,7 +162,6 @@ const canonicalizeMilestone = (value: string | null | undefined, aliasMap?: Map<
 function App() {
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [isDraftMode, setIsDraftMode] = useState(false);
   const [statuses, setStatuses] = useState<string[]>([]);
   const [availableLabels, setAvailableLabels] = useState<string[]>([]);
   const [projectName, setProjectName] = useState<string>('');
@@ -172,7 +170,7 @@ function App() {
   const [milestoneEntities, setMilestoneEntities] = useState<Milestone[]>([]);
   const [archivedMilestones, setArchivedMilestones] = useState<Milestone[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [taskConfirmation, setTaskConfirmation] = useState<{task: Task, isDraft: boolean} | null>(null);
+  const [taskConfirmation, setTaskConfirmation] = useState<Task | null>(null);
   
   // Initialization state
   const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
@@ -359,14 +357,6 @@ function App() {
 
   const handleNewTask = () => {
     setEditingTask(null);
-    setIsDraftMode(false);
-    setShowModal(true);
-  };
-
-  const handleNewDraft = () => {
-    // Create a draft task (same as new task but with status 'Draft')
-    setEditingTask(null);
-    setIsDraftMode(true);
     setShowModal(true);
   };
 
@@ -378,7 +368,6 @@ function App() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingTask(null);
-    setIsDraftMode(false);
   };
 
   const refreshData = useCallback(async () => {
@@ -415,14 +404,10 @@ function App() {
     if (editingTask) {
       await apiClient.updateTask(editingTask.id, taskData);
     } else {
-      // Set status to 'Draft' if in draft mode
-      const finalTaskData = isDraftMode
-        ? { ...taskData, status: 'Draft' }
-        : taskData;
-      const createdTask = await apiClient.createTask(finalTaskData as Omit<Task, "id" | "createdDate">);
+      const createdTask = await apiClient.createTask(taskData as Omit<Task, "id" | "createdDate">);
 
       // Show task creation confirmation
-      setTaskConfirmation({ task: createdTask, isDraft: isDraftMode });
+      setTaskConfirmation(createdTask);
 
       // Auto-dismiss after 4 seconds
       setTimeout(() => {
@@ -431,12 +416,6 @@ function App() {
     }
     handleCloseModal();
     await refreshData();
-
-    // If we're on the drafts page and created a draft, trigger a refresh
-    if (isDraftMode && window.location.pathname === '/drafts') {
-      // Trigger refresh by updating a timestamp that DraftsList can watch
-      window.dispatchEvent(new Event('drafts-updated'));
-    }
   };
 
   const handleArchiveTask = async (taskId: string) => {
@@ -553,7 +532,6 @@ function App() {
               />
             }
           />
-            <Route path="drafts" element={<DraftsList onEditTask={handleEditTask} onNewDraft={handleNewDraft} />} />
             <Route path="documentation" element={<DocumentationDetail docs={docs} onRefreshData={refreshData} />} />
             <Route path="documentation/:id" element={<DocumentationDetail docs={docs} onRefreshData={refreshData} />} />
             <Route path="documentation/:id/:title" element={<DocumentationDetail docs={docs} onRefreshData={refreshData} />} />
@@ -572,18 +550,17 @@ function App() {
           onSaved={refreshData}
           onSubmit={handleSubmitTask}
           onArchive={editingTask ? () => handleArchiveTask(editingTask.id) : undefined}
-          availableStatuses={isDraftMode ? ['Draft', ...statuses] : statuses}
+          availableStatuses={statuses}
           availableMilestones={milestones}
           milestoneEntities={milestoneEntities}
           archivedMilestoneEntities={archivedMilestones}
-          isDraftMode={isDraftMode}
           definitionOfDoneDefaults={config?.definitionOfDone ?? []}
         />
 
         {/* Task Creation Confirmation Toast */}
         {taskConfirmation && (
           <SuccessToast
-            message={`${taskConfirmation.isDraft ? 'Draft' : 'Task'} "${taskConfirmation.task.title}" created successfully! (${taskConfirmation.task.id.replace('task-', '')})`}
+            message={`Task "${taskConfirmation.title}" created successfully! (${taskConfirmation.id.replace('task-', '')})`}
             onDismiss={() => setTaskConfirmation(null)}
             icon={
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

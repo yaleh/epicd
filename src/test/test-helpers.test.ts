@@ -43,12 +43,6 @@ describe("test-helpers", () => {
 			const result = await createTaskPlatformAware({ title: "" }, TEST_DIR);
 			expect(result.exitCode).toBe(1);
 		});
-
-		it("creates draft with draft flag", async () => {
-			const result = await createTaskPlatformAware({ title: "Draft task", draft: true }, TEST_DIR);
-			expect(result.exitCode).toBe(0);
-			expect(result.stdout).toContain("Created draft");
-		});
 	});
 
 	describe("editTaskPlatformAware", () => {

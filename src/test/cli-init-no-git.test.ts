@@ -97,27 +97,19 @@ describe("CLI init without Git", () => {
 		expect(await core.gitOps.listRecentBranches(30)).toEqual([]);
 		expect(await core.gitOps.hasAnyRemote()).toBe(false);
 
-		// CLI-CONTRACT: verifies task/draft/doc/decision/milestone flows work in filesystem-only mode with correct CLI output
+		// CLI-CONTRACT: verifies task/doc/decision/milestone flows work in filesystem-only mode with correct CLI output
 		const cliEnv = { ...process.env, BACKLOG_CWD: TEST_DIR };
-		// Parallelize independent create operations; draft promote must follow draft create
-		const [taskResult, draftResult, docResult, decisionResult] = await Promise.all([
+		const [taskResult, docResult, decisionResult] = await Promise.all([
 			$`bun ${CLI_PATH} task create "No Git Task" --plain`.cwd(TEST_DIR).env(cliEnv).quiet(),
-			$`bun ${CLI_PATH} draft create "No Git Draft"`.cwd(TEST_DIR).env(cliEnv).quiet(),
 			$`bun ${CLI_PATH} doc create "No Git Doc"`.cwd(TEST_DIR).env(cliEnv).quiet(),
 			$`bun ${CLI_PATH} decision create "No Git Decision"`.cwd(TEST_DIR).env(cliEnv).quiet(),
 		]);
 		expect(taskResult.exitCode).toBe(0);
 		expect(taskResult.stdout.toString()).toContain("Task TASK-1 - No Git Task");
-		expect(draftResult.exitCode).toBe(0);
-		expect(draftResult.stdout.toString()).toContain("Created draft DRAFT-1");
 		expect(docResult.exitCode).toBe(0);
 		expect(docResult.stdout.toString()).toContain("Created document doc-1");
 		expect(decisionResult.exitCode).toBe(0);
 		expect(decisionResult.stdout.toString()).toContain("Created decision decision-1");
-
-		const promotedResult = await $`bun ${CLI_PATH} draft promote draft-1`.cwd(TEST_DIR).env(cliEnv).quiet();
-		expect(promotedResult.exitCode).toBe(0);
-		expect(promotedResult.stdout.toString()).toContain("Promoted draft draft-1");
 
 		const milestone = await core.filesystem.createMilestone("No Git Milestone");
 		const archiveMilestoneResult = await core.archiveMilestone(milestone.id, true);
@@ -129,7 +121,6 @@ describe("CLI init without Git", () => {
 		const archivedMilestones = await core.filesystem.listArchivedMilestones();
 
 		expect(tasks.map((task) => task.title)).toContain("No Git Task");
-		expect(tasks.map((task) => task.title)).toContain("No Git Draft");
 		expect(documents.map((doc) => doc.title)).toContain("No Git Doc");
 		expect(decisions.map((decision) => decision.title)).toContain("No Git Decision");
 		expect(archivedMilestones.map((item) => item.title)).toContain("No Git Milestone");
