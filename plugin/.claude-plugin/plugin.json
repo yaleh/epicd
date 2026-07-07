@@ -1,7 +1,7 @@
 {
 	"name": "epicd",
 	"version": "1.0.0",
-	"description": "epicd skill set: operation skills (propose, promote, inbox, run, init), lifecycle skills (primitive-executor, epic-decompose, epic-evaluate, exploration-spike, authoring-draft, authoring-refining), and methodology skills (fixpoint-convergence, context-hunter, epicd-run, backlog-technical-project-manager).",
+	"description": "epicd skill set: operation skills (propose, promote, inbox, run, init), lifecycle skills (primitive-executor, epic-decompose, epic-evaluate, exploration-spike, authoring-draft, authoring-refining), and methodology skills (fixpoint-convergence, epicd-run).",
 	"author": {
 		"name": "Yale Huang",
 		"url": "https://github.com/yaleh"
@@ -22,8 +22,6 @@
 		"./skills/authoring-draft/SKILL.md",
 		"./skills/authoring-refining/SKILL.md",
 		"./skills/fixpoint-convergence/SKILL.md",
-		"./skills/context-hunter/SKILL.md",
-		"./skills/epicd-run/SKILL.md",
-		"./skills/backlog-technical-project-manager/SKILL.md"
+		"./skills/epicd-run/SKILL.md"
 	]
 }
