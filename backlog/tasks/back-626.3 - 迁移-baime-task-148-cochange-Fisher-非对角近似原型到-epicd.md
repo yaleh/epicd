@@ -1,7 +1,6 @@
 ---
 id: BACK-626.3
 title: 迁移 baime task-148 cochange/Fisher 非对角近似原型到 epicd
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 03:42'

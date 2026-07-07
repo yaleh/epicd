@@ -3,7 +3,6 @@ id: BACK-657.4
 title: >-
   authoring skills（authoring/draft extract/reference + authoring/refining
   extract/reference）
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 15:51'

@@ -1,7 +1,6 @@
 ---
 id: BACK-630
 title: field-registry 通用部分回馈上游（Backlog.md）：整理可复用 PR
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:19'

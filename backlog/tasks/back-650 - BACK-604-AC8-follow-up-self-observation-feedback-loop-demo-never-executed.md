@@ -1,7 +1,6 @@
 ---
 id: BACK-650
 title: 'BACK-604 AC#8 follow-up: self-observation feedback loop demo never executed'
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 17:22'

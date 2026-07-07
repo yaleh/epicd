@@ -3,7 +3,6 @@ id: BACK-629
 title: >-
   adr-as-contract-harness 最小切片：契约条款 enforcement 层级 + oracle 字段 + meta-lint +
   negative-control 入 DoD-defaults
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:07'

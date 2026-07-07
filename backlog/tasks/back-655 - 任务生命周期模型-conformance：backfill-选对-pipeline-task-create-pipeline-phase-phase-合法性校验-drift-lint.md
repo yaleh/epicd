@@ -3,7 +3,6 @@ id: BACK-655
 title: >-
   任务生命周期模型 conformance：backfill 选对 pipeline + task create --pipeline/--phase +
   phase 合法性校验 + drift-lint
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-06 04:40'

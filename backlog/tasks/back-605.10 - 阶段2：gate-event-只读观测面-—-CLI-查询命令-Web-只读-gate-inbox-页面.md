@@ -1,7 +1,6 @@
 ---
 id: BACK-605.10
 title: 阶段2：gate-event 只读观测面 — CLI 查询命令 + Web 只读 gate-inbox 页面
-status: 'Basic: Done'
 assignee:
   - '@yale'
 created_date: '2026-07-05 11:15'

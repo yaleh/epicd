@@ -1,7 +1,6 @@
 ---
 id: BACK-611
 title: 'BACK-601.4 - status↔phase 人面投影 label(role,phase)'
-status: 'Basic: Done'
 assignee:
   - '@claude-opus'
 created_date: '2026-07-04 10:44'

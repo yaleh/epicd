@@ -1,7 +1,6 @@
 ---
 id: BACK-626
 title: 分解正交性检查清单：从方法论到 decomposer 门禁与 cochange 信号
-status: 'Epic: Done'
 assignee: []
 created_date: '2026-07-05 03:41'
 updated_date: '2026-07-06 03:46'

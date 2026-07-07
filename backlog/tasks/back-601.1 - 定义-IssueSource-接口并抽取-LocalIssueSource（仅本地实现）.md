@@ -1,7 +1,6 @@
 ---
 id: BACK-601.1
 title: 定义 IssueSource 接口并抽取 LocalIssueSource（仅本地实现）
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-03 17:08'

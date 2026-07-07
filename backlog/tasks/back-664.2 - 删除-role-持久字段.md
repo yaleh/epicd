@@ -1,7 +1,6 @@
 ---
 id: BACK-664.2
 title: 删除 role 持久字段
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 14:00'

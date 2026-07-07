@@ -1,7 +1,6 @@
 ---
 id: BACK-604
 title: 'E4: 人面 — 多车道 issue-list（主面）+ 内联 gate + auth'
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'

@@ -1,7 +1,6 @@
 ---
 id: BACK-642
 title: gitMergeBranch board-only 自动解冲未覆盖 untracked-file-would-be-overwritten 的合并中止路径
-status: 'Basic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-05 12:46'

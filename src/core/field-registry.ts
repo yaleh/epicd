@@ -79,7 +79,7 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		type: "string",
 		parse: (fm) => String(fm.status || ""),
 		serialize: (v) => v,
-		present: () => true,
+		present: (task) => Boolean(task.status && !task.pipeline_id),
 	} as FieldDescriptor<string>,
 	{
 		yamlKey: "assignee",

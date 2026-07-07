@@ -3,7 +3,6 @@ id: BACK-643
 title: >-
   roleOf() ignores kind:epic label for pre-decompose epics, causing cosmetic
   Basic:/Epic: status mislabel
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-05 14:56'

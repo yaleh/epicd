@@ -3,7 +3,8 @@ id: BACK-628.3
 title: >-
   TaskUpdateInput 仍无 pipeline_id/phase/parent_id/dod 字段：create/update
   引擎字段不对称未真正收口
-status: 'Basic: Done'
+pipeline_id: execution
+phase: done
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:21'

@@ -1,7 +1,6 @@
 ---
 id: BACK-606
 title: 'E6: trust ratcheting 与自治'
-status: 'Basic: Draft'
 assignee: []
 created_date: '2026-06-26 09:00'
 updated_date: '2026-07-06 09:16'

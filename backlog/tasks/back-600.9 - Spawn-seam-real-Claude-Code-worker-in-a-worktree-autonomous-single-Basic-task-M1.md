@@ -3,7 +3,6 @@ id: BACK-600.9
 title: >-
   Spawn seam: real Claude Code worker in a worktree (autonomous single Basic
   task = M1)
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 04:53'
 updated_date: '2026-07-06 03:46'

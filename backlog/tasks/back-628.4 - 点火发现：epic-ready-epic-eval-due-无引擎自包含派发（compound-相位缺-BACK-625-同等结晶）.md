@@ -1,7 +1,6 @@
 ---
 id: BACK-628.4
 title: 点火发现：epic-ready/epic-eval-due 无引擎自包含派发（compound 相位缺 BACK-625 同等结晶）
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:21'

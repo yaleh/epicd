@@ -1,7 +1,6 @@
 ---
 id: BACK-654
 title: 'engine complete: adjudicate 判定与 dodResults 实际结果不一致，结构化 gate 全过仍路由 needs-human'
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-06 02:42'

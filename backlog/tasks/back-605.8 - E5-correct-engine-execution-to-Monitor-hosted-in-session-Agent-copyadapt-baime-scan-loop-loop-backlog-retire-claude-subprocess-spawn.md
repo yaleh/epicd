@@ -3,7 +3,6 @@ id: BACK-605.8
 title: >-
   E5: correct engine execution to Monitor-hosted in-session Agent (copy+adapt
   baime scan-loop/loop-backlog; retire claude-subprocess spawn)
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 11:36'

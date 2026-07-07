@@ -1,7 +1,6 @@
 ---
 id: BACK-627
 title: engine phase→status 派生集中到 updateTask，消除 BACK-622 逐点 bandaid
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 05:28'

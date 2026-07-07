@@ -1,7 +1,6 @@
 ---
 id: BACK-628.1
 title: 点火：解除 single-active-driver 阻塞并运行 E1 引擎自解自驱 dogfood
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 05:54'

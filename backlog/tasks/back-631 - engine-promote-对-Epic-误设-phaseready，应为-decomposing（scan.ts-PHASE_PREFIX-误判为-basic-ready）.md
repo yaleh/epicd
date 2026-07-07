@@ -3,7 +3,6 @@ id: BACK-631
 title: >-
   engine promote 对 Epic 误设 phase=ready，应为 decomposing（scan.ts PHASE_PREFIX 误判为
   basic-ready）
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 08:59'

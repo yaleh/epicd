@@ -3,7 +3,6 @@ id: BACK-600.10
 title: >-
   E0 Stage 2 self-host fixpoint gate (verifier+self-test instrument; guard#2
   discharged by soak run)
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 09:32'

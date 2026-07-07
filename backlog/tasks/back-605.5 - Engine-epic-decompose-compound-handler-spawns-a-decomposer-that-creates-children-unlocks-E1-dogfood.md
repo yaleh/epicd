@@ -3,7 +3,6 @@ id: BACK-605.5
 title: >-
   Engine epic-decompose: compound handler spawns a decomposer that creates
   children (unlocks E1 dogfood)
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 08:04'

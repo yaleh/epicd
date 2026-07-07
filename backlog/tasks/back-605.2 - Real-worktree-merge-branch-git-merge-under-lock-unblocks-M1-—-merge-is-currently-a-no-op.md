@@ -3,7 +3,6 @@ id: BACK-605.2
 title: >-
   Real worktree merge: branch + git merge under lock (unblocks M1 — merge is
   currently a no-op)
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 07:05'
 updated_date: '2026-07-06 03:46'

@@ -1,7 +1,6 @@
 ---
 id: BACK-600.3
 title: Define execution pipeline as data and build minimal interpreter
-status: 'Basic: Done'
 assignee:
   - claude
 created_date: '2026-06-26 08:39'

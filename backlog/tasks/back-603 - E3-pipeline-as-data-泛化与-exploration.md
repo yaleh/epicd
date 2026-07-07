@@ -1,7 +1,6 @@
 ---
 id: BACK-603
 title: 'E3: pipeline-as-data 泛化 + exploration pipeline'
-status: 'Epic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'

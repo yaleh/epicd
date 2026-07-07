@@ -1,7 +1,6 @@
 ---
 id: BACK-628.2.1
 title: 示例任务：验证 epicd supervisor 自主执行链路（BACK-628.2 AC#2）
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 08:08'

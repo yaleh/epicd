@@ -3,7 +3,6 @@ id: BACK-605.4
 title: >-
   Wire runDoD into cli engine run realSpawn (M1 e2e found: dodRunner not
   injected → needs-human)
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 07:51'
 updated_date: '2026-07-06 03:46'

@@ -3,7 +3,6 @@ id: BACK-621
 title: >-
   gitCommitBoardChange stages entire backlog tree, can sweep unrelated task
   state into completion commits
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:09'

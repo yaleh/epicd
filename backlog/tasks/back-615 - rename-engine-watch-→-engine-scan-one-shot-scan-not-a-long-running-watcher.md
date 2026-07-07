@@ -3,7 +3,6 @@ id: BACK-615
 title: >-
   rename 'engine watch' → 'engine scan' (one-shot scan, not a long-running
   watcher)
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 15:43'

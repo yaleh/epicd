@@ -3,7 +3,8 @@ id: BACK-665
 title: >-
   任务生命周期模型不动点（M1）：数据/Web UI 符合 doc + status 去 Basic:/Epic: 前缀（has-children
   独立呈现）+ 每个机器 phase 有 skill
-status: 'Epic: Backlog'
+pipeline_id: execution
+phase: backlog
 assignee:
   - '@claude'
 created_date: '2026-07-06 11:15'

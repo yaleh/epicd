@@ -1,7 +1,6 @@
 ---
 id: BACK-657.1
 title: skill 脚手架 + contracts-lint + provenance 门
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 14:44'

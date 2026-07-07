@@ -1,7 +1,6 @@
 ---
 id: BACK-663
 title: 废弃旧 Draft 实体，折叠进 authoring/draft phase
-status: 'Basic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:51'
