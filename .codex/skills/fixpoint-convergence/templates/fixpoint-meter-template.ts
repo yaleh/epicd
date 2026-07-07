@@ -1,10 +1,15 @@
 #!/usr/bin/env bun
 /**
- * <EPIC-ID> fixpoint meter — TEMPLATE (illustrative, not a required tool).
+ * <TASK-ID> fixpoint meter — TEMPLATE (illustrative, not a required tool).
+ *
+ * This meter is the MULTI-CHILD instrument: use it when a task decomposed into
+ * ≥2 children, to exercise the ASSEMBLED system. A single-leaf task does NOT
+ * need this file — its own structured DoD gate, re-run by the engine at merge,
+ * IS its Integration Acceptance (see SKILL.md Stage 4 / evaluate).
  *
  * Genericized from a worked example in epicd (scripts/fixpoint-back665.ts).
- * This is the ADR-019 pattern: encode every epic Acceptance Criterion as a
- * runnable check, so an Epic has ONE red -> green convergence signal instead
+ * This is the ADR-019 pattern: encode every Acceptance Criterion as a runnable
+ * check, so a multi-child task has ONE red -> green convergence signal instead
  * of a pile of independently-green child DoDs that never got exercised
  * together. Nothing is "fixpoint reached" until every check below is green.
  *
@@ -67,7 +72,7 @@ const checks: Check[] = [
 const results = checks.map((c) => ({ ...c, ...c.run() }));
 const green = results.filter((r) => r.pass).length;
 
-console.log("\n<EPIC-ID> fixpoint meter\n");
+console.log("\n<TASK-ID> fixpoint meter\n");
 for (const r of results) {
   console.log(`  ${r.pass ? "PASS" : "FAIL"}  ${r.id}  [${r.ac}]`);
   console.log(`        ${r.detail}`);

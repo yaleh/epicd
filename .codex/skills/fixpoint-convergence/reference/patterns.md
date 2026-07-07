@@ -1,23 +1,28 @@
 # Patterns and evidence detail
 
-Full primary source: `docs/research/baime-fixpoint-convergence/` in this
-repo (README.md, context-isolation-plan.md, ITERATION-PROMPTS.md,
-iterations/iteration-0.md..iteration-4.md — mostly in Chinese, this file is
-an English-facing distillation for skill consumers).
+Two primary sources feed this skill: the **multi-child (Epic) path**
+(`docs/research/baime-fixpoint-convergence/` — README.md,
+context-isolation-plan.md, ITERATION-PROMPTS.md,
+iterations/iteration-0.md..iteration-4.md) and the **single-task path**
+(`docs/research/lightweight-fixpoint/README.md`). Both are mostly in Chinese;
+this file is an English-facing distillation. The 5-iteration trajectory below
+is the Epic path (those iterations really were epics — that framing is kept
+faithful); the single-task path is summarized in its own section at the end.
 
 ## Dual-layer value function
 
-The source experiment scores every iteration on two axes, and this skill
-inherits the framing (without requiring you to compute these numbers for
+The source experiments score every iteration/sample on two axes, and this
+skill inherits the framing (without requiring you to compute these numbers for
 routine use — they were a research instrument, not an operational gate):
 
-- **V_instance** — did *this specific epic* reach a trustworthy done state:
+- **V_instance** — did *this specific task* reach a trustworthy done state:
   real engine-mechanism completion (not hand-edited status), at least one
   fresh-context audit round confirming zero new blockers. Components scored:
   `gate_integrity`, `defect_signal`, `audit_cleanliness`, `scope_discipline`.
-- **V_meta** — is *the methodology itself* (decompose → worktree → independent
-  implementation → independent audit → evaluate → loop-until-dry) working and
-  transferable across epics, not just this one. Components scored:
+- **V_meta** — is *the methodology itself* (assess → [decompose] → worktree →
+  independent implementation → independent audit → evaluate → loop-until-dry;
+  the decompose step drops out on the single-leaf path) working and
+  transferable across tasks, not just this one. Components scored:
   `completeness` (is it documented, and documented *as it's discovered*),
   `effectiveness` (quantified basis — wall-clock, token/tool_use counts,
   needs-human false-positive rate), `reusability` (domain-agnostic vs
@@ -107,3 +112,36 @@ another codebase, not just an in-repo synthetic-empty-repo check).
 - needs-human false-positive rate is a countable, comparable metric across
   rounds (iteration-3: 2/2 same root cause) — worth tracking if you want a
   quantified effectiveness signal instead of only qualitative impressions.
+
+## Single-task path samples (the single-leaf branch)
+
+Source: `docs/research/lightweight-fixpoint/README.md`. This path is the
+degenerate no-children case — a single atomic Basic task claimed with a
+structured DoD gate, one dispatched implementation agent, `engine complete
+--worktree` re-running the gate and merging, and a risk-gated audit decision
+(run a round, or record an explicit skip). No decompose, no fixpoint-meter.
+
+Convergence here is **process-capability**, not the dual-threshold scoring the
+Epic path uses: a sample counts toward a "zero-new-forced-step" streak only if
+it (1) declared structured `dodGates`, (2) exercised the trusted auto-merge
+path (or a needs-human correctly classified as a real gate / legitimate
+safe-default), (3) landed an explicit audit decision, and (4) added no new
+forced step to the skeleton. Declare fixpoint at K=3 consecutive qualifying
+samples.
+
+| # | Task | wall-clock | outcome | why it did / didn't qualify |
+|---|---|---|---|---|
+| 1 | BACK-649 | ~21 min | Done (manual收口) | no dodGates; bypassed auto-merge; audit decision unrecorded → **spawned** the "audit decision must be landed" forced step |
+| 2 | BACK-653 | ~40 min | Done (auto, incl. audit) | all skeleton parts green, BUT first execution of needs-human root-cause classification → **added** that forced step |
+| 3 | BACK-654 | ~50 min | Done (manual收口) | task legitimately declared no dodGates (real safe-default), so criterion (1)/(2) unmet; first "zero new step" sample |
+| 4 | BACK-655 | ~75 min | Done (manual收口) | hit a NEW root-cause class — non-ASCII board-file name defeats the auto-conflict resolver (filed BACK-662); criterion (2) unmet; second "zero new step" sample |
+
+**Current streak: 0.** No single sample has satisfied all four criteria at
+once — each stalls on a different one. The honest reading: the skeleton itself
+has been "zero new forced step" for two straight samples (654, 655), so it is
+stabilizing; the bottleneck has moved OFF skeleton design and ONTO the
+auto-merge mechanism it depends on (`engine complete --worktree`'s
+board-only-conflict resolver, BACK-662). Any task with a non-ASCII title that
+hits a board-only conflict will reproduce the failure until BACK-662 lands —
+so the next qualifying sample should be re-run after that fix. Cross-project
+transfer of this path is still an open evidence gap, same as the Epic path.

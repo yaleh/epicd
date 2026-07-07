@@ -1,25 +1,34 @@
-# ADR-019 pattern: epic-level Integration Acceptance as an executable gate
+# ADR-019 pattern: Integration Acceptance as an executable gate
 
 "ADR-019" here names a gap/pattern this codebase converged on, not a
 requirement to write a formal ADR document in your own project — treat the
 name as a label for the failure mode, not a mandatory artifact format.
 
+## When this applies
+
+This pattern is the **multi-child** instrument. It matters exactly when a task
+decomposed into ≥2 children: the meter exercises the assembled system so the
+whole doesn't silently fail while every part is green. A **single-leaf** task
+has no separate "assembled system" — its own structured DoD gate, re-run
+independently by the engine at merge, IS its Integration Acceptance, and no
+extra meter script is needed (see SKILL.md Stage 4 / `evaluate`).
+
 ## The failure mode this prevents
 
-An Epic whose children are each individually green (own tests pass, own DoD
-gate passes) can still fail to deliver the epic's actual business/AC goal,
-because nothing ever exercised the *assembled* system end-to-end. Evaluating
-an epic as "done" by aggregating child terminal phases (all children Done →
-epic Done) is exactly the gap: no check ever asks "does the whole thing
+A task whose children are each individually green (own tests pass, own DoD
+gate passes) can still fail to deliver the actual business/AC goal, because
+nothing ever exercised the *assembled* system end-to-end. Evaluating the
+parent as "done" by aggregating child terminal phases (all children Done →
+parent Done) is exactly the gap: no check ever asks "does the whole thing
 actually work together". Source evidence in this codebase:
 `src/harness/evaluator.ts` and `src/test/evaluate-runs-integration-acceptance.test.ts`
-name this "the ADR-019 gap" and fix `evaluateEpic` to actually run the epic's
-Integration Acceptance rather than only aggregate child phases.
+name this "the ADR-019 gap" and fix `evaluateEpic` to actually run the
+parent's Integration Acceptance rather than only aggregate child phases.
 
 ## The pattern
 
-Encode every epic Acceptance Criterion as one runnable check in a single
-script (a "fixpoint meter"). Requirements for the meter:
+Encode every Acceptance Criterion as one runnable check in a single script (a
+"fixpoint meter"). Requirements for the meter:
 
 - **One script, one command**, reporting `N/M green` with per-check detail.
 - **Each check names**: the AC it proves, and the owning child task that is
