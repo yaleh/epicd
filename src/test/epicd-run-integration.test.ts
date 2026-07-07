@@ -152,7 +152,7 @@ describe("epicd-run integration (handle-basic-ready -> simulated agent -> engine
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("happy path: DoD passes -> worktree branch is merged into main and phase becomes done", async () => {
+	it("happy path: DoD passes -> worktree branch is merged into main and phase becomes adjudicating (BACK-682 AC#1)", async () => {
 		const task = await createReadyTaskWithDoD(core, "Integration happy path", "true");
 		createdTaskIds.push(task.id);
 
@@ -167,7 +167,7 @@ describe("epicd-run integration (handle-basic-ready -> simulated agent -> engine
 		expect(result.exitCode).toBe(0);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.phase).toBe("done");
+		expect(updated?.phase).toBe("adjudicating");
 
 		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
 		expect(log).toContain(`work for ${task.id}`);

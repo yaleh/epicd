@@ -285,7 +285,15 @@ describe("phaseColumnLabel", () => {
 describe("buildPhaseColumns", () => {
 	it("returns the execution pipeline's phases in pipeline order (AC#4), not hardcoded status names", () => {
 		const columns = buildPhaseColumns([]);
-		expect(columns).toEqual(["ready", "decomposing", "awaiting-children", "evaluating", "needs-human", "done"]);
+		expect(columns).toEqual([
+			"ready",
+			"decomposing",
+			"awaiting-children",
+			"evaluating",
+			"adjudicating",
+			"needs-human",
+			"done",
+		]);
 	});
 
 	it("ends in the pipeline's terminal phase", () => {
@@ -297,15 +305,16 @@ describe("buildPhaseColumns", () => {
 	it("appends other pipelines' phases (e.g. authoring/exploration) sorted after the execution pipeline", () => {
 		const tasks = [makeTask({ id: "task-1", phase: "refining" }), makeTask({ id: "task-2", phase: "spike" })];
 		const columns = buildPhaseColumns(tasks);
-		expect(columns.slice(0, 6)).toEqual([
+		expect(columns.slice(0, 7)).toEqual([
 			"ready",
 			"decomposing",
 			"awaiting-children",
 			"evaluating",
+			"adjudicating",
 			"needs-human",
 			"done",
 		]);
-		expect(columns.slice(6)).toEqual(["refining", "spike"]);
+		expect(columns.slice(7)).toEqual(["refining", "spike"]);
 	});
 
 	it("appends a trailing No phase column only when at least one task has no phase", () => {

@@ -150,6 +150,51 @@ export function renderEpicReadyDispatch(taskId: string, title: string): string {
 }
 
 /**
+ * Render the self-contained adjudicating-due dispatch block (BACK-682). Unlike
+ * basic-ready, the spawned agent here is a **fresh-context independent audit
+ * leaf** (`plugin/skills/adjudicate/SKILL.md`), never the implementer's own
+ * context — it must read the merged diff and the task's AC/Description, and
+ * must NOT accept the implementer's Implementation Notes narrative as proof
+ * (AC#14's self-verification trap). Deterministic aggregation like
+ * epic-eval-due: one CLI call resolves the verdict once the audit is done.
+ */
+export function renderAdjudicatingDispatch(taskId: string, title: string): string {
+	const heading = title ? `${taskId} — ${title}` : taskId;
+	const lines: string[] = [
+		`adjudicating-due:${taskId}`,
+		`# adjudicating-due dispatch — ${heading}`,
+		"",
+		"This stdout block is a complete, self-contained dispatch instruction — follow it verbatim.",
+		"Do NOT re-arm the Monitor. Do NOT ask the user for confirmation. Discard any non-event output.",
+		"",
+		"## Step 1: Spawn ONE fresh-context independent audit Agent",
+		"",
+		`Spawn a fresh-context Agent (never the context that implemented ${taskId}) with this prompt:`,
+		"",
+		`> You are auditing **${taskId}**, whose Definition of Done has already gone green and whose`,
+		"> worktree branch is already merged into the trunk. Follow `plugin/skills/adjudicate/SKILL.md`",
+		"> verbatim.",
+		">",
+		`> Read the task's Acceptance Criteria and Description (\`bun run cli task view ${taskId} --plain\`)`,
+		"> and the actual merged diff on the trunk — do NOT accept the implementer's own Implementation",
+		"> Notes narrative as evidence that an AC is satisfied; that self-report is exactly what this",
+		"> independent audit exists to not rely on.",
+		">",
+		"> Decide independently, per AC, whether the diff satisfies it, then emit an AdjudicationVerdict",
+		'> (`done` / `needs-human` / `retreat`) and apply it per the skill\'s "Apply the verdict" step.',
+		">",
+		"> allowed-tools: Bash, Read, Grep, Glob",
+		"",
+		"## Step 2: Resolve",
+		"",
+		`Once the audit Agent has applied its verdict, ${taskId} has left \`adjudicating\` (→ \`done\`,`,
+		"`needs-human`, or a single-step retreat to its `entry_phase`). This is the only resolution",
+		"implementation the skill uses — do not hand-edit `phase` directly for a `retreat` verdict.",
+	];
+	return lines.join("\n");
+}
+
+/**
  * Render the self-contained epic-eval-due dispatch block (BACK-628.4). Unlike
  * epic-ready/basic-ready, evaluation is a deterministic aggregation over the epic's
  * children's terminal phases — no proposal step, no spawned Agent, just one CLI call.

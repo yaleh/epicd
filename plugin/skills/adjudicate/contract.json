@@ -1,0 +1,6 @@
+{
+	"skill": "adjudicate",
+	"phase": "execution/adjudicating",
+	"creation_path": "extract",
+	"provenance": "plugin/skills/fixpoint-convergence/SKILL.md"
+}

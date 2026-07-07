@@ -101,6 +101,59 @@ export interface Task {
 	 * field; absent by default and only written when non-empty.
 	 */
 	refine_log?: string[];
+	/**
+	 * The `pipeline_id/phase` this task entered its current pipeline from
+	 * (BACK-682 schema #1). Written once, at promote/spawn time. Combined with
+	 * `retreat_log`, this is the single-step-retreat guard's anchor: a retreat
+	 * from `execution/adjudicating` may only target this exact phase.
+	 */
+	entry_phase?: string;
+	/**
+	 * Append-only history of retreat edges written from `execution/adjudicating`
+	 * (BACK-682 schema #1). Never rewritten or truncated — a retreat's contract
+	 * (`keep`/`missing`/`wrong`) is preserved even after the retreated task
+	 * returns and re-reaches `adjudicating`.
+	 */
+	retreat_log?: RetreatEntry[];
+	/**
+	 * Append-only dedup history of gap fingerprints that have already triggered
+	 * one retreat (BACK-682 schema #2). A fingerprint appearing a second time
+	 * forces `needs-human` instead of a second retreat.
+	 */
+	gap_history?: string[];
+}
+
+/**
+ * The three-way retreat contract (BACK-682 schema #3): what a retreat from
+ * `execution/adjudicating` claims about the state of the work it is sending
+ * back. `keep` are AC ids already satisfied and must not be re-touched by the
+ * next implementation round; `missing` are ACs with no implementation yet;
+ * `wrong` are ACs whose existing implementation must be treated as obsolete —
+ * each `wrong` entry MUST name the obsolete block being retired.
+ */
+export interface RetreatContract {
+	/** AC identifiers already satisfied — protected from being undone. */
+	keep: string[];
+	missing: { ac: string; description: string }[];
+	wrong: { ac: string; description: string; obsoleteBlock: { file: string; lines: string; reason: string } }[];
+}
+
+/**
+ * One append-only retreat edge (BACK-682 schema #1), always written from
+ * `execution/adjudicating` and always targeting the task's own `entry_phase`
+ * (one step, never a cross-level jump).
+ */
+export interface RetreatEntry {
+	/** ISO8601 timestamp. */
+	ts: string;
+	/** Always "execution/adjudicating" — the only phase allowed to retreat. */
+	from: string;
+	/** Must equal task.entry_phase — the single-step-retreat guard. */
+	toPhase: string;
+	gapFingerprint: string;
+	/** "implementation"-layer gaps never retreat — they stay in the inner loop. */
+	classification: "spec" | "decomposition" | "goal";
+	contract: RetreatContract;
 }
 
 export interface MilestoneBucket {

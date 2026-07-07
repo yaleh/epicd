@@ -71,7 +71,7 @@ describe("Phase A – board-backed store + safety wiring", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("driver tick over real board advances task phase from ready to done", async () => {
+	it("driver tick over real board advances task phase from ready to adjudicating (BACK-682 AC#1)", async () => {
 		const task = await createBoardTask(core, "Board task 1");
 
 		const store = makeBoardStore(core);
@@ -85,7 +85,7 @@ describe("Phase A – board-backed store + safety wiring", () => {
 
 		// Re-read from board (not memory) to verify persistence
 		const updated = await core.getTask(task.id);
-		expect(updated?.phase).toBe("done");
+		expect(updated?.phase).toBe("adjudicating");
 	});
 
 	it("concurrent merges are serialised — no interleaving under withMergeLock", async () => {
@@ -163,7 +163,7 @@ describe("Phase A – board-backed store + safety wiring", () => {
 		await driver.tick([task]);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.phase).toBe("done");
+		expect(updated?.phase).toBe("adjudicating");
 	});
 
 	it("withCapGuard makes repeated tick idempotent (cap marker prevents double-execution)", async () => {

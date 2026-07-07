@@ -18,6 +18,12 @@ export const executionPipeline: Pipeline = {
 		{ name: "decomposing", actor: "machine" },
 		{ name: "awaiting-children", actor: "none" },
 		{ name: "evaluating", actor: "machine" },
+		// BACK-682: independent judgmental audit gate. A primitive whose DoD goes
+		// green lands here (not directly on "done") — completeTask (complete.ts)
+		// routes ENG-8's "done" verdict to "adjudicating" for this pipeline. It is
+		// the ONLY phase allowed to write a retreat edge (see src/engine/retreat.ts);
+		// every other phase's forward scan-predicate/actor semantics are unchanged.
+		{ name: "adjudicating", actor: "machine" },
 		{ name: "needs-human", actor: "human" },
 		{ name: "done", actor: "none" },
 	],
