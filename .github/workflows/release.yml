@@ -15,6 +15,7 @@ permissions:
 
 env:
   BUN_VERSION: 1.3.11
+  RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
 
 jobs:
   build:
@@ -55,7 +56,7 @@ jobs:
       - name: Sync version to tag
         shell: bash
         run: |
-          TAG="${GITHUB_REF##refs/tags/v}"
+          TAG="${RELEASE_TAG##v}"
           jq ".version = \"$TAG\"" package.json > tmp.json && mv tmp.json package.json
       - name: Prime Bun cache for baseline target (Windows workaround)
         if: ${{ contains(matrix.target, 'baseline') && contains(matrix.target, 'windows') }}
@@ -73,7 +74,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          bun build src/cli.ts --compile --minify --target=${{ matrix.target }} --define __EMBEDDED_VERSION__="\"${GITHUB_REF##refs/tags/v}\"" --outfile=dist/${{ env.BIN }}
+          bun build src/cli.ts --compile --minify --target=${{ matrix.target }} --define __EMBEDDED_VERSION__="\"${RELEASE_TAG##v}\"" --outfile=dist/${{ env.BIN }}
       - name: Make binary executable (non-Windows)
         if: ${{ !contains(matrix.target,'windows') }}
         run: chmod +x "dist/${{ env.BIN }}"
@@ -107,7 +108,7 @@ jobs:
       - name: Create npm-ready package.json
         shell: bash
         run: |
-          TAG="${GITHUB_REF##refs/tags/v}"
+          TAG="${RELEASE_TAG##v}"
           jq 'del(.devDependencies,.scripts.prepare,.scripts.preinstall,.type) |
               .version = "'$TAG'" |
               .bin = {backlog:"cli.js"} |
@@ -173,7 +174,7 @@ jobs:
       - name: Prepare package
         shell: bash
         run: |
-          TAG="${GITHUB_REF##refs/tags/v}"
+          TAG="${RELEASE_TAG##v}"
           mkdir -p pkg
           # Rename the binary to the expected name
           if [[ -f backlog-bin.exe ]]; then
@@ -240,7 +241,7 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          VERSION="${GITHUB_REF##refs/tags/v}"
+          VERSION="${RELEASE_TAG##v}"
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
           PACKAGE_NAME="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`backlog.md-${platform}-${arch}`);')"
@@ -279,7 +280,7 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          VERSION="${GITHUB_REF##refs/tags/v}"
+          VERSION="${RELEASE_TAG##v}"
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
           PACKAGES=(
@@ -317,7 +318,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $Version = $env:GITHUB_REF_NAME.TrimStart("v")
+          $Version = $env:RELEASE_TAG.TrimStart("v")
           $MaxAttempts = 40
           $SleepSeconds = 15
           $Arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
@@ -381,7 +382,7 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          VERSION="${GITHUB_REF##refs/tags/v}"
+          VERSION="${RELEASE_TAG##v}"
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
           EXPECTED_PACKAGE="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`backlog.md-${platform}-${arch}`);')"
@@ -422,7 +423,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $Version = $env:GITHUB_REF_NAME.TrimStart("v")
+          $Version = $env:RELEASE_TAG.TrimStart("v")
           $MaxAttempts = 40
           $SleepSeconds = 15
           $Arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
@@ -519,7 +520,7 @@ jobs:
       - name: Sync version to tag
         shell: bash
         run: |
-          TAG="${GITHUB_REF##refs/tags/v}"
+          TAG="${RELEASE_TAG##v}"
           jq ".version = \"$TAG\"" package.json > tmp.json && mv tmp.json package.json
       - name: Commit version bump
         uses: stefanzweifel/git-auto-commit-action@v7
