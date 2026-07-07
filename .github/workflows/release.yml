@@ -111,7 +111,7 @@ jobs:
           TAG="${RELEASE_TAG##v}"
           jq 'del(.devDependencies,.scripts.prepare,.scripts.preinstall,.type) |
               .version = "'$TAG'" |
-              .bin = {backlog:"cli.js"} |
+              .bin = {epicd:"cli.js"} |
               .files = ["cli.js","resolveBinary.cjs","postuninstall.cjs","package.json","README.md","LICENSE"] |
               .scripts = {"postuninstall": "node postuninstall.cjs"} |
               .repository = {"type":"git","url":"https://github.com/yaleh/epicd"}' package.json > dist/package.json
@@ -384,7 +384,7 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-      - name: Install and run backlog -v (Unix)
+      - name: Install and run epicd -v (Unix)
         if: ${{ matrix.os != 'windows-latest' }}
         shell: bash
         run: |
@@ -402,7 +402,7 @@ jobs:
             npm init -y >/dev/null 2>&1
 
             if npm i "epicd@${VERSION}" --prefer-online --no-audit --no-fund; then
-              if npx backlog -v; then
+              if npx epicd -v; then
                 echo "Install sanity succeeded on attempt ${attempt}/${MAX_ATTEMPTS}."
                 exit 0
               fi
@@ -425,7 +425,7 @@ jobs:
 
           echo "Install sanity timed out for epicd@${VERSION}."
           exit 1
-      - name: Install and run backlog -v (Windows)
+      - name: Install and run epicd -v (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: |
@@ -452,7 +452,7 @@ jobs:
               npm init -y | Out-Null
               npm i "epicd@$Version" --prefer-online --no-audit --no-fund
               if ($LASTEXITCODE -eq 0) {
-                npx backlog -v
+                npx epicd -v
                 if ($LASTEXITCODE -eq 0) {
                   Write-Host "Install sanity succeeded on attempt $attempt/$MaxAttempts."
                   exit 0
