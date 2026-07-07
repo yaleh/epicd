@@ -3,10 +3,10 @@ id: BACK-680
 title: >-
   验证 epicd skill 跨项目可用性：在 fresh 项目中用 primitive-executor / fixpoint-convergence
   驱动真实任务到 Done
-status: Backlog
+status: Needs Human
 assignee: []
 created_date: '2026-07-07 08:41'
-updated_date: '2026-07-07 10:22'
+updated_date: '2026-07-07 10:33'
 labels:
   - dx
   - plugin
@@ -51,7 +51,7 @@ BACK-666 完成后 epicd plugin 已可通过 `make install-user` 全局安装，
 | bin 命令名 | `backlog`（`package.json bin: {backlog: scripts/cli.cjs}`） |
 | 平台二进制包名 | `backlog.md-linux-x64` 等（6 个，release.yml 硬编码） |
 | `optionalDependencies` | 引用 `backlog.md-*` 名称 |
-| `release.yml` 发布逻辑 | 下次 tag 触发时主包将以 `epicd` 名称发布（读 package.json name 字段），但平台包名需手动对齐 |
+| `release.yml` 发布逻辑 | 下次 tag 触发时：主包以 `epicd@TAG` 发布，平台包以 `backlog.md-*@TAG` 发布，`optionalDependencies` 精确锁定到同一 TAG —— 已逐行验证，无需手动干预 |
 
 ## 目标
 
@@ -85,7 +85,7 @@ BACK-666 完成后 epicd plugin 已可通过 `make install-user` 全局安装，
 - [ ] #4 /fixpoint-convergence 在 fresh 项目里驱动一条功能实现任务到 FixpointResult: Reached（单叶路径，不需 Epic）
 - [x] #5 skill 文档（primitive-executor/SKILL.md 等共 7 个）中的引擎调用命令已从 `bun run cli` 统一为 `backlog`，去除 epicd 源码树专用命令
 - [x] #6 成功路径记录为可执行的 shell 命令序列（`docs/cross-project-install.md`），待 AC#1 通过后同步更新安装命令
-- [ ] #7 `release.yml` 的 `publish-binaries` job 中平台包名（及 `package.json` 的 `optionalDependencies`）已与主包名策略对齐，可在下次 tag 时无人工干预地完成发布
+- [x] #7 `release.yml` 的 `publish-binaries` job 中平台包名（及 `package.json` 的 `optionalDependencies`）已与主包名策略对齐，可在下次 tag 时无人工干预地完成发布（第二轮逐行验证：平台包以 `backlog.md-*@TAG` 发布，`optionalDependencies` 精确锁定到同一 TAG，解析路径完整）
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -103,6 +103,8 @@ BACK-666 完成后 epicd plugin 已可通过 `make install-user` 全局安装，
 - AC#5/#6 已标记完成；AC#1/#2/#7 待 npm 发布后验证；AC#3/#4 为 non-mechanical one-time-proof
 
 audit skipped（第一轮）: RiskGated(False) — 第一轮变更为 skill doc 文本编辑和 docs 新增，无 src/ 触及，无引擎/安全表面。
+
+第二轮 fixpoint-convergence (2026-07-07): AC#7 已验证满足（release.yml 逐行确认，下次 tag 可无人工干预发布 epicd@TAG + backlog.md-*@TAG 平台包）。docs/cross-project-install.md 已更新。剩余阻碍：AC#1/#2 需推送 git tag 触发 npm 发布；AC#3/#4 non-mechanical 待 AC#1 完成后验证。FixpointResult: NotReached — NeedsHuman/RealGate（发布决策门）。audit skipped 第二轮: RiskGated(False)，仅文档更新。
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
