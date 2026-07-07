@@ -1,7 +1,6 @@
 ---
 id: BACK-600.7
 title: Reconcile engine schema/pipeline to the four-axis model (phase/actor)
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 03:17'
 updated_date: '2026-07-06 03:46'

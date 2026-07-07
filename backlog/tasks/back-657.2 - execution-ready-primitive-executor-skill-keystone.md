@@ -1,7 +1,6 @@
 ---
 id: BACK-657.2
 title: execution/ready -> primitive-executor skill (keystone)
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 15:31'

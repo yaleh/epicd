@@ -1,7 +1,6 @@
 ---
 id: BACK-664.1
 title: status 投影坍缩 phase-only + 移除编辑面
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 12:31'

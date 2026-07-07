@@ -1,7 +1,6 @@
 ---
 id: BACK-653
 title: All Tasks 主页化：默认路由/过滤排序/driver indicator 闭环 + gate-inbox 下线
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-06 02:02'

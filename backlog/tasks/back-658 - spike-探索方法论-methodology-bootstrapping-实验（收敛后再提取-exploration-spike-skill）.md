@@ -1,7 +1,6 @@
 ---
 id: BACK-658
 title: spike 探索方法论 methodology-bootstrapping 实验（收敛后再提取 exploration/spike skill）
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 07:44'

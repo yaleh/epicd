@@ -4,7 +4,6 @@ title: >-
   correct epicd-run to baime crystallization norm: minimal SKILL (single
   Monitor→script), slim engine watch to machine lines, clean scan-loop
   consumption
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 14:51'

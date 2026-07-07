@@ -1,7 +1,6 @@
 ---
 id: BACK-601
 title: 'E1: field-registry 与 schema 收敛'
-status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-26 09:00'
 updated_date: '2026-07-05 08:48'

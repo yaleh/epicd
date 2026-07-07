@@ -3,7 +3,6 @@ id: BACK-636
 title: >-
   One-shot migrate legacy docs/research/gcl-events.jsonl rows into GateEvent
   store
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 09:54'

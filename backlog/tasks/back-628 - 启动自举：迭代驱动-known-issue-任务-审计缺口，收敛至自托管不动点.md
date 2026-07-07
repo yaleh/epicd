@@ -1,7 +1,6 @@
 ---
 id: BACK-628
 title: 达成自托管：自审计 epic（审计即 decompose/eval，零新增 blocker 即不动点）
-status: 'Epic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 05:53'

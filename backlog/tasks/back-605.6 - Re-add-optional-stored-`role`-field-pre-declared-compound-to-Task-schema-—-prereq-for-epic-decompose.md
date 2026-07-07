@@ -3,7 +3,6 @@ id: BACK-605.6
 title: >-
   Re-add optional stored `role` field (pre-declared compound) to Task schema —
   prereq for epic-decompose
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 08:17'
 updated_date: '2026-07-06 03:46'

@@ -3,7 +3,6 @@ id: BACK-620
 title: >-
   handle-basic-ready.sh claims via stale global backlog CLI, silently drops
   engine structural fields
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:09'

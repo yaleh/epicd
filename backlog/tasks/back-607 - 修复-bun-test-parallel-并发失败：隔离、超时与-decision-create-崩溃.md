@@ -1,7 +1,6 @@
 ---
 id: BACK-607
 title: 修复 bun test --parallel 并发失败：隔离、超时与 decision create 崩溃
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-06-26 11:48'
 updated_date: '2026-07-06 03:46'

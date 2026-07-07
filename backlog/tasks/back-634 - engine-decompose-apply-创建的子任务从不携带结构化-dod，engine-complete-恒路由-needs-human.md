@@ -1,7 +1,6 @@
 ---
 id: BACK-634
 title: engine decompose-apply 创建的子任务从不携带结构化 dod，engine complete 恒路由 needs-human
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 09:20'

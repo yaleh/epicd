@@ -1,7 +1,6 @@
 ---
 id: BACK-623
 title: engine promote：human promote gate，Backlog → execution/ready
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 01:07'

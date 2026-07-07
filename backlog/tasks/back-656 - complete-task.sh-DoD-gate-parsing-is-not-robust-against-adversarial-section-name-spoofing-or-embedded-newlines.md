@@ -3,7 +3,6 @@ id: BACK-656
 title: >-
   complete-task.sh DoD gate parsing is not robust against adversarial
   section-name spoofing or embedded newlines
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-06 05:19'

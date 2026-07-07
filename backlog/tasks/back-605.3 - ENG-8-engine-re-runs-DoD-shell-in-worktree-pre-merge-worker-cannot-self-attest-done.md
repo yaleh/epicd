@@ -3,7 +3,6 @@ id: BACK-605.3
 title: >-
   ENG-8: engine re-runs DoD shell in worktree pre-merge (worker cannot
   self-attest done)
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 07:12'
 updated_date: '2026-07-06 03:46'

@@ -4,7 +4,6 @@ title: >-
   task create --pipeline/--phase validation is asymmetric: giving only one of
   the two flags bypasses assertLegalPhase and creates an immediately-drifted
   task
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:19'

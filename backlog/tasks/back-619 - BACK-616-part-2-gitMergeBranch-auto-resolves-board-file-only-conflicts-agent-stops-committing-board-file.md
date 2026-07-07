@@ -3,7 +3,6 @@ id: BACK-619
 title: >-
   BACK-616 part 2 - gitMergeBranch auto-resolves board-file-only conflicts;
   agent stops committing board file
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 23:23'
 updated_date: '2026-07-06 03:46'

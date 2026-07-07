@@ -3,7 +3,6 @@ id: BACK-641
 title: >-
   BACK-603 follow-up: wire explorationPipeline into a real
   runEngine/scanReadyLines caller
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 11:21'

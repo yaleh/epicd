@@ -3,7 +3,6 @@ id: BACK-609
 title: >-
   BACK-601.2 - field-registry core + 派生 parse/serialize/validate + role 派生 +
   引擎字段 reconcile + 搜索过滤 + refine_log 描述符
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 10:44'

@@ -1,7 +1,6 @@
 ---
 id: BACK-605
 title: 'E5: 引擎操作 skill 插件（propose/promote/inbox/run/init）'
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-06-26 09:00'

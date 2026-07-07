@@ -1,7 +1,6 @@
 ---
 id: BACK-657.3
 title: epic-lifecycle skills（execution/decomposing extract + evaluating mechanical）
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 15:50'

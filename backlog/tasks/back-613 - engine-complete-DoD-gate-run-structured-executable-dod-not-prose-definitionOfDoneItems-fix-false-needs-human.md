@@ -3,7 +3,6 @@ id: BACK-613
 title: >-
   engine complete DoD gate: run structured executable dod, not prose
   definitionOfDoneItems (fix false needs-human)
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 14:17'

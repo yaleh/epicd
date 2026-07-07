@@ -1,7 +1,6 @@
 ---
 id: BACK-600
 title: 'E0: 引擎自驱 MVD（keystone）'
-status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-26 09:00'
 updated_date: '2026-07-06 03:46'

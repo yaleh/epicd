@@ -1,7 +1,6 @@
 ---
 id: BACK-521
 title: 'Agents: add board export step to agent DoD'
-status: 'Basic: Draft'
 assignee: []
 created_date: '2025-06-09'
 updated_date: '2026-07-06 09:16'

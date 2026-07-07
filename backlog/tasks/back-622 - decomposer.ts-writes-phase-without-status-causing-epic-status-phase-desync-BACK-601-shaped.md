@@ -3,7 +3,6 @@ id: BACK-622
 title: >-
   decomposer.ts writes phase without status, causing epic status/phase desync
   (BACK-601 shaped)
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 00:36'

@@ -1,7 +1,6 @@
 ---
 id: BACK-602
 title: 'E2: 结构化 gate-event log（仪器）'
-status: 'Epic: Done'
 assignee: []
 created_date: '2026-06-26 09:00'
 updated_date: '2026-07-05 09:55'

@@ -1,7 +1,8 @@
 ---
 id: BACK-664
 title: status/role 完全投影化（L3）：删除持久字段 + 移除全部编辑面 + epicd 自建运行时替代 baime + lint 挡死回流
-status: 'Epic: Backlog'
+pipeline_id: execution
+phase: backlog
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:52'

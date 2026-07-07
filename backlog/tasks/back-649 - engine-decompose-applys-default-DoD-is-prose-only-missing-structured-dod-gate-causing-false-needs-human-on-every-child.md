@@ -3,7 +3,6 @@ id: BACK-649
 title: >-
   engine decompose-apply's default DoD is prose-only, missing structured
   --dod-gate, causing false needs-human on every child
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 15:19'

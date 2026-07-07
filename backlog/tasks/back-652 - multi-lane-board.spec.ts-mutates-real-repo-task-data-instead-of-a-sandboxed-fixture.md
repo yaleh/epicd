@@ -3,7 +3,6 @@ id: BACK-652
 title: >-
   multi-lane-board.spec.ts mutates real repo task data instead of a sandboxed
   fixture
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 17:22'

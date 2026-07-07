@@ -1,7 +1,6 @@
 ---
 id: BACK-626.1
 title: 编写"分解正交性检查清单" ADR/方法论文档
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 03:41'

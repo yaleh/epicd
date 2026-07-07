@@ -3,7 +3,6 @@ id: BACK-605.7
 title: >-
   Engine-field-aware child task creation (children get pipeline_id/phase) —
   prereq for epic-decompose
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 08:17'
 updated_date: '2026-07-06 03:46'

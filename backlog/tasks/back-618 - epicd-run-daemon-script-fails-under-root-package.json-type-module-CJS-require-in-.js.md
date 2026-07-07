@@ -3,7 +3,6 @@ id: BACK-618
 title: >-
   epicd-run daemon script fails under root package.json type:module (CJS require
   in .js)
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 17:04'

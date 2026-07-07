@@ -3,7 +3,6 @@ id: BACK-662
 title: >-
   gitMergeBranch board-only-conflict auto-resolve breaks on non-ASCII task
   filenames (quoting bug)
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:19'

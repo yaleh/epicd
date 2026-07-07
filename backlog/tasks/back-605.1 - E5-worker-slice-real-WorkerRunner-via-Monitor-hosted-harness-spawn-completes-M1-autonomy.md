@@ -3,7 +3,6 @@ id: BACK-605.1
 title: >-
   E5 worker slice: real WorkerRunner via Monitor-hosted harness spawn (completes
   M1 autonomy)
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 06:16'
 updated_date: '2026-07-06 03:46'

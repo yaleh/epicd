@@ -1,7 +1,6 @@
 ---
 id: BACK-608
 title: 'E7: Authoring 引擎 — RefineStrategy + refine driver + 状态式 draft'
-status: 'Basic: Draft'
 assignee: []
 created_date: '2026-07-04 01:58'
 updated_date: '2026-07-06 09:16'

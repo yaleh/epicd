@@ -3,7 +3,6 @@ id: BACK-600.8
 title: >-
   Assemble a runnable execution driver on the real board (wire safety, role/DoD
   branching, run loop)
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-04 04:52'
 updated_date: '2026-07-06 03:46'

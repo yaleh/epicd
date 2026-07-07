@@ -1,7 +1,6 @@
 ---
 id: BACK-616
 title: 'engine complete: commit board-file phase write after merge'
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-04 16:10'

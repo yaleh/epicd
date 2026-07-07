@@ -1,7 +1,8 @@
 ---
 id: task-1
 title: 'Authoring 作为一等 pipeline:后台化 propose/plan'
-status: 'Basic: Proposal'
+pipeline_id: authoring
+phase: proposing
 assignee:
   - '@claude'
 created_date: '2026-06-29 03:04'

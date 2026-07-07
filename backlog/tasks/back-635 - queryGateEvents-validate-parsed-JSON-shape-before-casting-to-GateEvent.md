@@ -1,7 +1,6 @@
 ---
 id: BACK-635
 title: 'queryGateEvents: validate parsed JSON shape before casting to GateEvent'
-status: 'Basic: Draft'
 assignee:
   - '@claude'
 created_date: '2026-07-05 09:54'

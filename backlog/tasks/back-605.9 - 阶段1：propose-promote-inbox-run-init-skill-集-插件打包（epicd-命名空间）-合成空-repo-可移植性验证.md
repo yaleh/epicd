@@ -3,7 +3,6 @@ id: BACK-605.9
 title: >-
   阶段1：propose/promote/inbox/run/init skill 集 + 插件打包（epicd: 命名空间）+ 合成空 repo
   可移植性验证
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 11:14'

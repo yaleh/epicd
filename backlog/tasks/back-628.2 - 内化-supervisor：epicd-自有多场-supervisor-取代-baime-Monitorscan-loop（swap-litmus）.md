@@ -1,7 +1,6 @@
 ---
 id: BACK-628.2
 title: 内化 supervisor：epicd 自有多场 supervisor 取代 baime Monitor+scan-loop（swap-litmus）
-status: 'Epic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 05:54'

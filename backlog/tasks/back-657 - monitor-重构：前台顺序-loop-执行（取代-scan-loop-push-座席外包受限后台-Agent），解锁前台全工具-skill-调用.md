@@ -3,7 +3,6 @@ id: BACK-657
 title: >-
   phase 执行 skill 集：为三条 pipeline 的机器 phase 各建随 epicd 发布的执行 skill（参考
   feature-to-backlog）
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 06:53'

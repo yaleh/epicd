@@ -1,7 +1,6 @@
 ---
 id: BACK-626.2
 title: decomposer.ts：子任务 touches 字段声明 + 兄弟任务交集检查
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-05 03:41'

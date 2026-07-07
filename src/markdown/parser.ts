@@ -1,6 +1,7 @@
 import matter from "gray-matter";
-import { parseFields } from "../core/field-registry.ts";
+import { label, parseFields } from "../core/field-registry.ts";
 import type { AcceptanceCriterion, Decision, Document, Milestone, ParsedMarkdown, Task } from "../types/index.ts";
+import { roleOf } from "../types/index.ts";
 import { normalizeDate } from "./date.ts";
 import {
 	AcceptanceCriteriaManager,
@@ -108,7 +109,7 @@ export function parseTask(content: string): Task {
 		...fields,
 		id: fields.id ?? "",
 		title: fields.title ?? "",
-		status: fields.status ?? "",
+		status: fields.phase ? label(roleOf(fields as Task), fields.phase) : (fields.status ?? ""),
 		assignee: fields.assignee ?? [],
 		createdDate: fields.createdDate ?? "",
 		labels: fields.labels ?? [],
