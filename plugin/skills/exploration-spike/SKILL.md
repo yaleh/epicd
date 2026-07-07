@@ -104,7 +104,7 @@ Apply in order; stop at the first decisive answer:
    could disagree — even when gut and mechanism agree.
 
 **PROMOTE mechanics (epicd-specific)**: create the follow-on task with
-`bun run cli task create --pipeline execution --phase ready "<title>"`, then set its
+`backlog task create --pipeline execution --phase ready "<title>"`, then set its
 `provenance.spawned_from` to the spike task's id. As of this writing neither
 `task create` nor `task edit` exposes a CLI flag for the `provenance` field (see
 `src/core/field-registry.ts`'s `provenance` descriptor and BACK-641, the separate
@@ -141,7 +141,7 @@ section — this shape has held across 5 real spikes and 3 distinct verdict shap
 ### Finalise
 
 Record the artifact in the task (e.g.
-`bun run cli task edit <taskId> --append-notes "<the 5-section artifact>"`, or as
+`backlog task edit <taskId> --append-notes "<the 5-section artifact>"`, or as
 the task's final summary). Do not change the task's phase/status yourself — the
 spike phase's own `done` adjudication and any follow-on task creation are the only
 state transitions this skill drives; it does not touch engine mechanics (complete/

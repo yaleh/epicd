@@ -28,7 +28,7 @@ before a worker starts implementing against a broken plan.
 
 ### Phase 0 — Read the approved proposal
 
-Run `bun run cli task view <taskId> --plain` and read the Description (the
+Run `backlog task view <taskId> --plain` and read the Description (the
 approved `authoring/draft` output). This is the sole source of Goals/Background —
 do not invent scope the proposal didn't state.
 
@@ -93,7 +93,7 @@ converged.
 ### Finalise
 
 ```bash
-bun run cli task edit <taskId> --append-notes "authoring/refining review: <APPROVED|NEEDS_HUMAN> after <n> iteration(s)<: unresolved criteria if NEEDS_HUMAN>"
+backlog task edit <taskId> --append-notes "authoring/refining review: <APPROVED|NEEDS_HUMAN> after <n> iteration(s)<: unresolved criteria if NEEDS_HUMAN>"
 ```
 
 Do not change the task's phase/status yourself — that transition belongs to

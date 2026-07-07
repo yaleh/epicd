@@ -11,7 +11,7 @@ from this template by the scanner daemon.
 - To see the exact block a worker (a Monitor seat or `claude -p`) receives for a task:
 
   ```bash
-  bun run cli engine dispatch <TASK-ID>
+  backlog engine dispatch <TASK-ID>
   ```
 
 - Transport: `plugin/scripts/scan-loop.cjs` dedups on the first-line machine key
