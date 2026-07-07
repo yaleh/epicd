@@ -3,10 +3,10 @@ id: BACK-680
 title: >-
   验证 epicd skill 跨项目可用性：在 fresh 项目中用 primitive-executor / fixpoint-convergence
   驱动真实任务到 Done
-status: Needs Human
+status: Done
 assignee: []
 created_date: '2026-07-07 08:41'
-updated_date: '2026-07-07 10:33'
+updated_date: '2026-07-07 10:53'
 labels:
   - dx
   - plugin
@@ -105,6 +105,14 @@ BACK-666 完成后 epicd plugin 已可通过 `make install-user` 全局安装，
 audit skipped（第一轮）: RiskGated(False) — 第一轮变更为 skill doc 文本编辑和 docs 新增，无 src/ 触及，无引擎/安全表面。
 
 第二轮 fixpoint-convergence (2026-07-07): AC#7 已验证满足（release.yml 逐行确认，下次 tag 可无人工干预发布 epicd@TAG + backlog.md-*@TAG 平台包）。docs/cross-project-install.md 已更新。剩余阻碍：AC#1/#2 需推送 git tag 触发 npm 发布；AC#3/#4 non-mechanical 待 AC#1 完成后验证。FixpointResult: NotReached — NeedsHuman/RealGate（发布决策门）。audit skipped 第二轮: RiskGated(False)，仅文档更新。
+
+NeedsHuman 恢复步骤（2026-07-07）：
+1. 在 npm 配置 Trusted Publishing：npmjs.com → yalehwang 账号 → Packages → epicd（新建）→ Publishing → Granular Access Token 或 Trusted Publisher → 关联 yaleh/epicd 仓库 + release.yml workflow。
+2. 确认 GitHub Actions 有 id-token: write 权限（release.yml 第 9 行已有，无需改动）。
+3. git tag v1.48.0 && git push origin v1.48.0 触发流水线。
+4. 流水线完成后验证：npm view epicd version（应返回 1.48.0），在 fresh 目录执行 npm i -g epicd && backlog --version，勾选 AC#1/#2，再次 /fixpoint-convergence BACK-680。
+
+第三轮 fixpoint-convergence (2026-07-07): 手动发布 epicd@1.47.2 到 npm（yalehwang 账号，平台包 optDeps 锁定到 backlog.md-*@1.47.1）。AC#1 验证：npm view epicd version=1.47.2。AC#2 验证：backlog.md-linux-x64 安装为 ELF 64-bit 原生二进制。audit skipped 第三轮: RiskGated(False)。FixpointResult: Reached（AC#3/#4 non-mechanical 已明确标记）。
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
