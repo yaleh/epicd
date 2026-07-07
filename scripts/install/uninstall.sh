@@ -1,8 +1,5 @@
 #!/bin/bash
-# Uninstall epicd plugin (thin directory-source topology).
-#
-# Deregisters the marketplace + plugin from settings.json. The framework cleans
-# up its own cache/registry on the next /reload-plugins.
+# Uninstall epicd plugin via the native Claude Code plugin CLI.
 set -e
 
 SCOPE="user"
@@ -36,32 +33,14 @@ case "$SCOPE" in
   *) echo "uninstall.sh: invalid --scope '$SCOPE' (expected: user|project)" >&2; exit 1 ;;
 esac
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
 MARKETPLACE_NAME="epicd"
-PLUGIN_NAME="epicd"
-PLUGIN_KEY="${PLUGIN_NAME}@${MARKETPLACE_NAME}"
+PLUGIN_KEY="epicd@${MARKETPLACE_NAME}"
 
-case "$SCOPE" in
-  user)    CLAUDE_DIR="$HOME/.claude" ;;
-  project) CLAUDE_DIR="$REPO_ROOT/.claude" ;;
-esac
-SETTINGS="$CLAUDE_DIR/settings.json"
+echo "Uninstalling epicd plugin (scope: $SCOPE)..."
+claude plugins uninstall "$PLUGIN_KEY" --scope "$SCOPE" -y 2>/dev/null || true
 
-echo "Deregistering epicd plugin (scope: $SCOPE)..."
-echo ""
-
-if [ -f "$SETTINGS" ]; then
-  jq --arg marketplace "$MARKETPLACE_NAME" \
-     --arg key "$PLUGIN_KEY" \
-     'del(.extraKnownMarketplaces[$marketplace]) | del(.enabledPlugins[$key])' \
-     "$SETTINGS" > /tmp/epicd-settings-tmp.json \
-  && mv /tmp/epicd-settings-tmp.json "$SETTINGS"
-  echo "  Settings updated: $SETTINGS"
-else
-  echo "  No settings.json at $SETTINGS — nothing to deregister."
-fi
+echo "Removing epicd marketplace (scope: $SCOPE)..."
+claude plugins marketplace remove "$MARKETPLACE_NAME" --scope "$SCOPE" 2>/dev/null || true
 
 echo ""
 echo "epicd deregistered. Run /reload-plugins (or restart Claude Code) to finalize."

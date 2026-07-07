@@ -3,7 +3,7 @@ id: BACK-666
 title: Package epicd plugin for Claude Code installation (user + project scope)
 assignee: []
 created_date: '2026-07-07 04:19'
-updated_date: '2026-07-07 06:47'
+updated_date: '2026-07-07 08:13'
 labels:
   - plugin
   - dx
@@ -100,7 +100,19 @@ Create a `Makefile` with targets:
 - [ ] #7 The 5 former .codex/skills/ directories (backlog-technical-project-manager, context-hunter, epicd-run, fixpoint-convergence, loop-backlog) are present under plugin/skills/ and absent from .codex/skills/
 - [ ] #8 plugin.json commands covers all 18 skills (5 op + 7 lifecycle + 5 methodology + 1 exploration — subtract any dirs with no SKILL.md); exact count verifiable via find plugin/skills -name SKILL.md | wc -l
 - [ ] #9 Running install-project followed by /reload-skills in Claude Code shows all epicd skills in the skill list (manual spot-check: fixpoint-convergence and primitive-executor both visible)
+- [ ] #10 1:make install-project exits 0; claude plugins list (run from any directory) shows epicd@epicd enabled at project scope
+- [ ] #11 2:make install-user exits 0; claude plugins list shows epicd@epicd enabled at user scope
+- [ ] #12 3:make uninstall-project exits 0; claude plugins list no longer shows epicd@epicd at project scope
+- [ ] #13 4:make uninstall-user exits 0; claude plugins list no longer shows epicd@epicd at user scope
 <!-- AC:END -->
+
+
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+audit skipped: RiskGated(False) — no src/ touched, no engine/security surface. All 4 phases are shell scripts, JSON, and Makefile. install.sh uses jq to write settings.json (no exec, no secret handling). make validate passes (15/15 skills covered). 2006 tests pass (2 pre-existing flaky timeouts under parallel load). DoD gate: make validate (green).
+<!-- SECTION:NOTES:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->

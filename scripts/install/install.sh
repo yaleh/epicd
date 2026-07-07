@@ -1,9 +1,8 @@
 #!/bin/bash
-# Install epicd plugin via thin directory-source marketplace registration.
+# Install epicd plugin via the native Claude Code plugin CLI.
 #
-# Registers the repo root as a directory-source marketplace and enables the plugin
-# in settings.json. The framework handles cache, versioning, and plugin registry —
-# this script performs the same registration as the native /plugin marketplace add flow.
+# Registers the repo root as a directory-source marketplace, then installs the
+# plugin. The framework handles cache, versioning, and the plugin registry.
 #
 # Default scope is user; --scope project registers in the project's .claude/ instead.
 set -e
@@ -43,16 +42,8 @@ esac
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
 MARKETPLACE_NAME="epicd"
-PLUGIN_NAME="epicd"
-PLUGIN_KEY="${PLUGIN_NAME}@${MARKETPLACE_NAME}"
-
-case "$SCOPE" in
-  user)    CLAUDE_DIR="$HOME/.claude" ;;
-  project) CLAUDE_DIR="$REPO_ROOT/.claude" ;;
-esac
-SETTINGS="$CLAUDE_DIR/settings.json"
+PLUGIN_KEY="epicd@${MARKETPLACE_NAME}"
 
 if [ ! -f "$REPO_ROOT/.claude-plugin/marketplace.json" ]; then
   echo "install.sh: ERROR — $REPO_ROOT/.claude-plugin/marketplace.json not found." >&2
@@ -60,27 +51,12 @@ if [ ! -f "$REPO_ROOT/.claude-plugin/marketplace.json" ]; then
   exit 1
 fi
 
-PLUGIN_VERSION="$(python3 -c "import json; d=json.load(open('$REPO_ROOT/plugin/.claude-plugin/plugin.json')); print(d['version'])" 2>/dev/null || echo "unknown")"
+echo "Registering epicd marketplace (scope: $SCOPE, source: $REPO_ROOT)..."
+claude plugins marketplace add "$REPO_ROOT" --scope "$SCOPE"
 
-echo "Registering epicd plugin (v${PLUGIN_VERSION}) as a directory-source marketplace..."
-echo "  Scope:    $SCOPE"
-echo "  Source:   $REPO_ROOT"
-echo "  Settings: $SETTINGS"
+echo "Installing epicd plugin (scope: $SCOPE)..."
+claude plugins install "$PLUGIN_KEY" --scope "$SCOPE"
+
 echo ""
-
-mkdir -p "$CLAUDE_DIR"
-if [ ! -f "$SETTINGS" ]; then
-  echo '{}' > "$SETTINGS"
-fi
-
-jq --arg marketplace "$MARKETPLACE_NAME" \
-   --arg dir "$REPO_ROOT" \
-   --arg key "$PLUGIN_KEY" \
-   '. + {
-     extraKnownMarketplaces: ((.extraKnownMarketplaces // {}) + {($marketplace): {"source": {"source": "directory", "path": $dir}}}),
-     enabledPlugins: ((.enabledPlugins // {}) + {($key): true})
-   }' "$SETTINGS" > /tmp/epicd-settings-tmp.json \
-&& mv /tmp/epicd-settings-tmp.json "$SETTINGS"
-
-echo "epicd registered successfully."
-echo "  Restart Claude Code (or run /reload-plugins) to activate."
+echo "Verify with: claude plugins list"
+echo "Restart Claude Code (or run /reload-plugins) to activate skills."
