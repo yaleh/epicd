@@ -1,17 +1,16 @@
 ---
 id: BACK-657.2
 title: execution/ready -> primitive-executor skill (keystone)
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 15:31'
-updated_date: '2026-07-06 15:42'
+updated_date: '2026-07-07 11:35'
 labels: []
 dependencies: []
 parent_task_id: BACK-657
 priority: high
 ordinal: 87000
-pipeline_id: execution
-phase: done
 ---
 
 ## Description

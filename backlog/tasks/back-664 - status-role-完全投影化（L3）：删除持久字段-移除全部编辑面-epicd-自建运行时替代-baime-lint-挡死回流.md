@@ -1,12 +1,10 @@
 ---
 id: BACK-664
 title: status/role 完全投影化（L3）：删除持久字段 + 移除全部编辑面 + epicd 自建运行时替代 baime + lint 挡死回流
-pipeline_id: execution
-phase: backlog
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:52'
-updated_date: '2026-07-06 11:16'
+updated_date: '2026-07-07 17:18'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -21,6 +19,8 @@ references:
   - BACK-660
 priority: high
 ordinal: 82000
+pipeline_id: authoring
+phase: backlog
 parent_id: BACK-665
 ---
 
@@ -45,7 +45,7 @@ docs/task-lifecycle-model.md §4 已定为 **L3**：唯一真值 = `(pipeline_id
 - active/claim 独立轴：`In Progress` 移到 `Coordinator.claims`，从数据模型消失。
 - CI lint 挡死：任何 task 含 `status:`/`role:`、或任何代码写它们即构建失败。
 
-## 不动点
+## 不变量（invariants）
 
 - **不改 baime**——替代之，由人外部卸载；不迁移/不修改 baime 内部功能。
 - 不动引擎核心机制：engine complete/adjudicate/DoD 独立重跑/merge-lock/worktree/claim 隔离、pipeline-as-data 与 phase 语义。
@@ -69,12 +69,6 @@ docs/task-lifecycle-model.md §4 已定为 **L3**：唯一真值 = `(pipeline_id
 - [ ] #5 status 投影为 phase-only：displayStatus(task)==titleCasePhase(task.phase)、无 Basic:/Epic: 前缀；compound（有无子 task）由独立 has-children 指示器呈现（web 父/子 chip 或展开三角 + CLI list 标记），永不进 status 串；有测试断言无前缀且 has-children 独立呈现
 - [ ] #6 CI lint 挡死回流：任何 task 含 status:/role: 或任何代码写它们即构建失败（今日 drift-lint 的反向）；分批有序——monitor-gated 批（claim 轴、删 status 字段）等 BACK-660，删 status 字段（child 4）前置为 child 1+3 完成（epicd 无 status 读者）
 <!-- AC:END -->
-
-
-
-
-
-
 
 ## Implementation Plan
 

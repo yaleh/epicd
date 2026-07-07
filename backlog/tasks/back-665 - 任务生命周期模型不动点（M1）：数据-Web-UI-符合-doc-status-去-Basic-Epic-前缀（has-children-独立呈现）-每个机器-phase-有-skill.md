@@ -3,12 +3,10 @@ id: BACK-665
 title: >-
   任务生命周期模型不动点（M1）：数据/Web UI 符合 doc + status 去 Basic:/Epic: 前缀（has-children
   独立呈现）+ 每个机器 phase 有 skill
-pipeline_id: execution
-phase: backlog
 assignee:
   - '@claude'
 created_date: '2026-07-06 11:15'
-updated_date: '2026-07-07 04:41'
+updated_date: '2026-07-07 17:19'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -21,6 +19,8 @@ references:
   - docs/adr/ADR-011-workitem-schema-and-pipeline-contract.md
   - docs/adr/ADR-016-decomposition-orthogonality-checklist.md
 ordinal: 83000
+pipeline_id: authoring
+phase: backlog
 ---
 
 ## Description
@@ -60,7 +60,7 @@ ordinal: 83000
 
 - **BACK-664**（数据/UI L3）· **BACK-657**（机器 phase skill 集）· **BACK-658**（spike methodology-bootstrapping 实验）· **BACK-643**（roleOf 认 kind:epic，承重前置）· **BACK-660**（monitor 前台 loop，claim 轴前置）。
 
-## 不动点 invariants
+## 不变量（invariants）
 
 - **不改 baime**——替代之，由人外部卸载。
 - 不动引擎核心机制（complete/adjudicate/DoD 重跑/merge-lock/worktree/claim 隔离/pipeline-as-data/phase 语义）。
