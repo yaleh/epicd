@@ -3,7 +3,7 @@ id: BACK-660
 title: monitor 前台顺序 loop 执行（取代 scan-loop push + 座席外包受限后台 Agent），解锁前台全工具/skill 调用
 assignee: []
 created_date: '2026-07-06 07:44'
-updated_date: '2026-07-07 17:15'
+updated_date: '2026-07-07 17:52'
 labels:
   - 'kind:feature'
   - 'area:engine'
@@ -42,7 +42,7 @@ dependencies:
 3. ADR-015 swap-litmus & 分层：payload 仍自包含、仍由引擎 author（dispatch.ts）；prompt authoring 不下沉到 scan-loop 传输层，也不塞进 Monitor 核心。装了插件的裸 claude -p 也能按名 invoke skill。
 4. 认领 & 隔离：handle-basic-ready.sh 的 exec-lock/cap 幂等/.caps/.wt/.signal、单驱动守卫（.active-agents）、merge 串行化 不改。
 
-注(非不动点,前瞻性备忘,不要求本 task 交付)：不排除未来切到「后台 agent 支持的更大并发」模式；driver/lane 抽象要能容纳未来 N 并发，本 task 的单车道实现不得把这条路堵死。
+注(前瞻性备忘,非本任务的 invariant 要求)：不排除未来切到「后台 agent 支持的更大并发」模式；driver/lane 抽象要能容纳未来 N 并发，本 task 的单车道实现不得把这条路堵死。
 
 ## 非目标
 
@@ -52,7 +52,7 @@ dependencies:
 
 ## 参考
 
-- CLAUDE.md「不动点 convention」
+- CLAUDE.md「Acceptance Criteria conventions when authoring a task」
 - docs/adr/ADR-015-monitor-as-invocation-adapter.md（Monitor=invocation adapter；scan-loop 纯传输；swap-litmus）
 - docs/task-lifecycle-model.md（4 轴模型 + phase→skill 表）
 - src/engine/dispatch.ts（renderBasicReadyDispatch 的后台-Agent-offload 段）

@@ -6,7 +6,7 @@ title: >-
 status: Backlog
 assignee: []
 created_date: '2026-07-07 14:46'
-updated_date: '2026-07-07 17:11'
+updated_date: '2026-07-07 17:52'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -72,7 +72,7 @@ fixpoint-convergence 是 monitor 缺席时的前台 stand-in driver,其 4 个 st
 
 ## 参考
 
-- CLAUDE.md「Task decomposition granularity」「不动点 convention」「Simplicity-first」
+- CLAUDE.md「Task decomposition granularity」「Acceptance Criteria conventions when authoring a task」「Simplicity-first」
 - docs/adr/ADR-011(pipeline-as-data)、ADR-019(Integration Acceptance / fixpoint-meter)
 - plugin/skills/fixpoint-convergence/SKILL.md(Stage 4 evaluate、triageNeedsHuman、verifyAudit、shouldDispatch)
 - plugin/skills/primitive-executor/SKILL.md、plugin/skills/README.md
