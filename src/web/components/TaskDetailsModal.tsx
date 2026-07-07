@@ -11,6 +11,7 @@ import DependencyInput from "./DependencyInput";
 import { formatStoredUtcDateForDisplay } from "../utils/date-display";
 import { displayStatus, getStatusBadgeClass } from "../lib/status-label";
 import { hasChildren } from "../lib/lanes";
+import { ALL_PIPELINES } from "../lib/driver-indicator";
 
 interface Props {
   task?: Task; // Optional for create mode
@@ -243,6 +244,9 @@ export const TaskDetailsModal: React.FC<Props> = ({
   const [dependencies, setDependencies] = useState<string[]>(task?.dependencies || []);
   const [references, setReferences] = useState<string[]>(task?.references || []);
   const [milestone, setMilestone] = useState<string>(task?.milestone || "");
+  // Raw four-axis fields (BACK-665 AC5): distinct from the derived `status` projection above.
+  const [pipelineId, setPipelineId] = useState<string>(task?.pipeline_id || "");
+  const [phase, setPhase] = useState<string>(task?.phase || "");
   const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
   const milestoneSelectionValue = resolveMilestoneToId(milestone);
   const hasMilestoneSelection = (milestoneEntities ?? []).some((milestoneEntity) => milestoneEntity.id === milestoneSelectionValue);
@@ -330,6 +334,8 @@ export const TaskDetailsModal: React.FC<Props> = ({
     setDependencies(task?.dependencies || []);
     setReferences(task?.references || []);
     setMilestone(task?.milestone || "");
+    setPipelineId(task?.pipeline_id || "");
+    setPhase(task?.phase || "");
     setMode(shouldPreserveEditMode ? "edit" : isCreateMode ? "create" : "preview");
     preserveEditModeAfterCommentRefresh.current = false;
     previousTaskId.current = nextTaskId;
@@ -566,6 +572,8 @@ export const TaskDetailsModal: React.FC<Props> = ({
     if (updates.dependencies !== undefined) setDependencies(updates.dependencies as string[]);
     if (updates.references !== undefined) setReferences(updates.references as string[]);
     if (updates.milestone !== undefined) setMilestone((updates.milestone ?? "") as string);
+    if (updates.pipeline_id !== undefined) setPipelineId(String(updates.pipeline_id));
+    if (updates.phase !== undefined) setPhase(String(updates.phase));
 
     // Only update server if editing existing task
     if (task) {
@@ -1114,6 +1122,45 @@ export const TaskDetailsModal: React.FC<Props> = ({
                   Has subtasks
                 </span>
               )}
+            </div>
+          </div>
+
+          {/* Pipeline / Phase (raw persisted four-axis fields, editable — BACK-665 AC5).
+              Status above is the derived display projection of these; this is the source. */}
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+            <SectionHeader title="Pipeline / Phase" />
+            <div className="flex gap-2">
+              <select
+                className={`w-1/2 h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isFromOtherBranch ? 'opacity-60 cursor-not-allowed' : ''}`}
+                value={pipelineId}
+                onChange={(e) => {
+                  const nextPipelineId = e.target.value;
+                  const nextPipeline = ALL_PIPELINES.find((p) => p.id === nextPipelineId);
+                  const nextPhase = nextPipeline?.states[0]?.name ?? "";
+                  handleInlineMetaUpdate({ pipeline_id: nextPipelineId, phase: nextPhase });
+                }}
+                disabled={isFromOtherBranch}
+              >
+                <option value="">No pipeline</option>
+                {ALL_PIPELINES.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.id}
+                  </option>
+                ))}
+              </select>
+              <select
+                className={`w-1/2 h-10 px-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-stone-500 dark:focus:ring-stone-400 focus:border-transparent transition-colors duration-200 ${isFromOtherBranch ? 'opacity-60 cursor-not-allowed' : ''}`}
+                value={phase}
+                onChange={(e) => handleInlineMetaUpdate({ phase: e.target.value })}
+                disabled={isFromOtherBranch || !pipelineId}
+              >
+                <option value="">No phase</option>
+                {(ALL_PIPELINES.find((p) => p.id === pipelineId)?.states ?? []).map((s) => (
+                  <option key={s.name} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

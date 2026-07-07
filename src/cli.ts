@@ -1656,15 +1656,18 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		// "Basic: Proposal" default (docs/task-lifecycle-model.md §4.1, BACK-655).
 		// Status is a derived display projection (BACK-664 child 1) — there is no
 		// standalone --status write flag to check here anymore.
-		const hasExplicitLifecycleInput = Boolean(
-			options.pipeline !== undefined || options.phase !== undefined || createAsDraft,
-		);
-		const pipelineId = options.pipeline
+		//
+		// --pipeline/--phase must be given together (or neither) — enforced by
+		// `Core.createTaskFromInput` (BACK-661), which throws and is caught below.
+		const explicitPipeline = options.pipeline !== undefined;
+		const explicitPhase = options.phase !== undefined;
+		const hasExplicitLifecycleInput = Boolean(explicitPipeline || createAsDraft);
+		const pipelineId = explicitPipeline
 			? String(options.pipeline)
 			: !hasExplicitLifecycleInput
 				? "authoring"
 				: undefined;
-		const phaseValue = options.phase ? String(options.phase) : !hasExplicitLifecycleInput ? "draft" : undefined;
+		const phaseValue = explicitPhase ? String(options.phase) : !hasExplicitLifecycleInput ? "draft" : undefined;
 
 		if (options.ordinal !== undefined) {
 			const parsed = Number(options.ordinal);

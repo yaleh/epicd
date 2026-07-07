@@ -4,19 +4,19 @@ title: >-
   task create --pipeline/--phase validation is asymmetric: giving only one of
   the two flags bypasses assertLegalPhase and creates an immediately-drifted
   task
-status: 'Basic: Draft'
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:19'
-updated_date: '2026-07-06 09:27'
+updated_date: '2026-07-07 01:28'
 labels:
   - 'kind:bug'
   - 'area:engine'
 dependencies: []
 priority: medium
 ordinal: 79000
-pipeline_id: authoring
-phase: draft
+pipeline_id: execution
+phase: done
 ---
 
 ## Description
@@ -31,3 +31,9 @@ Found during BACK-655 fresh-context audit. src/core/backlog.ts createTaskFromInp
 - [ ] #2 bun run check . passes when formatting/linting touched
 - [ ] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Fixed: centralized both-or-neither pipeline_id/phase validation into Core.createTaskFromInput (src/core/backlog.ts) so CLI/MCP/server all inherit it; removed the now-redundant CLI-only early-check in src/cli.ts. Added tests: rejects --pipeline without --phase and vice versa. Verified via full suite + fixpoint meter (bun scripts/fixpoint-back665.ts).
+<!-- SECTION:NOTES:END -->

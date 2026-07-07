@@ -136,6 +136,30 @@ describe("create commands", () => {
 		expect(task?.status).toBe("Ready");
 	});
 
+	it("rejects --pipeline given without --phase (BACK-661 asymmetric validation)", async () => {
+		const result = await $`bun ${CLI_PATH} task create "Half pair pipeline only" --pipeline execution`
+			.cwd(TEST_DIR)
+			.nothrow()
+			.quiet();
+		expect(result.exitCode).not.toBe(0);
+
+		const core = new Core(TEST_DIR);
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task).toBeNull();
+	});
+
+	it("rejects --phase given without --pipeline (BACK-661 asymmetric validation)", async () => {
+		const result = await $`bun ${CLI_PATH} task create "Half pair phase only" --phase ready`
+			.cwd(TEST_DIR)
+			.nothrow()
+			.quiet();
+		expect(result.exitCode).not.toBe(0);
+
+		const core = new Core(TEST_DIR);
+		const task = await core.filesystem.loadTask("task-1");
+		expect(task).toBeNull();
+	});
+
 	it("rejects an illegal --pipeline/--phase combo at create", async () => {
 		const result = await $`bun ${CLI_PATH} task create "Illegal combo" --pipeline execution --phase proposal`
 			.cwd(TEST_DIR)

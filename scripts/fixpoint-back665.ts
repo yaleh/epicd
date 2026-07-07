@@ -175,6 +175,22 @@ const checks: Check[] = [
 		owner: "BACK-660 + BACK-664 (claim axis / native runtime)",
 		run: deliveredTest("epicd-self-sufficient-no-status.test.ts"),
 	},
+	{
+		id: "phase-pipeline-web-editable",
+		ac: "AC5",
+		owner: "BACK-665 AC5 + BACK-661 (raw pipeline/phase visible+editable in web, symmetric create validation)",
+		run: () => {
+			const modal = readFileSync(join(SRC, "web", "components", "TaskDetailsModal.tsx"), "utf8");
+			const rendersRaw = /pipelineId/.test(modal) && /ALL_PIPELINES/.test(modal);
+			const hasSelects = (modal.match(/<select/g) ?? []).length >= 4; // priority/milestone + pipeline/phase
+			const guardsCreate = /pipeline_id and phase must be given together/.test(readFileSync(join(SRC, "core", "backlog.ts"), "utf8"));
+			const pass = rendersRaw && hasSelects && guardsCreate;
+			return {
+				pass,
+				detail: `TaskDetailsModal renders pipeline/phase selects: ${rendersRaw && hasSelects}; create-time both-or-neither guard: ${guardsCreate}`,
+			};
+		},
+	},
 ];
 
 const results = checks.map((c) => ({ ...c, ...c.run() }));

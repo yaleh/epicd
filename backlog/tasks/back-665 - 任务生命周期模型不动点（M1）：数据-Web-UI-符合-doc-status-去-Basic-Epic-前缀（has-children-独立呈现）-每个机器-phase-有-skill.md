@@ -7,7 +7,7 @@ status: 'Epic: Backlog'
 assignee:
   - '@claude'
 created_date: '2026-07-06 11:15'
-updated_date: '2026-07-06 19:10'
+updated_date: '2026-07-07 01:28'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -174,4 +174,6 @@ fixpoint meter：9/11 green（不变，无回归）。两个仍红的检查（no
 bun test --parallel ./src 跑了两轮：稳定 2001 pass/1 fail，失败项 CLI task-list has-children marker 在独立跑 (bun test src/test/has-children-indicator.test.ts) 时 5/5 pass——确认是 BACK-607 已知的 --parallel 隔离 flake，非本轮改动引入的回归。
 
 bun run check . 与 bunx tsc --noEmit 均干净。
+
+AC5 added and delivered (this round): raw pipeline_id/phase now visible+editable in web TaskDetailsModal.tsx (cascading Pipeline->Phase selects, reusing the task_edit/applyTaskUpdateInput/assertLegalPhase server path; distinct from the derived Status badge). Verified live via Playwright against a real task (pipeline/phase switch persisted correctly, status re-derived). Also fixed BACK-661 (asymmetric --pipeline/--phase validation at task create) as a prerequisite, since the new web edit surface increases exposure to that bug: centralized a both-or-neither guard into Core.createTaskFromInput so CLI/MCP/server all inherit it. Added fixpoint-meter check 'phase-pipeline-web-editable' (AC5). Fixpoint: 10/12 green (2 red both gated on deferred BACK-660, per standing decision).
 <!-- SECTION:NOTES:END -->

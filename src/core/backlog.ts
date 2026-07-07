@@ -1005,6 +1005,14 @@ export class Core {
 
 		const configForStatus = await this.fs.loadConfig();
 
+		// pipeline_id/phase must be given together (or neither): a brand-new task has no
+		// prior phase to fall back on, so giving only one half would silently create an
+		// immediately-drifted task (empty/mismatched phase, flagged by `engine drift-lint`)
+		// — BACK-661. Checked here (not per-caller) so CLI/MCP/server all inherit it.
+		if ((input.pipeline_id !== undefined) !== (typeof input.phase === "string")) {
+			throw new Error("pipeline_id and phase must be given together (or neither) when creating a task.");
+		}
+
 		let status = "";
 		if (typeof input.phase === "string") {
 			// Write boundary: an illegal phase for the (effective) pipeline_id must be
