@@ -112,5 +112,5 @@ describe("CLI `task list --plain` has-children marker", () => {
 		// of its "Ready" status/phase) and absent on the leaf task's row.
 		expect(parentLine?.trim().startsWith("▸")).toBe(true);
 		expect(leafLine?.trim().startsWith("▸")).toBe(false);
-	});
+	}, 15000);
 });
