@@ -9,7 +9,7 @@
  *  - The worker only *proposes* children as a JSON array; the ENGINE creates them via
  *    `core.createTaskFromInput` with engine fields (pipeline_id/phase/parent_id) so the
  *    engine scan (run.ts filters pipeline_id==='execution') can see them. The worker never
- *    runs `backlog task create` (there are no --pipeline-id/--phase CLI flags).
+ *    runs `epicd task create` (there are no --pipeline-id/--phase CLI flags).
  *  - Idempotency reads BOARD TRUTH (queryTasks filtered by engine `parent_id`), NOT
  *    `task.subtasks` — the driver's `core.getTask` never populates `subtasks`, and children
  *    carry the engine `parent_id`, not the kanban `parentTaskId`.

@@ -15,7 +15,7 @@ describe("MCP Server Fallback Mode", () => {
 	let tempDir: string;
 
 	beforeEach(() => {
-		// Create a temporary directory without backlog initialization
+		// Create a temporary directory without epicd initialization
 		tempDir = mkdtempSync(join(tmpdir(), "mcp-fallback-test-"));
 	});
 

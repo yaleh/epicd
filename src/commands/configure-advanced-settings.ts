@@ -13,7 +13,7 @@ export async function configureAdvancedSettings(
 ): Promise<{ mergedConfig: BacklogConfig; installClaudeAgent: boolean; installShellCompletions: boolean }> {
 	const existingConfig = await core.filesystem.loadConfig();
 	if (!existingConfig) {
-		throw new Error("No backlog project found. Initialize one first with: backlog init");
+		throw new Error("No backlog project found. Initialize one first with: epicd init");
 	}
 
 	const wizardResult = await runAdvancedConfigWizard({

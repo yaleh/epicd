@@ -108,7 +108,7 @@ describe("Definition of Done CLI", () => {
 		expect(result.exitCode).toBe(1);
 		expect(output).toContain("Definition of Done item #99 not found");
 		expect(output).toContain("Available indexes: #1-#2.");
-		expect(output).toContain("backlog task view TASK-1 --plain");
-		expect(output).toContain("backlog task edit TASK-1 --help");
+		expect(output).toContain("epicd task view TASK-1 --plain");
+		expect(output).toContain("epicd task edit TASK-1 --help");
 	});
 });

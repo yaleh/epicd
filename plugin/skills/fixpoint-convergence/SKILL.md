@@ -12,7 +12,7 @@ description: Use when driving ANY task to a trustworthy, self-audited completion
 You do NOT decide "Epic vs Basic" before invoking this skill. `driveTask`'s
 first step (`assessAndDecompose`) makes that call, using CLAUDE.md's two-part
 decompose test, and — when the answer is yes — actually **creates** the
-children (`backlog task create --parent <id>`); it does not assume they
+children (`epicd task create --parent <id>`); it does not assume they
 pre-exist. When the answer is no, the same skeleton runs with the task itself
 as its single leaf. There is one flow, with a degenerate case, not two
 parallel methodologies.
@@ -258,7 +258,7 @@ is identical on both paths.
 
 ## Illustrative vs required tooling
 
-The Spec above is transferable to any project. `backlog task create --parent`,
+The Spec above is transferable to any project. `epicd task create --parent`,
 `engine decompose`, `engine complete --worktree`, `engine evaluate`,
 `handle-basic-ready.sh` are epicd-specific CLI illustrations of
 `createChildren`/`dispatchChild`/`mergeAndVerify`/`evaluate` — substitute your

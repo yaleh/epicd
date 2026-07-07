@@ -26,7 +26,7 @@ CLI call. There is no methodology judgment call to make here (unlike
 ### Step 1 — Evaluate
 
 ```bash
-backlog engine evaluate <epicId>
+epicd engine evaluate <epicId>
 ```
 
 `engine evaluate` (`evaluateEpic` in `src/harness/evaluator.ts`) does two things, in

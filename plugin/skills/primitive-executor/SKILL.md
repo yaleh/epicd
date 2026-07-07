@@ -23,7 +23,7 @@ transport.
 
 ### Phase 0 — Read the plan
 
-Run `backlog task view <taskId> --plain` and read the full Description. The
+Run `epicd task view <taskId> --plain` and read the full Description. The
 Description's `## Phase` sections (if present) are the sole authority on what to build
 and in what order — do not invent scope beyond them. If the task carries prior
 Implementation Notes from a human reply (e.g. after a `needs-human` round-trip), that
@@ -42,7 +42,7 @@ Phase breakdown, treat the whole task as one Phase):
    you touched (e.g. `bunx tsc --noEmit` when TypeScript changed, `bun run check .` when
    formatting/linting changed, `bun test` or a scoped test file).
 4. **Checkpoint the Phase** — record progress so the state survives a restart, e.g.
-   `backlog task edit <taskId> --append-notes "Phase <n> done: <one-line summary>"`.
+   `epicd task edit <taskId> --append-notes "Phase <n> done: <one-line summary>"`.
    Never pass `--status`/`--dod`/`--check-dod` here — the task's terminal phase is a
    merge gate owned by `engine complete`, not something a worker self-attests.
 
@@ -63,7 +63,7 @@ similar concerns, keep APIs minimal, avoid speculative layers.
    `git add -A -- . ':!backlog/tasks' && git commit -m "<taskId> - <short title>"`.
 2. Run the full task-level DoD one last time in the worktree.
 3. Checkpoint completion, then hand off to the engine's own completion handshake:
-   `backlog engine complete <taskId> --worktree <worktreePath>`.
+   `epicd engine complete <taskId> --worktree <worktreePath>`.
    This independently re-runs the task's DoD shell-gates in the worktree (the worker
    never self-attests done) and either merges under the board lock (task reaches its
    terminal `done` phase) or routes the task to `needs-human`. This is the only merge

@@ -485,7 +485,7 @@ export class BacklogServer {
 			if (errorCode === "EADDRINUSE" || errorMessage?.includes("address already in use")) {
 				console.error(`\n❌ Error: Port ${finalPort} is already in use.\n`);
 				console.log("💡 Suggestions:");
-				console.log(`   1. Try a different port: backlog browser --port ${finalPort + 1}`);
+				console.log(`   1. Try a different port: epicd browser --port ${finalPort + 1}`);
 				console.log(`   2. Find what's using port ${finalPort}:`);
 				if (process.platform === "darwin" || process.platform === "linux") {
 					console.log(`      Run: lsof -i :${finalPort}`);

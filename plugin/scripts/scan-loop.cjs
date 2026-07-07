@@ -148,7 +148,7 @@ function selfBootstrap(backlogDir, repoRoot) {
         if (fs.existsSync(path.join(backlogDir, '.agent-done-' + tid))) continue;
         let status = '';
         try {
-          status = execSync('backlog task view ' + tid + ' --plain',
+          status = execSync('epicd task view ' + tid + ' --plain',
             { cwd: repoRoot, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
         } catch (_) { status = ''; }
         if (/In Progress/i.test(status)) kept.push(tid);
@@ -348,16 +348,16 @@ function readTaskMeta(filepath) {
 // CLI's `engine` subcommand group. Portable across install shapes (BACK-605.9 M1 —
 // this script ships inside the epicd Claude Code plugin and must not assume the epicd
 // source tree is present at the board repo's cwd):
-//   1. EPICD_ENGINE_CMD env var — explicit override, e.g. "backlog engine" when the
+//   1. EPICD_ENGINE_CMD env var — explicit override, e.g. "epicd engine" when the
 //      published CLI binary is on PATH (the normal case for a foreign repo that only
 //      installed the plugin, not epicd's source).
 //   2. "bun src/cli.ts engine" — build-free dev entry, used only when `src/cli.ts`
 //      exists under `repoRoot` (the epicd dev tree dogfooding itself).
-//   3. "backlog engine" — fallback assuming the published bin is on PATH.
+//   3. "epicd engine" — fallback assuming the published bin is on PATH.
 function engineCliCommand(repoRoot) {
   if (process.env.EPICD_ENGINE_CMD) return process.env.EPICD_ENGINE_CMD;
   if (fs.existsSync(path.join(repoRoot, 'src', 'cli.ts'))) return 'bun src/cli.ts engine';
-  return 'backlog engine';
+  return 'epicd engine';
 }
 
 // runEngineCli: single invocation seam to the epicd engine CLI (the scan/dispatch

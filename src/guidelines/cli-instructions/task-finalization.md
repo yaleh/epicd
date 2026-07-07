@@ -5,17 +5,17 @@ Use this guide when implementation is complete and you are ready to hand off the
 ### Finalization Workflow
 
 1. Verify all acceptance criteria:
-   - `backlog task view {{TASK_ID:123}} --plain`
-   - `backlog task edit {{TASK_ID:123}} --check-ac 1`
+   - `epicd task view {{TASK_ID:123}} --plain`
+   - `epicd task edit {{TASK_ID:123}} --check-ac 1`
 2. Verify Definition of Done items:
-   - `backlog task edit {{TASK_ID:123}} --check-dod 1`
+   - `epicd task edit {{TASK_ID:123}} --check-dod 1`
 3. Run relevant automated checks and note results.
 4. Update implementation notes if important context changed:
-   - `backlog task edit {{TASK_ID:123}} --append-notes "Validation passed: bun test ..."`
+   - `epicd task edit {{TASK_ID:123}} --append-notes "Validation passed: bun test ..."`
 5. Write a concise final summary:
-   - `backlog task edit {{TASK_ID:123}} --final-summary "Changed X, verified with Y."`
+   - `epicd task edit {{TASK_ID:123}} --final-summary "Changed X, verified with Y."`
 6. Mark the task done or needing human review (status reflects phase automatically and is not set directly):
-   - `backlog task edit {{TASK_ID:123}} --phase done` (or `--phase needs-human` if human review is required)
+   - `epicd task edit {{TASK_ID:123}} --phase done` (or `--phase needs-human` if human review is required)
 
 Tasks in the terminal phase stay there until periodic cleanup moves them to completed. Do not archive completed work.
 
@@ -41,9 +41,9 @@ Confirm:
 Commands:
 
 ```bash
-backlog task edit {{TASK_ID:123}} --comment "Ready for review" --comment-author @your-name
-backlog task edit {{TASK_ID:123}} --append-notes "Chose approach A because ..."
-backlog task edit {{TASK_ID:123}} --final-summary "Implemented ..., verified with ..."
+epicd task edit {{TASK_ID:123}} --comment "Ready for review" --comment-author @your-name
+epicd task edit {{TASK_ID:123}} --append-notes "Chose approach A because ..."
+epicd task edit {{TASK_ID:123}} --final-summary "Implemented ..., verified with ..."
 ```
 
 ### Follow-up Work

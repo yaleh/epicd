@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 describe("package bin wrapper", () => {
-	it("points to scripts/cli.cjs to own .bin/backlog", async () => {
+	it("points to scripts/cli.cjs to own .bin/epicd", async () => {
 		const pkgPath = join(process.cwd(), "package.json");
 		const pkg = JSON.parse(await readFile(pkgPath, "utf8"));
-		expect(pkg?.bin?.backlog).toBe("scripts/cli.cjs");
+		expect(pkg?.bin?.epicd).toBe("scripts/cli.cjs");
 	});
 });

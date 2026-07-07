@@ -24,7 +24,7 @@ ACTIVE_FILE="${REPO_ROOT}/backlog/.active-agents"
 MERGE_LOCK="${REPO_ROOT}/backlog/.merge-lock"
 
 WT_PATH="$(cat "$WT_PATH_FILE" 2>/dev/null || echo "")"
-TASK_VIEW="$(backlog task view "$TASK_ID" --plain 2>/dev/null || echo "")"
+TASK_VIEW="$(epicd task view "$TASK_ID" --plain 2>/dev/null || echo "")"
 TITLE="$(printf '%s\n' "$TASK_VIEW" | grep -oP '^Task \S+ - \K.+' | head -1)"
 [ -z "$TITLE" ] && TITLE="$TASK_ID"
 
@@ -66,13 +66,13 @@ if [ "$SIGNAL_CONTENT" = "done" ] && [ -n "$WT_PATH" ] && [ -d "$WT_PATH" ]; the
     dod_cmd="$(printf '%s' "$dod_line" | sed 's/^- #[0-9]* //')"
     [ -z "$dod_cmd" ] && continue
     dod_out="$(cd "$WT_PATH" && bash -c "$dod_cmd" 2>&1)" || {
-      backlog task edit "$TASK_ID" \
+      epicd task edit "$TASK_ID" \
         --append-notes "workerLoop pre-merge DoD #${dod_n} FAIL: ${dod_cmd}" >/dev/null 2>&1 || true
       SIGNAL_CONTENT="needs-human: workerLoop DoD #${dod_n} failed: ${dod_cmd}
 $(printf '%s\n' "$dod_out" | head -5)"
       break
     }
-    backlog task edit "$TASK_ID" \
+    epicd task edit "$TASK_ID" \
       --append-notes "workerLoop DoD #${dod_n}: PASS — ${dod_cmd}" >/dev/null 2>&1 || true
     dod_n=$((dod_n + 1))
   done < <(printf '%s\n' "$TASK_VIEW" | awk '/^DoD Gates:/{found=1;next} found && /^[A-Z]/{found=0} found && /^- #[0-9]/' | grep -oP '^- #\d+ .+')
@@ -94,7 +94,7 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
   if git merge --no-ff "$BRANCH" -m "merge: ${TITLE} (${TASK_ID})"; then
     # guard: MERGE_HEAD / unmerged files present → never mark Done
     if [ -f ".git/MERGE_HEAD" ] || [ -n "$(git diff --name-only --diff-filter=U)" ]; then
-      backlog task edit "$TASK_ID" --phase needs-human \
+      epicd task edit "$TASK_ID" --phase needs-human \
         --append-notes "Merge guard: MERGE_HEAD/unmerged files present — worktree preserved." \
         >/dev/null 2>&1 || true
       printf 'cap:merge=failed %s\n' "$(now_iso)" >> "$CAP_FILE"
@@ -103,20 +103,20 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
     fi
     # post-merge: append the agent's execution summary (if it wrote one)
     if [ -n "$WT_PATH" ] && [ -f "${WT_PATH}/.agent-summary-${TASK_ID}" ]; then
-      backlog task edit "$TASK_ID" --append-notes "$(cat "${WT_PATH}/.agent-summary-${TASK_ID}")" \
+      epicd task edit "$TASK_ID" --append-notes "$(cat "${WT_PATH}/.agent-summary-${TASK_ID}")" \
         >/dev/null 2>&1 || true
     else
-      backlog task edit "$TASK_ID" \
+      epicd task edit "$TASK_ID" \
         --append-notes "WARNING: agent-summary missing for ${TASK_ID} — execution trace unavailable" \
         >/dev/null 2>&1 || true
     fi
-    backlog task edit "$TASK_ID" --phase done \
+    epicd task edit "$TASK_ID" --phase done \
       --append-notes "Completed: $(now_iso)" >/dev/null 2>&1 || true
     printf 'cap:execute=done %s\n' "$(now_iso)" >> "$CAP_FILE"
     # notifyParent (parent_task_id in task frontmatter)
     parent="$(printf '%s\n' "$TASK_VIEW" | grep -oP '(?<=^Parent: )[A-Za-z][A-Za-z0-9]*-\d+(\.\d+)*' | head -1)"
     if [ -n "$parent" ]; then
-      backlog task edit "$parent" --append-notes "Sub-task ${TASK_ID} completed: $(now_iso)" \
+      epicd task edit "$parent" --append-notes "Sub-task ${TASK_ID} completed: $(now_iso)" \
         >/dev/null 2>&1 || true
     fi
     if [ -n "$WT_PATH" ]; then
@@ -126,7 +126,7 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
     echo "[complete-task] $TASK_ID → Done"
   else
     # merge conflict
-    backlog task edit "$TASK_ID" --phase needs-human \
+    epicd task edit "$TASK_ID" --phase needs-human \
       --append-notes "Merge conflict: $(now_iso)" >/dev/null 2>&1 || true
     printf 'cap:merge=failed %s\n' "$(now_iso)" >> "$CAP_FILE"
     echo "[complete-task] $TASK_ID merge conflict — Needs Human (worktree preserved)"
@@ -134,7 +134,7 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
 else
   # agent escalated, or pre-merge DoD failed
   reason="$(printf '%s' "$SIGNAL_CONTENT" | sed 's/^needs-human: //')"
-  backlog task edit "$TASK_ID" --phase needs-human \
+  epicd task edit "$TASK_ID" --phase needs-human \
     --append-notes "Escalated: ${reason}
 To continue: answer in Implementation Notes, then set --phase ready." \
     >/dev/null 2>&1 || true

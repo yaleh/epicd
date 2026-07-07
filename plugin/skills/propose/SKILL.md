@@ -1,10 +1,10 @@
 ---
 name: propose
-description: "Propose one new task or epic straight onto the epicd board via the engine's own `backlog task create` path — collapses the legacy task-to-draft/task-to-backlog/epic-to-draft/epic-to-backlog family into a single engine-native call. Use when you have a concrete title + description ready to enter the Backlog column (no draft/review loop)."
+description: "Propose one new task or epic straight onto the epicd board via the engine's own `epicd task create` path — collapses the legacy task-to-draft/task-to-backlog/epic-to-draft/epic-to-backlog family into a single engine-native call. Use when you have a concrete title + description ready to enter the Backlog column (no draft/review loop)."
 argument-hint: [--kind basic|epic] <title> -- <description>
 allowed-tools: Bash
 contracts:
-  - grep: "backlog task create"
+  - grep: "epicd task create"
     target: self
   - not-grep: "sed "
     target: self
@@ -21,7 +21,7 @@ draft, review, or iterate; it is the mechanical "write it onto the board" step.
 ## Usage
 
 ```bash
-backlog task create "<title>" \
+epicd task create "<title>" \
   --pipeline authoring --phase backlog \
   --labels "<kind:basic|kind:epic>" \
   --description "<description>"
@@ -43,7 +43,7 @@ Status is a derived display projection (BACK-664 child 1) — it is never set di
 ## Notes
 
 - `task create` is the ONE path this skill uses. It does not shell out to any other
-  `backlog task` subcommand, and it does not `sed`/`awk`/`grep` a prior task's markdown
+  `epicd task` subcommand, and it does not `sed`/`awk`/`grep` a prior task's markdown
   to reconstruct a description — pass the full description directly via `--description`.
 - Output is the created task's ID (`Created task <ID>`); read it from stdout, don't
   parse the task file.

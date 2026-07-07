@@ -9,7 +9,7 @@
  *      repo receives — no `src/` tree is copied in).
  *   2. Create a brand-new git repo under `os.tmpdir()`, copy in ONLY the packaged
  *      plugin assets (`plugin/`, `.claude-plugin/`) and the built binary.
- *   3. Run the `init` skill's command (`backlog init --defaults`) against it, then
+ *   3. Run the `init` skill's command (`epicd init --defaults`) against it, then
  *      extend `backlog/config.yml`'s `statuses` list with the engine's phase-derived
  *      pipeline vocabulary (a documented contract of `engine promote`/`engine scan`,
  *      not an epicd-repo path — any board wanting engine-driven pipelines configures
@@ -106,13 +106,13 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		cpSync(join(repoRoot, ".claude-plugin"), join(scratchDir, ".claude-plugin"), { recursive: true });
 
 		// The CLI binary is kept OUTSIDE the scratch repo (its own directory would
-		// otherwise collide with `backlog init`'s "backlog/" board directory).
+		// otherwise collide with `epicd init`'s "backlog/" board directory).
 		const binDir = mkdtempSync(join(tmpdir(), "epicd-plugin-bin-"));
 		const scratchBin = join(binDir, "epicd-cli");
 		cpSync(BIN_PATH, scratchBin);
 		chmodSync(scratchBin, 0o755);
 
-		// ---- init skill: `backlog init --defaults` ----
+		// ---- init skill: `epicd init --defaults` ----
 		sh(`${scratchBin} init "scratch" --defaults`, scratchDir);
 		const configPath = join(scratchDir, "backlog", "config.yml");
 		expect(existsSync(configPath)).toBe(true);
@@ -126,7 +126,7 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		);
 		writeFileSync(configPath, config);
 
-		// ---- propose skill: `backlog task create ... --pipeline authoring --phase backlog` ----
+		// ---- propose skill: `epicd task create ... --pipeline authoring --phase backlog` ----
 		// (status is a derived display projection, BACK-664 child 1 — never set directly)
 		const createOut = sh(
 			`${scratchBin} task create "Synthetic smoke task" --pipeline authoring --phase backlog --labels "kind:basic" --description "synthetic smoke task" --dod-gate "true" --plain`,
@@ -140,7 +140,7 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		sh("git add -A", scratchDir);
 		sh('git commit -q -m "init board"', scratchDir);
 
-		// ---- promote skill: `backlog engine promote <id>` ----
+		// ---- promote skill: `epicd engine promote <id>` ----
 		const promoteOut = sh(`${scratchBin} engine promote ${taskId}`, scratchDir);
 		expect(promoteOut).toContain("execution/ready");
 
@@ -175,7 +175,7 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		// Post-BACK-665: status: is not persisted for engine tasks (present-gate); phase: is canonical.
 		expect(taskContents).not.toContain("status:");
 
-		// ---- inbox skill: `backlog engine gate-log` over a fabricated GateEvent ----
+		// ---- inbox skill: `epicd engine gate-log` over a fabricated GateEvent ----
 		const gateLogDir = join(scratchDir, "docs", "research");
 		execSync(`mkdir -p ${JSON.stringify(gateLogDir)}`);
 		const gateEventLine = JSON.stringify({

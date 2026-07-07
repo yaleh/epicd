@@ -17,7 +17,7 @@ function isInstructionGuideKey(value: string): value is InstructionGuideKey {
 }
 
 function guideCommand(guide: WorkflowGuideDefinition): string {
-	return `backlog instructions ${guide.key}`;
+	return `epicd instructions ${guide.key}`;
 }
 
 function quoteCommand(command: string): string {
@@ -33,7 +33,7 @@ export function formatInstructionGuideIndex(): string {
 		"Backlog.md instructions",
 		"",
 		"Start here:",
-		commandLine("backlog instructions overview", "Required first read before answering any user request"),
+		commandLine("epicd instructions overview", "Required first read before answering any user request"),
 		commandLine("backlog <command> --help", "Show options, fields, and examples"),
 		"",
 		"Guides:",
@@ -62,7 +62,7 @@ export function registerInstructionsCommand(program: Command): void {
 			{ name: "--list", type: "Boolean", description: "List available instruction guides" },
 		],
 		output: "Guide index, or markdown guide text when a guide is selected",
-		examples: ["backlog instructions", "backlog instructions overview", "backlog instructions task-execution"],
+		examples: ["epicd instructions", "epicd instructions overview", "epicd instructions task-execution"],
 	})
 		.description("show Backlog.md workflow instructions")
 		.option("--list", "list available instruction guides")
@@ -75,7 +75,7 @@ export function registerInstructionsCommand(program: Command): void {
 			if (!isInstructionGuideKey(guide)) {
 				console.error(`Unknown instruction guide: ${guide}`);
 				console.error(`Valid guides: ${INSTRUCTION_GUIDE_KEYS.join(", ")}`);
-				console.error("Run `backlog instructions` to see available guides.");
+				console.error("Run `epicd instructions` to see available guides.");
 				process.exit(1);
 			}
 

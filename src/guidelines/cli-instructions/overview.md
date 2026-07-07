@@ -19,21 +19,21 @@ Use this overview to decide what to read or run next. The detailed guides contai
 
 Search and read before changing anything:
 
-- `backlog search "query" --plain`
-- `backlog task list --status "<todo status>" --plain`
-- `backlog task list --status "<active status>" --plain`
-- `backlog task list --search "login" --labels frontend,bug --limit 20 --plain`
-- `backlog task view {{TASK_ID:123}} --plain`
+- `epicd search "query" --plain`
+- `epicd task list --status "<todo status>" --plain`
+- `epicd task list --status "<active status>" --plain`
+- `epicd task list --search "login" --labels frontend,bug --limit 20 --plain`
+- `epicd task view {{TASK_ID:123}} --plain`
 
 ### Detailed Guides
 
 Always read the relevant guide before that part of the workflow. Do not rely on this overview alone for these actions:
 
-- `backlog instructions task-creation`
+- `epicd instructions task-creation`
   -> Read before creating tasks: how to search, scope, and create tasks
-- `backlog instructions task-execution`
+- `epicd instructions task-execution`
   -> Read before planning or updating task work: how to plan, update, and work through tasks
-- `backlog instructions task-finalization`
+- `epicd instructions task-finalization`
   -> Read before finishing tasks: how to verify, summarize, and finish tasks
 
 Use `backlog <command> --help` before unfamiliar operations. Command help includes input fields, read/write behavior, output shape, and examples.

@@ -14,10 +14,10 @@ Verified install path as of 2026-07-07 (v1.47.1).
 npm i -g epicd
 
 # Verify the bin is available:
-backlog --version
+epicd --version
 ```
 
-> **Naming note:** The installed bin is `backlog`. The platform binary (`backlog.md-linux-x64`
+> **Naming note:** The installed bin is `epicd`. The platform binary (`backlog.md-linux-x64`
 > etc.) is installed as an optional dependency and provides the native compiled executable.
 
 ## Step 2 — Install the epicd plugin (skills) into Claude Code
@@ -42,14 +42,14 @@ claude plugins list
 ```sh
 cd /path/to/your-project
 git init                          # if not already a git repo
-backlog init "<project-name>" --defaults
+epicd init "<project-name>" --defaults
 ```
 
 ## Step 4 — Create and drive a task
 
 ```sh
 # Create a task in the Ready phase:
-backlog task create "My feature" --pipeline execution --phase ready \
+epicd task create "My feature" --pipeline execution --phase ready \
   --dod "bun test" --ac "All tests pass"
 
 # The task is now ready. In a Claude Code session in this project,
@@ -64,14 +64,14 @@ backlog task create "My feature" --pipeline execution --phase ready \
 
 | Purpose | Command |
 |---|---|
-| View a task | `backlog task view <id> --plain` |
-| Edit / append notes | `backlog task edit <id> --append-notes "..."` |
-| Complete and merge | `backlog engine complete <id> --worktree <path>` |
-| List tasks | `backlog task list` |
-| Board view | `backlog board` |
+| View a task | `epicd task view <id> --plain` |
+| Edit / append notes | `epicd task edit <id> --append-notes "..."` |
+| Complete and merge | `epicd engine complete <id> --worktree <path>` |
+| List tasks | `epicd task list` |
+| Board view | `epicd board` |
 
 ## Status (as of BACK-680, epicd@1.47.2)
 
 - `npm i -g epicd` — ✅ 已发布，可用
-- skill 文档中的引擎调用命令均已改为 `backlog`（可跨项目使用）
+- skill 文档中的引擎调用命令均已改为 `epicd`（可跨项目使用）
 - AC#3/#4（/primitive-executor、/fixpoint-convergence 在 fresh 项目中端到端验证）为 non-mechanical one-time-proof，待实际执行后更新本文档

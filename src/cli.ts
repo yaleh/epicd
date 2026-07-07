@@ -233,13 +233,13 @@ function parsePositiveIntegerOption(value: unknown, optionName: string, helpComm
 function formatTaskEditError(error: unknown, taskId: string): string {
 	const message = error instanceof Error ? error.message : String(error);
 	if (message.startsWith("Invalid index:")) {
-		return `${message} Try 'backlog task edit ${taskId} --help' for index options.`;
+		return `${message} Try 'epicd task edit ${taskId} --help' for index options.`;
 	}
 	if (
 		message.includes(" not found") &&
 		(message.startsWith("Acceptance criterion ") || message.startsWith("Definition of Done item "))
 	) {
-		return `${message}\nRun 'backlog task view ${taskId} --plain' to inspect indexes, or 'backlog task edit ${taskId} --help' for edit options.`;
+		return `${message}\nRun 'epicd task view ${taskId} --plain' to inspect indexes, or 'epicd task edit ${taskId} --help' for edit options.`;
 	}
 	return message;
 }
@@ -406,7 +406,7 @@ async function requireProjectRoot(): Promise<string> {
 
 	const root = await findBacklogRoot(runtimeCwd.cwd);
 	if (!root) {
-		console.error("No Backlog.md project found. Run `backlog init` to initialize.");
+		console.error("No Backlog.md project found. Run `epicd init` to initialize.");
 		process.exit(1);
 	}
 	return root;
@@ -540,7 +540,7 @@ if (shouldRunMigration) {
 
 const program = new Command();
 program
-	.name("backlog")
+	.name("epicd")
 	.description("epicd - Project management CLI")
 	.version(version, "-v, --version", "display version number")
 	.showSuggestionAfterError()
@@ -566,9 +566,9 @@ addHelpSchema(program.command("init [projectName]"), {
 	writes: "Backlog directory, config file, optional agent instruction files, and optional git commit",
 	output: "Initialization summary with selected integration and config; defaults to CLI instructions",
 	examples: [
-		'backlog init "My Project" --defaults',
-		'backlog init "My Project" --defaults --integration-mode cli',
-		'backlog init "My Project" --defaults --agent-instructions agents,claude',
+		'epicd init "My Project" --defaults',
+		'epicd init "My Project" --defaults --integration-mode cli',
+		'epicd init "My Project" --defaults --agent-instructions agents,claude',
 	],
 })
 	.description("initialize backlog project in the current directory")
@@ -1294,7 +1294,7 @@ addHelpSchema(program.command("init [projectName]"), {
 					summaryLines.push(`${label("MCP server name:")} ${mcpServerName}`);
 					summaryLines.push(`${label("MCP client setup:")} ${mcpClientSetupSummary ?? muted("skipped")}`);
 				} else {
-					summaryLines.push(`${label("AI integration:")} ${muted("skipped (configure later via `backlog init`)")}`);
+					summaryLines.push(`${label("AI integration:")} ${muted("skipped (configure later via `epicd init`)")}`);
 				}
 				let completionSummary: string;
 				if (completionInstallResult) {
@@ -1550,10 +1550,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 	],
 	writes: "Creates a task markdown file through Backlog.md",
 	output: "Created task details; use --plain for text output",
-	examples: [
-		'backlog task create "Add OAuth" --ac "Login succeeds"',
-		'backlog task create -p {{TASK_ID:1}} "Add tests"',
-	],
+	examples: ['epicd task create "Add OAuth" --ac "Login succeeds"', 'epicd task create -p {{TASK_ID:1}} "Add tests"'],
 })
 	.option("-d, --description <text>", "task description (multi-line: include real newlines inside the quoted string)")
 	.option("--desc <text>", "alias for --description")
@@ -1743,7 +1740,7 @@ addHelpSchema(program.command("search [query]"), {
 		{ name: "limit", type: "Integer", description: "Maximum number of results" },
 	],
 	output: "Interactive search UI or plain text with --plain",
-	examples: ['backlog search "auth" --plain', 'backlog search "api" --type task --status "<active status>"'],
+	examples: ['epicd search "auth" --plain', 'epicd search "api" --type task --status "<active status>"'],
 })
 	.description("search tasks, documents, and decisions using the shared index")
 	.option("--type <type>", "limit results to type (task, document, decision)", createMultiValueAccumulator())
@@ -1804,7 +1801,7 @@ addHelpSchema(program.command("search [query]"), {
 
 		let limit: number | undefined;
 		if (options.limit !== undefined) {
-			const parsed = parsePositiveIntegerOption(options.limit, "--limit", "backlog search --help");
+			const parsed = parsePositiveIntegerOption(options.limit, "--limit", "epicd search --help");
 			if (parsed === null) {
 				cleanup();
 				return;
@@ -2010,7 +2007,7 @@ function printDocumentSearchResults(results: DocumentSearchResult[], query: stri
 		console.log(
 			`  ${document.id} - ${document.title} (path: ${pathText}, type: ${document.type}, tags: ${tagsText})${scoreText}`,
 		);
-		console.log(`    View: backlog doc view ${document.id}`);
+		console.log(`    View: epicd doc view ${document.id}`);
 	}
 }
 
@@ -2042,9 +2039,9 @@ addHelpSchema(taskCmd.command("list"), {
 	],
 	output: "Interactive task list or plain text with --plain",
 	examples: [
-		'backlog task list --status "<todo status>" --plain',
-		"backlog task list --parent {{TASK_ID:1}}",
-		'backlog task list --labels frontend,bug --search "login" --limit 10 --plain',
+		'epicd task list --status "<todo status>" --plain',
+		"epicd task list --parent {{TASK_ID:1}}",
+		'epicd task list --labels frontend,bug --search "login" --limit 10 --plain',
 	],
 })
 	.description("list tasks grouped by status")
@@ -2095,7 +2092,7 @@ addHelpSchema(taskCmd.command("list"), {
 		const searchQuery = typeof options.search === "string" ? options.search.trim() : "";
 		let taskLimit: number | undefined;
 		if (options.limit !== undefined) {
-			const parsedLimit = parsePositiveIntegerOption(options.limit, "--limit", "backlog task list --help");
+			const parsedLimit = parsePositiveIntegerOption(options.limit, "--limit", "epicd task list --help");
 			if (parsedLimit === null) {
 				cleanup();
 				return;
@@ -2375,7 +2372,7 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 	],
 	writes: "Updates task metadata and structured task sections through Backlog.md",
 	output: "Updated task details; use --plain for text output",
-	examples: ["backlog task edit {{TASK_ID:1}} -a @sara", "backlog task edit {{TASK_ID:1}} --check-ac 1"],
+	examples: ["epicd task edit {{TASK_ID:1}} -a @sara", "epicd task edit {{TASK_ID:1}} --check-ac 1"],
 })
 	.description("edit an existing task")
 	.option("-t, --title <title>")
@@ -2790,7 +2787,7 @@ addHelpSchema(taskCmd.command("view <taskId>"), {
 	required: [{ name: "taskId", type: "Task ID", description: "Task to display" }],
 	optional: [{ name: "plain", type: "Boolean", description: "Use text output instead of interactive UI" }],
 	output: "Interactive task detail view or plain text with --plain",
-	examples: ["backlog task view {{TASK_ID:1}} --plain"],
+	examples: ["epicd task view {{TASK_ID:1}} --plain"],
 })
 	.description("display task details")
 	.option("--plain", "use plain text output instead of interactive UI")
@@ -2825,7 +2822,7 @@ addHelpSchema(taskCmd.command("archive <taskId>"), {
 	optional: [],
 	writes: "Moves a task that should not be completed into the archive",
 	output: "Archive confirmation text",
-	examples: ["backlog task archive {{TASK_ID:1}}"],
+	examples: ["epicd task archive {{TASK_ID:1}}"],
 })
 	.description("archive a task")
 	.action(async (taskId: string) => {
@@ -2849,7 +2846,7 @@ addHelpSchema(taskCmd.command("archive <taskId>"), {
 		const terminalStatus = getTerminalStatus(statuses) ?? "Done";
 		if (isTerminalStatus(task.status, statuses)) {
 			console.error(
-				`Task ${task.id} is ${terminalStatus}. ${terminalStatus} tasks should be completed, not archived. Use: backlog task complete ${task.id}`,
+				`Task ${task.id} is ${terminalStatus}. ${terminalStatus} tasks should be completed, not archived. Use: epicd task complete ${task.id}`,
 			);
 			process.exitCode = 1;
 			return;
@@ -2876,7 +2873,7 @@ addHelpSchema(taskCmd.command("complete <taskId>"), {
 	writes:
 		"WARNING: This is a cleanup procedure. It moves a terminal-status task to completed, removes it from the active Kanban board, and should only be used for cleanup/archive purposes.",
 	output: "Completion cleanup confirmation and completed file path",
-	examples: ["backlog task complete {{TASK_ID:1}}"],
+	examples: ["epicd task complete {{TASK_ID:1}}"],
 })
 	.description("cleanup/archive a terminal-status task into completed")
 	.addHelpText(
@@ -2905,7 +2902,7 @@ addHelpSchema(taskCmd.command("complete <taskId>"), {
 		const terminalStatus = getTerminalStatus(statuses) ?? "Done";
 		if (!isTerminalStatus(task.status, statuses)) {
 			console.error(
-				`Task ${task.id} is not ${terminalStatus}. Set status to "${terminalStatus}" with: backlog task edit ${task.id} -s "${terminalStatus}" before cleanup.`,
+				`Task ${task.id} is not ${terminalStatus}. Set status to "${terminalStatus}" with: epicd task edit ${task.id} -s "${terminalStatus}" before cleanup.`,
 			);
 			process.exitCode = 1;
 			return;
@@ -3347,7 +3344,7 @@ addHelpSchema(docCmd.command("create <title>"), {
 	],
 	writes: "Creates a document markdown file under the configured docs directory",
 	output: "Created document ID and path",
-	examples: ['backlog doc create "API Guidelines" -p guides/api'],
+	examples: ['epicd doc create "API Guidelines" -p guides/api'],
 })
 	.option("-p, --path <path>")
 	.option("-t, --type <type>", `document type (${DOCUMENT_TYPE_VALUES.join(", ")})`)
@@ -3377,7 +3374,7 @@ addHelpSchema(docCmd.command("update <docId>"), {
 	],
 	writes: "Updates document content, metadata, or docs-relative path",
 	output: "Updated document ID and path",
-	examples: ['backlog doc update doc-1 --content "Updated markdown"', "backlog doc update doc-1 -p guides"],
+	examples: ['epicd doc update doc-1 --content "Updated markdown"', "epicd doc update doc-1 -p guides"],
 })
 	.description("update a document")
 	.option("--title <title>", "update document title")
@@ -3413,7 +3410,7 @@ addHelpSchema(docCmd.command("list"), {
 	required: [],
 	optional: [{ name: "plain", type: "Boolean", description: "Use text output instead of interactive UI" }],
 	output: "Document list with IDs, titles, types, paths, and tags",
-	examples: ["backlog doc list --plain"],
+	examples: ["epicd doc list --plain"],
 })
 	.option("--plain", "use plain text output instead of interactive UI")
 	.action(async (options) => {
@@ -3464,14 +3461,14 @@ addHelpSchema(docCmd.command("search <query>"), {
 		},
 	],
 	output: "Plain text Documents list with id, title, path, type, tags, score, and a follow-up doc view command",
-	examples: ['backlog doc search "architecture"', 'backlog doc search "runbook" --limit 5'],
+	examples: ['epicd doc search "architecture"', 'epicd doc search "runbook" --limit 5'],
 })
 	.description("search documents using the shared fuzzy index")
 	.option("-l, --limit <number>", `limit results returned (1-${DOCUMENT_SEARCH_LIMIT_MAX})`)
 	.action(async (query: string, options) => {
 		const normalizedQuery = query.trim();
 		if (normalizedQuery.length === 0) {
-			console.error('Query is required. Provide non-empty text, for example: backlog doc search "architecture"');
+			console.error('Query is required. Provide non-empty text, for example: epicd doc search "architecture"');
 			process.exitCode = 1;
 			return;
 		}
@@ -3513,7 +3510,7 @@ addHelpSchema(docCmd.command("view <docId>"), {
 	required: [{ name: "docId", type: "Document ID", description: "Document to display" }],
 	optional: [],
 	output: "Document metadata and markdown content",
-	examples: ["backlog doc view doc-1"],
+	examples: ["epicd doc view doc-1"],
 })
 	.description("view a document")
 	.action(async (docId: string) => {
@@ -3589,7 +3586,7 @@ agentsCmd
 			// Check if backlog project is initialized
 			const config = await core.filesystem.loadConfig();
 			if (!config) {
-				console.error("No backlog project found. Initialize one first with: backlog init");
+				console.error("No backlog project found. Initialize one first with: epicd init");
 				process.exit(1);
 			}
 
@@ -3644,7 +3641,7 @@ const configCmd = addHelpSchema(program.command("config"), {
 			const existingConfig = await core.filesystem.loadConfig();
 
 			if (!existingConfig) {
-				console.error("No backlog project found. Initialize one first with: backlog init");
+				console.error("No backlog project found. Initialize one first with: epicd init");
 				process.exit(1);
 			}
 
@@ -3773,7 +3770,7 @@ addHelpSchema(configCmd.command("get <key>"), {
 			const config = await core.filesystem.loadConfig();
 
 			if (!config) {
-				console.error("No backlog project found. Initialize one first with: backlog init");
+				console.error("No backlog project found. Initialize one first with: epicd init");
 				process.exit(1);
 			}
 
@@ -3879,7 +3876,7 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 			const config = await core.filesystem.loadConfig();
 
 			if (!config) {
-				console.error("No backlog project found. Initialize one first with: backlog init");
+				console.error("No backlog project found. Initialize one first with: epicd init");
 				process.exit(1);
 			}
 
@@ -4051,9 +4048,7 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 				case "taskPrefix":
 				case "prefixes":
 					console.error("Task prefix cannot be changed after initialization.");
-					console.error(
-						"The prefix is set during 'backlog init' and is permanent to avoid breaking existing task IDs.",
-					);
+					console.error("The prefix is set during 'epicd init' and is permanent to avoid breaking existing task IDs.");
 					process.exit(1);
 					break;
 				default:
@@ -4087,7 +4082,7 @@ addHelpSchema(configCmd.command("list"), {
 			const config = await core.filesystem.loadConfig();
 
 			if (!config) {
-				console.error("No backlog project found. Initialize one first with: backlog init");
+				console.error("No backlog project found. Initialize one first with: epicd init");
 				process.exit(1);
 			}
 
@@ -4137,7 +4132,7 @@ addHelpSchema(program.command("cleanup"), {
 			// Check if backlog project is initialized
 			const config = await core.filesystem.loadConfig();
 			if (!config) {
-				console.error("No backlog project found. Initialize one first with: backlog init");
+				console.error("No backlog project found. Initialize one first with: epicd init");
 				process.exit(1);
 			}
 			core.gitOps.setConfig(config);
@@ -4320,7 +4315,7 @@ program
 			const config = await core.filesystem.loadConfig();
 
 			if (!config) {
-				console.error("No backlog project found. Initialize one first with: backlog init");
+				console.error("No backlog project found. Initialize one first with: epicd init");
 				process.exit(1);
 			}
 

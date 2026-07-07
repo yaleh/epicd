@@ -33,29 +33,29 @@ describe("root command", () => {
 		expect(result.exitCode).toBe(0);
 		expect(output).toContain("Backlog.md v");
 		expect(output).toContain("Local instructions:");
-		expect(output).toContain("backlog instructions overview");
+		expect(output).toContain("epicd instructions overview");
 		expect(output).not.toContain("unknown option '--plain'");
 		expect(output).not.toContain("[");
 		expect(output).not.toContain("]");
 	});
 });
 
-describe("backlog instructions command", () => {
+describe("epicd instructions command", () => {
 	it("prints the guide index by default", async () => {
-		// CLI-CONTRACT: verifies 'backlog instructions' default output format, guide list, and absence of MCP-specific content
+		// CLI-CONTRACT: verifies 'epicd instructions' default output format, guide list, and absence of MCP-specific content
 		const output = await $`bun ${CLI_PATH} instructions`.cwd(TEST_DIR).text();
 
 		expect(output).toContain("Backlog.md instructions");
 		expect(output).toContain("Start here:");
-		expect(output).toMatch(/'backlog instructions overview'\s+Required first read before answering any user request/);
-		expect(output).not.toMatch(/^\s+'backlog instructions'\s+List workflow guides/m);
+		expect(output).toMatch(/'epicd instructions overview'\s+Required first read before answering any user request/);
+		expect(output).not.toMatch(/^\s+'epicd instructions'\s+List workflow guides/m);
 		expect(output).toContain("task-creation");
 		expect(output).toContain("task-execution");
 		expect(output).toContain("task-finalization");
 		expect(output).toContain("init-required");
 		expect(output).toContain("How to verify, summarize, and finish work");
 		expect(output).not.toContain("mark work Done");
-		expect(output).toContain("    'backlog instructions overview'");
+		expect(output).toContain("    'epicd instructions overview'");
 		expect(output).toContain("      -> Required first read before answering any user request");
 		expect(output).not.toContain("--plain");
 		expect(output).not.toContain("[");
@@ -69,7 +69,7 @@ describe("backlog instructions command", () => {
 	});
 
 	it("lists available instruction guides", async () => {
-		// CLI-CONTRACT: verifies 'backlog instructions --list' enumerates available guide names
+		// CLI-CONTRACT: verifies 'epicd instructions --list' enumerates available guide names
 		const output = await $`bun ${CLI_PATH} instructions --list`.cwd(TEST_DIR).text();
 
 		expect(output).toContain("overview");
@@ -94,48 +94,48 @@ describe("backlog instructions command", () => {
 		expect(overview).toContain(
 			"Use this overview to decide what to read or run next. The detailed guides contain the procedure for creating, executing, and finalizing tasks.",
 		);
-		expect(overview).toContain('backlog search "query" --plain');
-		expect(overview).toContain('backlog task list --search "login" --labels frontend,bug --limit 20 --plain');
-		expect(overview).toContain("backlog task view TASK-123 --plain");
+		expect(overview).toContain('epicd search "query" --plain');
+		expect(overview).toContain('epicd task list --search "login" --labels frontend,bug --limit 20 --plain');
+		expect(overview).toContain("epicd task view TASK-123 --plain");
 		expect(overview).toContain(
 			"Always read the relevant guide before that part of the workflow. Do not rely on this overview alone for these actions:",
 		);
 		expect(overview).toContain(
-			"`backlog instructions task-creation`\n  -> Read before creating tasks: how to search, scope, and create tasks",
+			"`epicd instructions task-creation`\n  -> Read before creating tasks: how to search, scope, and create tasks",
 		);
 		expect(overview).toContain(
-			"`backlog instructions task-execution`\n  -> Read before planning or updating task work: how to plan, update, and work through tasks",
+			"`epicd instructions task-execution`\n  -> Read before planning or updating task work: how to plan, update, and work through tasks",
 		);
 		expect(overview).toContain(
-			"`backlog instructions task-finalization`\n  -> Read before finishing tasks: how to verify, summarize, and finish tasks",
+			"`epicd instructions task-finalization`\n  -> Read before finishing tasks: how to verify, summarize, and finish tasks",
 		);
-		expect(overview).not.toContain('backlog task create "Title"');
-		expect(overview).not.toContain("backlog task edit TASK-123 --plan");
-		expect(overview).not.toContain("backlog task edit TASK-123 --check-ac 1");
-		expect(overview).not.toContain("backlog task edit TASK-123 -s Done");
+		expect(overview).not.toContain('epicd task create "Title"');
+		expect(overview).not.toContain("epicd task edit TASK-123 --plan");
+		expect(overview).not.toContain("epicd task edit TASK-123 --check-ac 1");
+		expect(overview).not.toContain("epicd task edit TASK-123 -s Done");
 		expect(overview).toContain(
 			"Important: Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use Backlog commands so automatic metadata stays complete.",
 		);
 		expect(overview).not.toContain("MCP Tools Quick Reference");
 		expect(overview).not.toContain("backlog://workflow/");
 		expect(taskCreation).toContain("## Task Creation Guide");
-		expect(taskCreation).toContain('backlog task create "Add project search"');
-		expect(taskCreation).toContain('backlog search "desktop app" --plain');
-		expect(taskCreation).toContain('backlog task list --search "desktop app" --labels frontend,bug --limit 20 --plain');
-		expect(taskCreation).toContain('backlog task list --status "<active status>" --plain');
-		expect(taskCreation).not.toContain('backlog task list --status "In Progress" --plain');
+		expect(taskCreation).toContain('epicd task create "Add project search"');
+		expect(taskCreation).toContain('epicd search "desktop app" --plain');
+		expect(taskCreation).toContain('epicd task list --search "desktop app" --labels frontend,bug --limit 20 --plain');
+		expect(taskCreation).toContain('epicd task list --status "<active status>" --plain');
+		expect(taskCreation).not.toContain('epicd task list --status "In Progress" --plain');
 		expect(taskExecution).toContain(
-			'backlog task list --status "<active status>" --assignee @your-name --labels backend --search "auth" --limit 20 --plain',
+			'epicd task list --status "<active status>" --assignee @your-name --labels backend --search "auth" --limit 20 --plain',
 		);
-		expect(taskExecution).toContain("backlog task edit TASK-123 -a @your-name");
-		expect(taskExecution).not.toContain('backlog task edit TASK-123 -s "In Progress" -a @your-name');
+		expect(taskExecution).toContain("epicd task edit TASK-123 -a @your-name");
+		expect(taskExecution).not.toContain('epicd task edit TASK-123 -s "In Progress" -a @your-name');
 		expect(taskFinalization).toContain("status reflects phase automatically");
-		expect(taskFinalization).toContain("backlog task edit TASK-123 --phase done");
-		expect(taskFinalization).not.toContain("backlog task edit TASK-123 -s Done");
+		expect(taskFinalization).toContain("epicd task edit TASK-123 --phase done");
+		expect(taskFinalization).not.toContain("epicd task edit TASK-123 -s Done");
 		expect(taskCreation).not.toContain("task_create");
 		expect(taskCreation).not.toContain("task_search");
 		expect(initRequired).toContain("This directory does not have Backlog.md initialized.");
-		expect(initRequired).toContain("backlog init --defaults");
+		expect(initRequired).toContain("epicd init --defaults");
 	}, 15_000);
 
 	it("renders task ID examples with the configured task prefix", async () => {
@@ -159,12 +159,12 @@ describe("backlog instructions command", () => {
 		const listHelp = await $`bun ${CLI_PATH} task list --help`.cwd(TEST_DIR).text();
 		const editHelp = await $`bun ${CLI_PATH} task edit --help`.cwd(TEST_DIR).text();
 
-		expect(overview).toContain("backlog task view FEAT-123 --plain");
-		expect(taskCreation).toContain('backlog task create -p FEAT-10 "Set up shell"');
-		expect(taskCreation).toContain('backlog task create "Add bulk update UI" --dep FEAT-21');
-		expect(createHelp).toContain('backlog task create -p FEAT-1 "Add tests"');
-		expect(listHelp).toContain("backlog task list --parent FEAT-1");
-		expect(editHelp).toContain("backlog task edit FEAT-1 -a @sara");
+		expect(overview).toContain("epicd task view FEAT-123 --plain");
+		expect(taskCreation).toContain('epicd task create -p FEAT-10 "Set up shell"');
+		expect(taskCreation).toContain('epicd task create "Add bulk update UI" --dep FEAT-21');
+		expect(createHelp).toContain('epicd task create -p FEAT-1 "Add tests"');
+		expect(listHelp).toContain("epicd task list --parent FEAT-1");
+		expect(editHelp).toContain("epicd task edit FEAT-1 -a @sara");
 		for (const output of [overview, taskCreation, createHelp, listHelp, editHelp]) {
 			expect(output).not.toContain("BACK-");
 		}
@@ -192,23 +192,23 @@ describe("backlog instructions command", () => {
 		const createHelp = await $`bun ${CLI_PATH} task create --help`.cwd(outsideDir).env(env).text();
 		const editHelp = await $`bun ${CLI_PATH} task edit --help`.cwd(outsideDir).env(env).text();
 
-		expect(overview).toContain("backlog task view FEAT-123 --plain");
-		expect(createHelp).toContain('backlog task create -p FEAT-1 "Add tests"');
-		expect(editHelp).toContain("backlog task edit FEAT-1 -a @sara");
+		expect(overview).toContain("epicd task view FEAT-123 --plain");
+		expect(createHelp).toContain('epicd task create -p FEAT-1 "Add tests"');
+		expect(editHelp).toContain("epicd task edit FEAT-1 -a @sara");
 		for (const output of [overview, createHelp, editHelp]) {
 			expect(output).not.toContain("BACK-");
 		}
 	}, 10_000);
 
 	it("does not recommend task complete in CLI workflow guides or agent nudge", async () => {
-		// CLI-CONTRACT: verifies no guide mentions 'backlog task complete' or 'task complete' to avoid agent confusion
+		// CLI-CONTRACT: verifies no guide mentions 'epicd task complete' or 'task complete' to avoid agent confusion
 		const overview = await $`bun ${CLI_PATH} instructions overview`.cwd(TEST_DIR).text();
 		const taskCreation = await $`bun ${CLI_PATH} instructions task-creation`.cwd(TEST_DIR).text();
 		const taskExecution = await $`bun ${CLI_PATH} instructions task-execution`.cwd(TEST_DIR).text();
 		const taskFinalization = await $`bun ${CLI_PATH} instructions task-finalization`.cwd(TEST_DIR).text();
 
 		for (const guide of [overview, taskCreation, taskExecution, taskFinalization, CLI_AGENT_NUDGE]) {
-			expect(guide).not.toContain("backlog task complete");
+			expect(guide).not.toContain("epicd task complete");
 			expect(guide).not.toContain("task complete");
 			expect(guide).not.toContain("task_complete");
 		}
@@ -222,6 +222,6 @@ describe("backlog instructions command", () => {
 		expect(result.exitCode).toBe(1);
 		expect(output).toContain("Unknown instruction guide: does-not-exist");
 		expect(output).toContain("Valid guides:");
-		expect(output).toContain("backlog instructions");
+		expect(output).toContain("epicd instructions");
 	});
 });

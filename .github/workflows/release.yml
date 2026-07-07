@@ -38,7 +38,7 @@ jobs:
             target: bun-windows-arm64
     runs-on: ${{ matrix.os }}
     env:
-      BIN: backlog-bin${{ contains(matrix.target,'windows') && '.exe' || '' }}
+      BIN: epicd-bin${{ contains(matrix.target,'windows') && '.exe' || '' }}
     steps:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
@@ -182,10 +182,10 @@ jobs:
           TAG="${RELEASE_TAG##v}"
           mkdir -p pkg
           # Rename the binary to the expected name
-          if [[ -f backlog-bin.exe ]]; then
-            mv backlog-bin.exe pkg/backlog.exe
-          elif [[ -f backlog-bin ]]; then
-            mv backlog-bin pkg/backlog
+          if [[ -f epicd-bin.exe ]]; then
+            mv epicd-bin.exe pkg/backlog.exe
+          elif [[ -f epicd-bin ]]; then
+            mv epicd-bin pkg/backlog
           else
             echo "Error: No binary found"
             ls -la
@@ -498,7 +498,7 @@ jobs:
               echo "Processing target: $target"
               echo "Directory contents:"
               ls -la "$dir"
-              binary=$(find "$dir" -name "backlog-bin*" -type f)
+              binary=$(find "$dir" -name "epicd-bin*" -type f)
               if [ -n "$binary" ]; then
                 echo "Found binary: $binary ($(ls -lh "$binary" | awk '{print $5}'))"
                 if [[ "$target" == *"windows"* ]] && [[ "$binary" == *".exe" ]]; then

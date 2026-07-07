@@ -19,7 +19,7 @@ this query wrapper, not one per read surface).
 ## Usage
 
 ```bash
-backlog engine gate-log \
+epicd engine gate-log \
   [--file <path>]          \  # default: <cwd>/docs/research/gate-events.jsonl
   [--pipeline-id <id>]      \
   [--gate <name>]           \
@@ -36,6 +36,6 @@ given options. Never mutates the log — `engine gate-log` only reads.
 ## Examples
 
 ```bash
-backlog engine gate-log --pipeline-id execution --limit 20
-backlog engine gate-log --gate stage2-gate --since 2026-01-01T00:00:00Z
+epicd engine gate-log --pipeline-id execution --limit 20
+epicd engine gate-log --gate stage2-gate --since 2026-01-01T00:00:00Z
 ```

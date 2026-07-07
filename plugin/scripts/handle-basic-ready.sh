@@ -10,18 +10,18 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 # CLI_CMD resolution (BACK-605.9 M1 — portable across install shapes, this script
 # ships inside the epicd Claude Code plugin and must not assume the epicd source
 # tree lives at a fixed relative path from a foreign board repo):
-#   1. EPICD_CLI_CMD env var — explicit override, e.g. "backlog" when the published
+#   1. EPICD_CLI_CMD env var — explicit override, e.g. "epicd" when the published
 #      CLI binary is on PATH (the normal case for a repo that only installed the
 #      plugin, not epicd's source).
 #   2. "bun <this-script's-own-dir>/../../src/cli.ts" — resolved from this script's
 #      own on-disk location (NOT $REPO_ROOT) so the claim runs through the dev CLI
 #      belonging to this codebase whenever that source tree actually sits alongside
 #      this script (epicd dogfooding itself, or a test fixture pointed at it) — this
-#      avoids the version-skew hazard where a bare `backlog` on $PATH resolves to a
+#      avoids the version-skew hazard where a bare `epicd` on $PATH resolves to a
 #      stale globally installed package whose frontmatter schema doesn't know about
 #      engine structural fields (pipeline_id, phase, parent_id, dod) and silently
 #      drops them on rewrite (BACK-620).
-#   3. "backlog" — fallback assuming the published bin is on PATH.
+#   3. "epicd" — fallback assuming the published bin is on PATH.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEV_CLI_JS="${SCRIPT_DIR}/../../src/cli.ts"
 if [ -n "${EPICD_CLI_CMD:-}" ]; then
@@ -29,7 +29,7 @@ if [ -n "${EPICD_CLI_CMD:-}" ]; then
 elif [ -f "$DEV_CLI_JS" ]; then
   CLI_CMD="bun $DEV_CLI_JS"
 else
-  CLI_CMD="backlog"
+  CLI_CMD="epicd"
 fi
 CAPS_DIR="${REPO_ROOT}/backlog/.caps"
 LOCK_FILE="${CAPS_DIR}/${TASK_ID}.exec-lock"

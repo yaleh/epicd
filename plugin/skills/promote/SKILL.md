@@ -11,7 +11,7 @@ contracts:
 # promote
 
 ```bash
-backlog engine promote <taskId>
+epicd engine promote <taskId>
 ```
 
 That is the entire operation. `engine promote` (src/cli.ts) already:

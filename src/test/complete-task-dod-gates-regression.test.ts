@@ -41,16 +41,16 @@ const HANDLE_BASIC_READY_SH = join(process.cwd(), "plugin", "scripts", "handle-b
 const COMPLETE_TASK_SH = join(process.cwd(), "plugin", "scripts", "complete-task.sh");
 
 /**
- * complete-task.sh (unlike handle-basic-ready.sh) invokes the bare `backlog`
+ * complete-task.sh (unlike handle-basic-ready.sh) invokes the bare `epicd`
  * binary rather than resolving this repo's dev CLI. To exercise the fixed
- * renderer (which lives only in this dev tree, not whatever `backlog` build
+ * renderer (which lives only in this dev tree, not whatever `epicd` build
  * happens to be globally installed on the sandbox's PATH), we shim a
  * `backlog` executable onto PATH that forwards to this repo's `src/cli.ts`.
  */
 async function createDevCliShim(): Promise<string> {
 	const shimDir = createUniqueTestDir("back654-shim-bin");
 	await mkdir(shimDir, { recursive: true });
-	const shimPath = join(shimDir, "backlog");
+	const shimPath = join(shimDir, "epicd");
 	await writeFile(shimPath, `#!/usr/bin/env bash\nexec bun "${CLI_PATH}" "$@"\n`);
 	chmodSync(shimPath, 0o755);
 	return shimDir;

@@ -4,7 +4,7 @@
  * This test proves the real merge-tail machinery works end-to-end on a
  * fabricated board, without spawning a real Claude Code session:
  *
- *   1. Set up a temp git repo + backlog board (same pattern as
+ *   1. Set up a temp git repo + epicd board (same pattern as
  *      engine-complete-cli.test.ts / engine-safety-worktree.test.ts).
  *   2. Create a primitive task in the execution/ready phase.
  *   3. Run the REAL `plugin/scripts/handle-basic-ready.sh <id>` against the

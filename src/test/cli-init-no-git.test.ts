@@ -20,7 +20,7 @@ async function pathExists(path: string): Promise<boolean> {
 }
 
 async function initFilesystemOnlyProject(projectName = "No Git Project"): Promise<Core> {
-	// CLI-CONTRACT: verifies 'backlog init --no-git' initializes a filesystem-only project
+	// CLI-CONTRACT: verifies 'epicd init --no-git' initializes a filesystem-only project
 	const result = await $`bun ${CLI_PATH} init ${projectName} --no-git --defaults --integration-mode none`
 		.cwd(TEST_DIR)
 		.env({ ...process.env, BACKLOG_CWD: TEST_DIR })

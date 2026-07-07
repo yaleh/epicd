@@ -493,7 +493,7 @@ export async function listTasksViaCore(
 			return {
 				exitCode: 1,
 				stdout: "",
-				stderr: "--limit must be a positive integer (1 or greater). Try 'backlog task list --help' for options.",
+				stderr: "--limit must be a positive integer (1 or greater). Try 'epicd task list --help' for options.",
 			};
 		}
 

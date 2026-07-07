@@ -9,7 +9,7 @@ import { createUniqueTestDir, getPlatformTimeout, safeCleanup } from "./test-uti
 
 let TEST_DIR: string;
 const isWindows = platform() === "win32";
-const executableName = isWindows ? "backlog.exe" : "backlog";
+const executableName = isWindows ? "epicd.exe" : "epicd";
 
 function withTimeout<T>(operation: Promise<T>, label: string, timeoutMs: number, details: () => string): Promise<T> {
 	return new Promise((resolve, reject) => {

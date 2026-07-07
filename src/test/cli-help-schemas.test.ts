@@ -41,8 +41,8 @@ describe("command help input schemas", () => {
 		expect(initHelp).toContain("--integration-mode: one of: cli, mcp, none");
 		expect(initHelp).toContain("(default: cli)");
 		expect(initHelp).toContain("CLI instructions are recommended");
-		expect(initHelp).toContain('backlog init "My Project" --defaults --integration-mode cli');
-		expect(initHelp).not.toContain("backlog init --integration-mode mcp");
+		expect(initHelp).toContain('epicd init "My Project" --defaults --integration-mode cli');
+		expect(initHelp).not.toContain("epicd init --integration-mode mcp");
 		expect(initHelp).toContain("Writes:");
 		expect(instructionsHelp).toContain(
 			"guide: one of: overview, task-creation, task-execution, task-finalization, init-required",
@@ -71,7 +71,7 @@ describe("command help input schemas", () => {
 		expect(listHelp).toContain("search: String");
 		expect(listHelp).toContain("limit: Positive integer");
 		expect(listHelp).toContain("sort: one of: priority, id");
-		expect(listHelp).toContain('backlog task list --labels frontend,bug --search "login" --limit 10 --plain');
+		expect(listHelp).toContain('epicd task list --labels frontend,bug --search "login" --limit 10 --plain');
 		expect(editHelp).toContain("taskId: Task ID");
 		expect(editHelp).not.toContain("status:");
 		expect(editHelp).toContain("plan: Markdown");

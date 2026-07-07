@@ -5,25 +5,25 @@ This directory does not have Backlog.md initialized.
 To initialize the current project, run:
 
 ```bash
-backlog init
+epicd init
 ```
 
 For non-interactive defaults, run:
 
 ```bash
-backlog init --defaults
+epicd init --defaults
 ```
 
 For local projects without Git, run:
 
 ```bash
-backlog init --no-git
+epicd init --no-git
 ```
 
 After initialization, run:
 
 ```bash
-backlog instructions overview
+epicd instructions overview
 ```
 
 That command prints the current workflow guidance.

@@ -29,9 +29,9 @@ Monitor(persistent=true, timeout_ms=3600000,
 `scan-loop.cjs` reads from and dispatches through the epicd engine CLI (`engine scan
 --once` / `engine dispatch <id>`) — never a template file. It resolves the engine CLI
 command portably: `$EPICD_ENGINE_CMD` if set, else `bun src/cli.ts engine` when run
-inside the epicd source tree itself, else `backlog engine` (the published bin on
+inside the epicd source tree itself, else `epicd engine` (the published bin on
 PATH — the normal case in a repo that only installed this plugin). Set
-`EPICD_ENGINE_CMD` explicitly if the installed binary is not named `backlog`.
+`EPICD_ENGINE_CMD` explicitly if the installed binary is not named `epicd`.
 
 The scanner self-reaps any prior instance on startup, so re-arming is always safe — never
 precede this call with a status check.

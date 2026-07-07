@@ -401,8 +401,8 @@ Test task with acceptance criteria
 				const msg = e.stderr == null ? "" : String(e.stderr);
 				expect(msg).toContain("Acceptance criterion #10 not found");
 				expect(msg).toContain("Available indexes: #1-#3.");
-				expect(msg).toContain("backlog task view TASK-1 --plain");
-				expect(msg).toContain("backlog task edit TASK-1 --help");
+				expect(msg).toContain("epicd task view TASK-1 --plain");
+				expect(msg).toContain("epicd task edit TASK-1 --help");
 			}
 		});
 
@@ -418,8 +418,8 @@ Test task with acceptance criteria
 				const msg = e.stderr == null ? "" : String(e.stderr);
 				expect(msg).toContain("Acceptance criterion #10 not found");
 				expect(msg).toContain("Available indexes: #1-#3.");
-				expect(msg).toContain("backlog task view TASK-1 --plain");
-				expect(msg).toContain("backlog task edit TASK-1 --help");
+				expect(msg).toContain("epicd task view TASK-1 --plain");
+				expect(msg).toContain("epicd task edit TASK-1 --help");
 			}
 		});
 
@@ -675,8 +675,8 @@ describe("AcceptanceCriteriaManager unit tests", () => {
 			expect(checkResult.exitCode).toBe(1);
 			expect(checkResult.stderr.toString()).toContain("Acceptance criterion #5 not found");
 			expect(checkResult.stderr.toString()).toContain("Available indexes: #1-#2.");
-			expect(checkResult.stderr.toString()).toContain(`backlog task view ${taskId} --plain`);
-			expect(checkResult.stderr.toString()).toContain(`backlog task edit ${taskId} --help`);
+			expect(checkResult.stderr.toString()).toContain(`epicd task view ${taskId} --plain`);
+			expect(checkResult.stderr.toString()).toContain(`epicd task edit ${taskId} --help`);
 		});
 	});
 });

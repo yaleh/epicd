@@ -5,7 +5,7 @@ This directory does not have Backlog.md initialized.
 **To set up task management for this project, run:**
 
 ```bash
-backlog init
+epicd init
 ```
 
 This will create the necessary `backlog/` directory structure and configuration file.
@@ -16,7 +16,7 @@ Backlog.md is a task management system that uses markdown files to track feature
 
 ## Next Steps
 
-1. Run `backlog init` in your project directory
+1. Run `epicd init` in your project directory
 2. Follow the interactive setup prompts
 3. Choose your preferred AI agent integration (Claude Code, Codex, Gemini CLI, or Kiro)
 4. Start creating and managing tasks!

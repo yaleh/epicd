@@ -93,7 +93,7 @@ describe("task archive and state transition commands", () => {
 
 		expect(result.exitCode).not.toBe(0);
 		expect(output).toContain("Task TASK-5 is Done.");
-		expect(output).toContain("Use: backlog task complete TASK-5");
+		expect(output).toContain("Use: epicd task complete TASK-5");
 		expect(await core.filesystem.loadTask("task-5")).not.toBeNull();
 
 		const archivedTasks = await core.filesystem.listArchivedTasks();
@@ -155,7 +155,7 @@ describe("task archive and state transition commands", () => {
 
 		expect(result.exitCode).not.toBe(0);
 		expect(output).toContain("Task TASK-4 is not Done.");
-		expect(output).toContain('backlog task edit TASK-4 -s "Done"');
+		expect(output).toContain('epicd task edit TASK-4 -s "Done"');
 		expect(output).toContain("before cleanup");
 		expect((await core.filesystem.loadTask("task-4"))?.status).toBe("Not Done");
 

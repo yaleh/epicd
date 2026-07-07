@@ -42,30 +42,30 @@ export function formatRootEntry({ version, initialized, color = false }: RootEnt
 	if (!initialized) {
 		lines.push("This directory is not initialized for Backlog.md.", "");
 		lines.push(sectionTitle("Project setup:", color));
-		lines.push(commandLine("backlog init", "Initialize Backlog.md interactively"));
-		lines.push(commandLine("backlog init --defaults", "Initialize with default settings"));
-		lines.push(commandLine("backlog init --no-git", "Initialize without Git integration"));
+		lines.push(commandLine("epicd init", "Initialize Backlog.md interactively"));
+		lines.push(commandLine("epicd init --defaults", "Initialize with default settings"));
+		lines.push(commandLine("epicd init --no-git", "Initialize without Git integration"));
 		lines.push("");
 	} else {
 		lines.push(sectionTitle("Common workflow:", color));
-		lines.push(commandLine('backlog search "query" --plain', "Search tasks, docs, and decisions"));
-		lines.push(commandLine("backlog task list --plain", "List tasks"));
-		lines.push(commandLine(renderConfiguredTaskIds("backlog task view {{TASK_ID:123}} --plain"), "Read task context"));
-		lines.push(commandLine('backlog task create "Title" -d "Description"', "Create a task"));
-		lines.push(commandLine("backlog board", "Open the TUI Kanban board"));
-		lines.push(commandLine("backlog browser", "Open the Web UI Kanban board"));
+		lines.push(commandLine('epicd search "query" --plain', "Search tasks, docs, and decisions"));
+		lines.push(commandLine("epicd task list --plain", "List tasks"));
+		lines.push(commandLine(renderConfiguredTaskIds("epicd task view {{TASK_ID:123}} --plain"), "Read task context"));
+		lines.push(commandLine('epicd task create "Title" -d "Description"', "Create a task"));
+		lines.push(commandLine("epicd board", "Open the TUI Kanban board"));
+		lines.push(commandLine("epicd browser", "Open the Web UI Kanban board"));
 		lines.push("");
 	}
 
 	lines.push(sectionTitle("Local instructions:", color));
-	lines.push(commandLine("backlog instructions", "List workflow guides"));
+	lines.push(commandLine("epicd instructions", "List workflow guides"));
 	for (const guide of INSTRUCTION_GUIDES) {
-		lines.push(commandLine(`backlog instructions ${guide.key}`, guide.description));
+		lines.push(commandLine(`epicd instructions ${guide.key}`, guide.description));
 	}
 	lines.push("");
 
 	lines.push(sectionTitle("Command help:", color));
-	lines.push(commandLine("backlog <command> --help", "Show options, fields, and examples"));
+	lines.push(commandLine("epicd <command> --help", "Show options, fields, and examples"));
 	lines.push("");
 	lines.push("Docs: https://backlog.md");
 	lines.push("");

@@ -27,7 +27,7 @@ exists to catch exactly that class of defect before it's expensive to fix.
 
 ### Phase 0 — Read the seed
 
-Run `backlog task view <taskId> --plain` and read the current Description. If
+Run `epicd task view <taskId> --plain` and read the current Description. If
 the task already carries a substantive Description, treat it as the seed to refine
 in place — do not throw it away and start from a blank page. If the Description is
 thin (a title-only stub or a one-line idea), you are drafting from scratch.
@@ -80,7 +80,7 @@ converge) rather than silently shipping an unresolved proposal.
 ### Finalise
 
 ```bash
-backlog task edit <taskId> --append-notes "authoring/draft self-review: <APPROVED|NEEDS_HUMAN> after <n> round(s)<: unresolved criteria if NEEDS_HUMAN>"
+epicd task edit <taskId> --append-notes "authoring/draft self-review: <APPROVED|NEEDS_HUMAN> after <n> round(s)<: unresolved criteria if NEEDS_HUMAN>"
 ```
 
 Do not change the task's phase/status yourself — that transition belongs to

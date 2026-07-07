@@ -126,7 +126,7 @@ describe("CLI search command", () => {
 
 		expect(result.exitCode).toBe(1);
 		expect(output).toContain("--limit must be a positive integer (1 or greater).");
-		expect(output).toContain("Try 'backlog search --help' for options.");
+		expect(output).toContain("Try 'epicd search --help' for options.");
 	});
 
 	it("finds tasks by modified file path", async () => {

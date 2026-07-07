@@ -104,7 +104,7 @@ Apply in order; stop at the first decisive answer:
    could disagree — even when gut and mechanism agree.
 
 **PROMOTE mechanics (epicd-specific)**: create the follow-on task with
-`backlog task create --pipeline execution --phase ready "<title>"`, then set its
+`epicd task create --pipeline execution --phase ready "<title>"`, then set its
 `provenance.spawned_from` to the spike task's id. As of this writing neither
 `task create` nor `task edit` exposes a CLI flag for the `provenance` field (see
 `src/core/field-registry.ts`'s `provenance` descriptor and BACK-641, the separate
@@ -141,7 +141,7 @@ section — this shape has held across 5 real spikes and 3 distinct verdict shap
 ### Finalise
 
 Record the artifact in the task (e.g.
-`backlog task edit <taskId> --append-notes "<the 5-section artifact>"`, or as
+`epicd task edit <taskId> --append-notes "<the 5-section artifact>"`, or as
 the task's final summary). Do not change the task's phase/status yourself — the
 spike phase's own `done` adjudication and any follow-on task creation are the only
 state transitions this skill drives; it does not touch engine mechanics (complete/
@@ -158,7 +158,7 @@ reuse outside this repo:
 - **The default ceiling of 12 tool calls** — calibrated against epicd's own
   investigative shapes (code reading, grepping, test running); a different
   codebase/toolset needs its own calibration pass, not a blind reuse of "12."
-- **The promotion mechanism** — `provenance.spawned_from` + `backlog task create`
+- **The promotion mechanism** — `provenance.spawned_from` + `epicd task create`
   is epicd's own "turn this into real work" plumbing; a non-epicd context
   substitutes its own (a linked issue, a "derived from" ticket comment).
 

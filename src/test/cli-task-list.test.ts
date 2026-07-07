@@ -448,6 +448,6 @@ describe("task list command", () => {
 
 		expect(result.exitCode).toBe(1);
 		expect(out).toContain("--limit must be a positive integer (1 or greater).");
-		expect(out).toContain("Try 'backlog task list --help' for options.");
+		expect(out).toContain("Try 'epicd task list --help' for options.");
 	});
 });

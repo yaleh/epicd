@@ -22,7 +22,7 @@ that specific dispatch transport.
 
 ### Phase 0 — Read the epic's plan
 
-Run `backlog task view <epicId> --plain` and read the full Description, in
+Run `epicd task view <epicId> --plain` and read the full Description, in
 particular its `## Sub-Task Decomposition` section (if present) — that section is the
 epic author's own proposed breakdown and the starting point for what to propose.
 
@@ -67,7 +67,7 @@ plan genuinely has no viable decomposition (e.g. it should stay a single Basic t
 ### Phase 3 — Apply the proposal
 
 ```bash
-echo '<json array>' | backlog engine decompose-apply <epicId>
+echo '<json array>' | epicd engine decompose-apply <epicId>
 ```
 
 `engine decompose-apply` creates each child with engine fields

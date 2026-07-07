@@ -1,6 +1,6 @@
 ## Task Creation Guide
 
-Use this guide when `backlog instructions` or the user indicates that new Backlog tasks are needed.
+Use this guide when `epicd instructions` or the user indicates that new Backlog tasks are needed.
 
 ### Step 1: Search First
 
@@ -8,14 +8,14 @@ Always check whether the work is already tracked.
 
 Recommended CLI commands:
 
-- `backlog search "desktop app" --plain`
-- `backlog task list --status "<todo status>" --plain`
-- `backlog task list --status "<active status>" --plain`
-- `backlog task list --search "desktop app" --labels frontend,bug --limit 20 --plain`
+- `epicd search "desktop app" --plain`
+- `epicd task list --status "<todo status>" --plain`
+- `epicd task list --status "<active status>" --plain`
+- `epicd task list --search "desktop app" --labels frontend,bug --limit 20 --plain`
 
 Avoid broad unfiltered listing when the project may have many tasks. Use `--status`, `--assignee`, `--parent`, `--priority`, `--labels`, `--search`, or `--limit` where applicable.
 
-Use `backlog task view {{TASK_ID:123}} --plain` to read full context for likely matches.
+Use `epicd task view {{TASK_ID:123}} --plain` to read full context for likely matches.
 
 ### Step 2: Assess Scope Before Creating Tasks
 
@@ -37,16 +37,16 @@ Ask:
 Use subtasks when the work shares one goal and one subsystem:
 
 ```bash
-backlog task create "Desktop application"
-backlog task create -p {{TASK_ID:10}} "Set up shell"
-backlog task create -p {{TASK_ID:10}} "Wire IPC"
+epicd task create "Desktop application"
+epicd task create -p {{TASK_ID:10}} "Set up shell"
+epicd task create -p {{TASK_ID:10}} "Wire IPC"
 ```
 
 Use separate tasks with dependencies when work spans independent components:
 
 ```bash
-backlog task create "Add bulk update API"
-backlog task create "Add bulk update UI" --dep {{TASK_ID:21}}
+epicd task create "Add bulk update API"
+epicd task create "Add bulk update UI" --dep {{TASK_ID:21}}
 ```
 
 ### Step 4: Create Tasks
@@ -64,7 +64,7 @@ Include:
 Examples:
 
 ```bash
-backlog task create "Add project search" \
+epicd task create "Add project search" \
   -d "Users can search tasks, docs, and decisions from one CLI command." \
   --ac "Search returns matching tasks by title and description" \
   --ac "Search supports --plain output" \
@@ -72,7 +72,7 @@ backlog task create "Add project search" \
 ```
 
 ```bash
-backlog task create "Add settings docs" \
+epicd task create "Add settings docs" \
   --doc docs/settings.md \
   --ref https://example.com/spec
 ```
@@ -94,9 +94,9 @@ Avoid criteria like "Implement helper function" unless the helper itself is the 
 Project-level Definition of Done defaults apply automatically. Add task-specific DoD items only when this task needs extra completion hygiene:
 
 ```bash
-backlog task create "Ship audit export" --dod "Manual export checked with sample data"
+epicd task create "Ship audit export" --dod "Manual export checked with sample data"
 ```
 
 ### After Creation
 
-Report the created task IDs, titles, and key acceptance criteria to the user. If the user asks for changes, update tasks through `backlog task edit`.
+Report the created task IDs, titles, and key acceptance criteria to the user. If the user asks for changes, update tasks through `epicd task edit`.

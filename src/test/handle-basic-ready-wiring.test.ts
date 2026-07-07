@@ -30,11 +30,11 @@ describe("handle-basic-ready.sh — claim invocation wiring (BACK-620)", () => {
 		expect(script).toMatch(/\$CLI_CMD task edit/);
 	});
 
-	it("supports an EPICD_CLI_CMD override and falls back to bare `backlog` only when no dev CLI is present", async () => {
+	it("supports an EPICD_CLI_CMD override and falls back to bare `epicd` only when no dev CLI is present", async () => {
 		const script = await readFile(SCRIPT_PATH, "utf8");
 
 		expect(script).toContain("EPICD_CLI_CMD");
-		expect(script).toMatch(/CLI_CMD="backlog"/);
-		expect(/\bbacklog task edit\b/.test(script)).toBe(false);
+		expect(script).toMatch(/CLI_CMD="epicd"/);
+		expect(/\bepicd task edit\b/.test(script)).toBe(false);
 	});
 });
