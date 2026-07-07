@@ -61,8 +61,6 @@ const BASIC_DRAFT_STATUS = 'basic: draft';
 const EPIC_DRAFT_STATUS  = 'epic: draft';
 const BASIC_PROPOSAL_STATUS = 'basic: proposal';
 const EPIC_PROPOSAL_STATUS  = 'epic: proposal';
-const BASIC_IN_PROGRESS_STATUS = 'basic: in progress';
-const BASIC_REFINING_STATUS = 'basic: refining';
 const EPIC_REFINING_STATUS  = 'epic: refining';
 const REAP_THRESHOLD_MS = 1800000; // 30 minutes
 
@@ -441,13 +439,12 @@ function isReapDue(claimedAt, now, thresholdMs = REAP_THRESHOLD_MS) {
   } catch { return false; }
 }
 
-// status is any "working" state — "Basic: In Progress" OR "Basic: Refining" (generalized
-// for stale-in-progress reap coverage of the Draft lane's claim state; TASK-244 §5).
-// A task stale-reaped mid-Refining is caught by the same channel as a stale In-Progress
-// task — no separate Draft stale-reap needed.
+// A task is "in progress" iff it has a non-null claimed: cap stamp (written by the worker
+// when claiming the task — see handle-basic-ready.sh). Post-BACK-664, status: is no longer
+// persisted on disk for engine tasks (field-registry present gate); the claim cap note is
+// now the authoritative "worker is active" signal for the stale-in-progress reaper.
 function isInProgress(filepath) {
-  const meta = readTaskMeta(filepath);
-  return !!meta && (meta.status === BASIC_IN_PROGRESS_STATUS || meta.status === BASIC_REFINING_STATUS);
+  return readClaimedAt(filepath) !== null;
 }
 
 // Read the most-recent `claimed: <timestamp>` note stamped by claimBatch.

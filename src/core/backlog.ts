@@ -1132,12 +1132,10 @@ export class Core {
 
 		// Derivation belongs here, not at each phase-transition call site: when a
 		// task carries a phase AND this update actually transitions that phase, the
-		// persisted `status` string is kept in sync with the derived display status
-		// so callers never need to hand-write `status: label(roleOf(task), phase)`
-		// (BACK-627). When phase is unchanged, an explicit status edit (e.g. the
-		// claim script's "Basic: In Progress" while phase stays "ready" — BACK-620)
-		// is respected rather than clobbered; scan-loop's stale-in-progress reaper
-		// depends on that literal surviving.
+		// in-memory `status` is kept in sync with the derived display status so callers
+		// never need to hand-write `status: label(roleOf(task), phase)` (BACK-627).
+		// Post-BACK-664, status is never persisted for engine tasks (pipeline_id set);
+		// the scan-loop's stale-in-progress reaper uses the cap note timestamp instead.
 		if (task.phase && task.phase !== originalTask?.phase) {
 			task.status = newStatus;
 		}

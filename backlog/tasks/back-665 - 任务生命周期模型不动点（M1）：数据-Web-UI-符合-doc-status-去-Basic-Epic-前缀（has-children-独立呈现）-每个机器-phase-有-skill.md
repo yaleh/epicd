@@ -8,7 +8,7 @@ phase: backlog
 assignee:
   - '@claude'
 created_date: '2026-07-06 11:15'
-updated_date: '2026-07-07 01:28'
+updated_date: '2026-07-07 04:41'
 labels:
   - 'kind:epic'
   - 'area:engine'
@@ -177,4 +177,32 @@ bun test --parallel ./src 跑了两轮：稳定 2001 pass/1 fail，失败项 CLI
 bun run check . 与 bunx tsc --noEmit 均干净。
 
 AC5 added and delivered (this round): raw pipeline_id/phase now visible+editable in web TaskDetailsModal.tsx (cascading Pipeline->Phase selects, reusing the task_edit/applyTaskUpdateInput/assertLegalPhase server path; distinct from the derived Status badge). Verified live via Playwright against a real task (pipeline/phase switch persisted correctly, status re-derived). Also fixed BACK-661 (asymmetric --pipeline/--phase validation at task create) as a prerequisite, since the new web edit surface increases exposure to that bug: centralized a both-or-neither guard into Core.createTaskFromInput so CLI/MCP/server all inherit it. Added fixpoint-meter check 'phase-pipeline-web-editable' (AC5). Fixpoint: 10/12 green (2 red both gated on deferred BACK-660, per standing decision).
+
+2026-07-07: 纠正 no-persisted-status 的 BACK-660 依赖判断（错误根因分析）。
+
+原注释将 no-persisted-status 标为「monitor-gated，阻塞于 BACK-660」。分析发现这是误判：monitor 的作用是驱动 phase 自动执行，与 status 字段是否落盘完全正交。没有 monitor，人工跑 engine complete / 手动改 phase，任务照样能流转。
+
+真正需要做的事（与 BACK-660 无关）：
+1. field-registry.ts present() 门：`present: () => true` 改为 `present: (task) => !(task.pipeline_id && task.phase)`，有 pipeline_id+phase 的 task serializer 不再写 status: 行。
+2. parser.ts fallback：读到 pipeline_id+phase 但无 status: 时，从 `label(roleOf(task), phase)` 派生 task.status，下游零改动。
+3. 全量迁移脚本（scripts/migrate-status-to-phase.ts）：覆盖全部 103 个 task 文件，包括无 pipeline_id 的纯 backlog 任务。无 pipeline_id 的任务按旧 status 字符串映射规则写入 pipeline_id+phase（见下），再删 status: 行。
+4. lint 守卫：make validate / CI 加一条 grep 检查，禁止新 task 文件含 status: 行（防止用外部 backlog CLI 建任务后回流）。
+
+旧 status → (pipeline_id, phase) 映射规则（migration 脚本用）：
+- Draft → authoring/draft
+- Basic/Epic: Proposal → authoring/proposing
+- Basic/Epic: Plan → authoring/refining
+- Basic/Epic: Backlog → execution/backlog
+- Basic/Epic: Ready → execution/ready
+- Basic/Epic: In Progress → execution/ready（in-progress 是 claim 不是 phase，claim 状态丢弃）
+- Basic/Epic: Done → execution/done
+- Basic/Epic: Needs Human → execution/needs-human
+- Basic/Epic: Decomposing → execution/decomposing
+- Basic/Epic: Awaiting Children → execution/awaiting-children
+- Basic/Epic: Evaluating → execution/evaluating
+- 带 kind:exploration label → exploration/spike
+
+新建任务的保障：epicd 自己的 serializer 修好后不再写 status:。外部 backlog.md CLI 建任务仍会写 status:，由 lint 守卫在 CI 层拦截，要求修复（而非阻止写入）。
+
+当前 meter 状态（2026-07-07）：10/12 green；目标收敛范围内仅剩 no-persisted-status（1 条红）；epicd-self-sufficient-no-baime 由用户决策 deferred，不在本轮收敛目标内。fixpoint-back665.ts 的 owner 标注已同步更正。
 <!-- SECTION:NOTES:END -->

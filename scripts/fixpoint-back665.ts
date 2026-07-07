@@ -77,7 +77,7 @@ const checks: Check[] = [
 	{
 		id: "no-persisted-status",
 		ac: "AC1/AC2",
-		owner: "BACK-664 (del status field) — monitor-gated, blocked on BACK-660",
+		owner: "BACK-664 (del status field) — NOT monitor-gated; requires: field-registry present() gate + parser fallback + migration script (all tasks, with/without pipeline_id) + lint guard",
 		run: () => {
 			const files = readdirSync(TASKS_DIR).filter((f) => f.endsWith(".md"));
 			const bad = files.filter((f) => /^status:/m.test(frontmatter(join(TASKS_DIR, f))));
@@ -172,7 +172,7 @@ const checks: Check[] = [
 	{
 		id: "epicd-self-sufficient-no-baime",
 		ac: "AC4",
-		owner: "BACK-660 + BACK-664 (claim axis / native runtime)",
+		owner: "BACK-660 + BACK-664 (claim axis / native runtime) — deferred by user decision; excluded from current convergence target",
 		run: deliveredTest("epicd-self-sufficient-no-status.test.ts"),
 	},
 	{
