@@ -213,6 +213,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+          registry-url: 'https://registry.npmjs.org'
       - name: Configure npm for trusted publishing
         shell: bash
         run: |
@@ -223,10 +224,14 @@ jobs:
         run: |
           cd pkg
           npm publish --access public --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish platform package
         run: |
           cd pkg
           npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   verify-platform-packages:
     name: verify-platform-packages-${{ matrix.os }}
