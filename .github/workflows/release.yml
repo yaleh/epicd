@@ -108,7 +108,7 @@ jobs:
               .bin = {backlog:"cli.js"} |
               .files = ["cli.js","resolveBinary.cjs","postuninstall.cjs","package.json","README.md","LICENSE"] |
               .scripts = {"postuninstall": "node postuninstall.cjs"} |
-              .repository = {"type":"git","url":"https://github.com/MrLesk/Backlog.md"} |
+              .repository = {"type":"git","url":"https://github.com/yaleh/epicd"} |
               .optionalDependencies |= map_values("'$TAG'")' package.json > dist/package.json
           cp LICENSE README.md dist/ 2>/dev/null || true
       - uses: actions/setup-node@v6
@@ -190,7 +190,7 @@ jobs:
             "files": ["backlog${{ contains(matrix.target,'windows') && '.exe' || '' }}","package.json","LICENSE"],
             "repository": {
               "type": "git",
-              "url": "https://github.com/MrLesk/Backlog.md"
+              "url": "https://github.com/yaleh/epicd"
             }
           }
           EOF
