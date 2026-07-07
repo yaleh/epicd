@@ -115,12 +115,15 @@ createChildren(T) = [ create(parent = T.id, dodGate = structured, ac = machineCh
 -- Stage 2: one independent implementation agent per leaf. MUST be a leaf —
 -- dispatchChild itself never calls Agent again (see depth-1 constraint).
 -- Identical for a real child and for the single-leaf degenerate case.
+-- runIndependently(C) IS `plugin/skills/primitive-executor/SKILL.md` (BACK-682):
+-- the dispatched leaf agent follows that skill's own Read-plan/TDD-per-Phase/
+-- checkpoint/Finalise methodology verbatim — this Spec does not re-describe it.
 dispatchChild :: ChildSpec → ImplementationResult
 dispatchChild(C) = {
   assert: isolated(C.worktree),
   assert: ¬selfCertifies(agentFor(C), status) ∧ ¬selfCertifies(agentFor(C), dod),
   assert: depth(agentFor(C)) == One,               -- leaf; cannot redispatch
-  return: runIndependently(C)
+  return: runIndependently(C)                      -- invokes primitive-executor skill
 }
 
 mergeAndVerify :: ImplementationResult → MergeOutcome
@@ -171,18 +174,25 @@ runAudits(T, merged, RiskGated(False)) = recordSkip(T)               -- MUST app
 recordSkip :: Task → [AuditReport]
 recordSkip(T) = { assert: skipRationaleLanded(T); return [] }
 
--- loop-until-dry independent audits. Each round is a fresh-context agent with
--- ZERO implementation memory; it re-runs checks itself, performs negative
--- controls, and reports file:line findings or "zero new blockers".
+-- loop-until-dry independent audits. The actual audit METHOD (fresh-context-
+-- only, per-AC diff read never implementer self-report, findings triage,
+-- self-verification trap, AdjudicationVerdict done/retreat/needs-human, the
+-- three-way keep/missing/wrong retreat contract) now lives in ONE place:
+-- `plugin/skills/adjudicate/SKILL.md` (BACK-682) — this Spec keeps only the
+-- type signatures below so the multi-round/single-round control flow stays
+-- visible; it does not re-explain the methodology that skill already owns.
 loopUntilDry :: (Task, [MergeOutcome]) → [AuditReport]
 loopUntilDry(T, merged) =
   | round == 0 ∨ last(rounds).newBlockers > 0 → loopUntilDry(T, merged) ++ [auditRound(T, merged, round+1)]
   | otherwise                                  → rounds   -- one full round with newBlockers == 0 → stop
 
+-- auditRound(T, merged, n) invokes the `adjudicate` skill (full-depth path,
+-- `auditDepthFor` in src/engine/retreat.ts) for a fresh-context round; its
+-- AdjudicationVerdict (done/retreat/needs-human) is what settles this round.
 auditRound :: (Task, [MergeOutcome], Int) → AuditReport
 auditRound(T, merged, n) = {
   assert: verifyAudit(claim) == Trustworthy,   -- see self-verification trap
-  findings: triageFindings(runFreshContextAudit(T, merged)),
+  findings: triageFindings(runFreshContextAudit(T, merged)),  -- delegates to plugin/skills/adjudicate/SKILL.md
   return: { round: n, findings, newBlockers: count(findings, severity == HIGH), independent: True }
 }
 
@@ -192,10 +202,10 @@ triageFindings(fs) = [ f | f <- fs, case f.severity of
   OUT_OF_SCOPE → fileFollowUp(f)    -- don't grow this round's scope
   NIT          → fixOrNote(f) ]
 
--- Self-verification trap: any "independent audit" claim from a non-main-
--- session agent is untrustworthy until mainSession structurally verifies it
--- was actually a separate Agent call — a failed/corrupted delegation produces
--- a plausible-looking FAKE report, not an error.
+-- Self-verification trap: the full worked rationale (and the
+-- dispatchedByMainSession/freshContext discipline it forces) now lives in
+-- `plugin/skills/adjudicate/SKILL.md`'s "Self-verification trap" section
+-- (BACK-682) — reproduced here only as a type signature, not re-explained.
 verifyAudit :: AuditClaim → Trustworthy | Untrusted
 verifyAudit(claim) =
   | dispatchedByMainSession(claim) ∧ freshContext(claim) → Trustworthy
@@ -217,12 +227,20 @@ shouldDispatch(w) = estimatedDiffLines(w) > 50 ∧ touches(w, "src/")
 -- end (NOT the union of per-child DoDs). For a single leaf it IS the task's
 -- own structured DoD gate, re-run independently by the engine at merge —
 -- there is no separate assembled system, so no separate meter is needed.
+-- A DoD-green leaf's judgmental confirmation (single leaf: whether the merged
+-- diff actually satisfies every AC; multi-child: whether the assembled system
+-- does) is the `adjudicate` skill's AdjudicationVerdict (BACK-682,
+-- `plugin/skills/adjudicate/SKILL.md`) — `auditsSettled` below consumes that
+-- verdict rather than re-deriving its own judgment call.
 evaluate :: (Task, [MergeOutcome], [AuditReport]) → AcceptanceResult
 evaluate(T, merged, audits) = {
   assert: executesTarget(T.acceptance),                  -- runs it; not a manual claim, not per-child DoD union
   assert: ∀ m ∈ merged: m == Merged ∨ rootCause(m) == RealGate,
-  assert: auditsSettled(audits),                         -- last round newBlockers==0, OR a RiskGated
-                                                          --   skip whose rationale was landed
+  assert: auditsSettled(audits),                         -- every AuditReport resolved via an AdjudicationVerdict
+                                                          --   (done: settled; retreat: single-step back to
+                                                          --   entry_phase, not this task's problem to re-audit;
+                                                          --   needs-human: NOT settled) — OR a RiskGated skip
+                                                          --   whose rationale was landed
   meterResult: runMechanically(T.acceptance),             -- multi-child: e.g. scripts/fixpoint-back665.ts,
                                                           --   one script, every AC a runnable check,
                                                           --   reports N/M green, names the owning child
@@ -266,6 +284,13 @@ own project's equivalents. Don't treat the specific command names as required.
 
 ## Further reading
 
+- `plugin/skills/primitive-executor/SKILL.md` — the Stage 2 `dispatchChild`
+  leaf agent methodology (Read plan → TDD per Phase → checkpoint → Finalise),
+  including root-cause classification for a Phase's own DoD-red gate (BACK-682).
+- `plugin/skills/adjudicate/SKILL.md` — the Stage 3/4 independent judgmental
+  audit methodology (`auditRound`/`verifyAudit`/`evaluate`'s `auditsSettled`),
+  including the risk-scaled `auditDepthFor` full/light split and the three-way
+  `keep`/`missing`/`wrong` retreat contract (BACK-682).
 - `reference/adr-019-integration-acceptance.md` — the fixpoint-meter pattern
   (and how it degenerates for a single leaf).
 - `reference/case-studies/back665-self-verification-anti-pattern.md` — the

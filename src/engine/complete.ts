@@ -1,6 +1,6 @@
 import type { Task } from "../types/index.js";
 import { adjudicate } from "./adjudicate.js";
-import type { Pipeline } from "./pipeline.js";
+import { isLegalPhase, type Pipeline } from "./pipeline.js";
 import { type MergeLockFs, withMergeLock } from "./safety.js";
 
 export interface DodResult {
@@ -97,6 +97,14 @@ export interface CompleteTaskOptions {
  *      - If merge signals conflict → phase → needs-human (skip adjudication).
  *   4. Adjudicate remaining result (success + legacy DoD items) → done | needs-human.
  *   5. Update task phase — engine decides; worker never self-declares done.
+ *      BACK-682: when the verdict is "done" AND the task's own pipeline
+ *      declares an "adjudicating" phase (currently only `execution`), the
+ *      phase written is "adjudicating", not "done" directly — a primitive's
+ *      completion path becomes ready → adjudicating → done (AC#1). The
+ *      independent judgmental audit that resolves "adjudicating" to its
+ *      final "done"/"needs-human" is a separate step (`completeAdjudication`
+ *      below), never this function. Pipelines with no "adjudicating" phase
+ *      declared are unaffected — same direct verdict as before.
  *   6. Commit the phase write (options.commit), if provided.
  */
 export async function completeTask(
@@ -133,8 +141,12 @@ export async function completeTask(
 
 		// Adjudicate and persist — engine is sole authority over done/needs-human
 		const verdict = adjudicate(task, result);
-		await store.updateTask({ ...task, phase: verdict });
-		await options?.commit?.(taskId, verdict);
+		// BACK-682 AC#1: a "done" verdict routes through "adjudicating" first,
+		// for any pipeline that declares that phase; other pipelines/verdicts
+		// are unaffected.
+		const nextPhase = verdict === "done" && isLegalPhase(task.pipeline_id, "adjudicating") ? "adjudicating" : verdict;
+		await store.updateTask({ ...task, phase: nextPhase });
+		await options?.commit?.(taskId, nextPhase);
 	};
 
 	if (options?.safety) {
@@ -142,4 +154,30 @@ export async function completeTask(
 	} else {
 		await run();
 	}
+}
+
+/**
+ * Resolves a task sitting in `adjudicating` to its final terminal phase
+ * (BACK-682 AC#1/#14) — called ONLY with the output of an independent
+ * judgmental audit (the `adjudicate` skill's leaf agent), never with an
+ * implementation agent's self-report. This is deliberately a separate
+ * function from `completeTask`: `completeTask` re-runs DoD mechanically
+ * (ENG-8); this step consumes a judgment call instead, so it takes the
+ * verdict directly rather than a `CompletionResult`.
+ *
+ * Retreat ("needs another implementation round") is NOT a valid `verdict`
+ * here — a retreat is written via `src/engine/retreat.ts`'s `recordRetreat`,
+ * which moves the phase back to `task.entry_phase` under its own guards
+ * (single-step, gap-fingerprint dedup, three-way contract).
+ */
+export async function completeAdjudication(
+	taskId: string,
+	verdict: "done" | "needs-human",
+	store: TaskStore,
+	options?: Pick<CompleteTaskOptions, "commit">,
+): Promise<void> {
+	const task = await store.getTask(taskId);
+	if (!task) throw new Error(`Task ${taskId} not found`);
+	await store.updateTask({ ...task, phase: verdict });
+	await options?.commit?.(taskId, verdict);
 }

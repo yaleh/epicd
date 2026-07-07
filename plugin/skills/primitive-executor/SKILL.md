@@ -49,6 +49,36 @@ Phase breakdown, treat the whole task as one Phase):
 Do not skip Phases and do not merge two Phases into one commit unless the plan itself
 says they are one recoverable checkpoint.
 
+### When a Phase's own DoD goes red — root-cause classification (BACK-682)
+
+If a Phase's structured DoD gate (or the task-level DoD you re-run at Finalise) fails,
+do not just retry the same fix blindly. Classify the root cause first:
+
+- **Implementation-layer** — the code is wrong relative to an AC that is itself still
+  correct and achievable as written (a bug, a missed edge case, a broken test, a
+  formatting/lint violation). **Fix it in this inner loop** — go back to Red/Green for
+  the affected Phase and keep iterating here. This is the common case and never leaves
+  this skill's loop.
+- **Spec, decomposition, or goal layer** — the gap is NOT something more implementation
+  effort can close: the AC as written is ambiguous/contradictory, the task was
+  decomposed in a way that makes an AC unachievable without touching a sibling task's
+  scope, or the task's own goal turned out to need to change. These gaps are thrown
+  **outward**, never patched around inside this skill — that is exactly what
+  `execution/adjudicating` and its single-step retreat contract
+  (`src/engine/retreat.ts`) exist for (BACK-682 AC#1/#4). This skill does not write retreat_log
+  or gap_history itself, and does **not** edit `phase` directly to force a
+  retreat — write access to the retreat edge belongs only to the `adjudicating` phase's
+  own audit (see `plugin/skills/adjudicate/SKILL.md`). Concretely: finish this Phase's
+  work as far as the implementation layer allows, checkpoint via `--append-notes`
+  describing precisely which AC(s) you believe are a spec/decomposition/goal-layer gap
+  and why, and hand off through the normal Finalise step below — the independent
+  adjudicating audit is what decides whether to retreat, not this skill.
+
+**Red line: only ever change the implementation to satisfy an AC — never change an AC
+to fit whatever the implementation happens to do.** 只改实现满足 AC,绝不改 AC 适配实现.
+If an AC genuinely cannot be satisfied as written, that is a spec/decomposition/goal-layer
+gap (see above) — it is not license to reinterpret or water down the AC yourself.
+
 ### Phase — Simplify before finishing
 
 Before declaring the task done, re-read what you built with the hindsight you now have
@@ -65,10 +95,12 @@ similar concerns, keep APIs minimal, avoid speculative layers.
 3. Checkpoint completion, then hand off to the engine's own completion handshake:
    `epicd engine complete <taskId> --worktree <worktreePath>`.
    This independently re-runs the task's DoD shell-gates in the worktree (the worker
-   never self-attests done) and either merges under the board lock (task reaches its
-   terminal `done` phase) or routes the task to `needs-human`. This is the only merge
-   step this skill uses — never fall back to a different merge/lock mechanism, and
-   never re-claim or re-spawn once the task is terminal.
+   never self-attests done) and either merges under the board lock — landing the task
+   in `adjudicating` for its independent judgmental audit (BACK-682 AC#1; see
+   `plugin/skills/adjudicate/SKILL.md` — not this skill's job to resolve) — or routes
+   the task to `needs-human`. This is the only merge step this skill uses — never fall
+   back to a different merge/lock mechanism, and never re-claim or re-spawn once the
+   task has left `ready`.
 
 ## Constraints
 

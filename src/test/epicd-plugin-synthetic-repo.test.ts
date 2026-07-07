@@ -5,7 +5,7 @@
  * `plugin/.claude-plugin/plugin.json` + `plugin/skills/{propose,promote,inbox,run,init}`)
  * is reusable OUTSIDE the epicd source tree, without any baime dependency:
  *
- *   1. Build the standalone `dist/backlog` binary (the only epicd artifact the scratch
+ *   1. Build the standalone `dist/epicd` binary (the only epicd artifact the scratch
  *      repo receives — no `src/` tree is copied in).
  *   2. Create a brand-new git repo under `os.tmpdir()`, copy in ONLY the packaged
  *      plugin assets (`plugin/`, `.claude-plugin/`) and the built binary.
@@ -45,7 +45,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dir, "..", "..");
-const BIN_PATH = join(repoRoot, "dist", "backlog");
+const BIN_PATH = join(repoRoot, "dist", "epicd");
 
 function collectFiles(dir: string): string[] {
 	if (!existsSync(dir)) return [];
@@ -170,6 +170,19 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		const taskFileDir = join(scratchDir, "backlog", "tasks");
 		const taskFile = readdirSync(taskFileDir).find((f) => f.toUpperCase().startsWith(taskId.toUpperCase()));
 		expect(taskFile).toBeDefined();
+
+		// BACK-682: a DoD-green primitive now lands in `adjudicating`, not `done`,
+		// directly (ready → adjudicating → done, AC#1) — confirm that intermediate
+		// stop, then simulate the `adjudicate` skill's light-depth resolution (this
+		// synthetic task has no `## Integration Acceptance` section, no engine-
+		// touching diff, and no `area:engine`/`area:security` label, so
+		// `auditDepthFor` resolves "light" and the verdict is "done" with no
+		// further diff-level judgment call — applied via the same `--phase`
+		// escape hatch every other phase transition in this project uses).
+		const preAdjudicationContents = readFileSync(join(taskFileDir, taskFile as string), "utf8");
+		expect(preAdjudicationContents).toContain("phase: adjudicating");
+		sh(`${scratchBin} task edit ${taskId} --phase done`, scratchDir);
+
 		const taskContents = readFileSync(join(taskFileDir, taskFile as string), "utf8");
 		expect(taskContents).toContain("phase: done");
 		// Post-BACK-665: status: is not persisted for engine tasks (present-gate); phase: is canonical.

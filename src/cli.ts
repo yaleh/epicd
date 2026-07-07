@@ -4387,15 +4387,18 @@ engineCmd
 engineCmd
 	.command("dispatch <taskId>")
 	.description(
-		"emit the self-contained dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Branches on the task's phase: ready→basic-ready, decomposing→epic-ready, evaluating→epic-eval-due (BACK-628.4). Payload is authored here, not by scan-loop templates.",
+		"emit the self-contained dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Branches on the task's phase: ready→basic-ready, decomposing→epic-ready, evaluating→epic-eval-due (BACK-628.4), adjudicating→adjudicating-due (BACK-682). Payload is authored here, not by scan-loop templates.",
 	)
 	.action(async (taskId: string) => {
 		try {
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
-			const { renderBasicReadyDispatch, renderEpicReadyDispatch, renderEpicEvalDueDispatch } = await import(
-				"./engine/dispatch.ts"
-			);
+			const {
+				renderBasicReadyDispatch,
+				renderEpicReadyDispatch,
+				renderEpicEvalDueDispatch,
+				renderAdjudicatingDispatch,
+			} = await import("./engine/dispatch.ts");
 
 			const core = new Core(cwd);
 			const task = await core.getTask(taskId);
@@ -4410,7 +4413,9 @@ engineCmd
 					? renderEpicReadyDispatch(task.id, title)
 					: task.phase === "evaluating"
 						? renderEpicEvalDueDispatch(task.id, title)
-						: renderBasicReadyDispatch(task.id, title, cwd);
+						: task.phase === "adjudicating"
+							? renderAdjudicatingDispatch(task.id, title)
+							: renderBasicReadyDispatch(task.id, title, cwd);
 			process.stdout.write(`${payload}\n`);
 		} catch (err) {
 			console.error("engine dispatch failed:", err instanceof Error ? err.message : String(err));

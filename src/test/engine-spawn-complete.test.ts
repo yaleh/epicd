@@ -51,10 +51,10 @@ const realLockFs: MergeLockFs = {
 };
 
 describe("completeTask — adjudicate + merge + phase update", () => {
-	it("sets phase to done when result.success and DoD is empty", async () => {
+	it("sets phase to adjudicating (not done directly) when result.success and DoD is empty (BACK-682 AC#1)", async () => {
 		const { store, getCurrent } = makeStore(makeTask());
 		await completeTask("task-1", { success: true }, store);
-		expect(getCurrent().phase).toBe("done");
+		expect(getCurrent().phase).toBe("adjudicating");
 	});
 
 	it("sets phase to needs-human when result.success=false", async () => {
@@ -75,7 +75,7 @@ describe("completeTask — adjudicate + merge + phase update", () => {
 		expect(getCurrent().phase).toBe("needs-human");
 	});
 
-	it("sets phase to done when all DoD items are checked", async () => {
+	it("sets phase to adjudicating when all DoD items are checked (BACK-682 AC#1)", async () => {
 		const task = makeTask({
 			definitionOfDoneItems: [
 				{ index: 1, text: "item 1", checked: true },
@@ -84,7 +84,7 @@ describe("completeTask — adjudicate + merge + phase update", () => {
 		});
 		const { store, getCurrent } = makeStore(task);
 		await completeTask("task-1", { success: true }, store);
-		expect(getCurrent().phase).toBe("done");
+		expect(getCurrent().phase).toBe("adjudicating");
 	});
 
 	it("calls merge with taskId and result", async () => {
@@ -144,8 +144,9 @@ describe("completeTask — adjudicate + merge + phase update", () => {
 
 		await completeTask("task-1", workerResult, store);
 
-		// Worker saw "ready"; engine set it to "done"
+		// Worker saw "ready"; engine set it to "adjudicating" (BACK-682 AC#1) — the
+		// worker never sees or self-declares a terminal phase either way.
 		expect(phaseBeforeComplete).toBe("ready");
-		expect(getCurrent().phase).toBe("done");
+		expect(getCurrent().phase).toBe("adjudicating");
 	});
 });

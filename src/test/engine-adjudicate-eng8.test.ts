@@ -167,22 +167,22 @@ describe("completeTask — ENG-8 composite sequence", () => {
 		expect(getCurrent().phase).toBe("needs-human");
 	});
 
-	it("(3) dodResults all pass + merge ok → done", async () => {
+	it("(3) dodResults all pass + merge ok → adjudicating (BACK-682 AC#1)", async () => {
 		const { store, getCurrent } = makeStore(makeTask());
 
 		await completeTask("task-eng8", { success: true, dodResults: [{ cmd: "true", passed: true }] }, store, {
 			merge: async () => ({ merged: true }),
 		});
 
-		expect(getCurrent().phase).toBe("done");
+		expect(getCurrent().phase).toBe("adjudicating");
 	});
 
-	it("(3) dodResults all pass + no merge option → done", async () => {
+	it("(3) dodResults all pass + no merge option → adjudicating (BACK-682 AC#1)", async () => {
 		const { store, getCurrent } = makeStore(makeTask());
 
 		await completeTask("task-eng8", { success: true, dodResults: [{ cmd: "true", passed: true }] }, store);
 
-		expect(getCurrent().phase).toBe("done");
+		expect(getCurrent().phase).toBe("adjudicating");
 	});
 
 	it("worker self-attestation (checkbox only) cannot override dod shell failure", async () => {

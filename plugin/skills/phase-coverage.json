@@ -17,6 +17,11 @@
 			"skill": "epic-evaluate"
 		},
 		{
+			"phase": "execution/adjudicating",
+			"status": "skill",
+			"skill": "adjudicate"
+		},
+		{
 			"phase": "exploration/spike",
 			"status": "skill",
 			"skill": "exploration-spike"

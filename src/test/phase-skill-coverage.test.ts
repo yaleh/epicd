@@ -9,12 +9,14 @@
  * execution/ready; BACK-657.3 registered execution/decomposing + execution/evaluating;
  * BACK-657.4 registered authoring/draft + authoring/refining; BACK-658 converged its
  * spike/exploration methodology experiment and registered exploration/spike as a real
- * skill). All 6 machine-actor phases are now covered — see the full-coverage invariant
+ * skill; BACK-682 added the execution/adjudicating phase itself and registered it).
+ * All 7 machine-actor phases are now covered — see the full-coverage invariant
  * test below, whose `.failing()` modifier has been removed now that it passes for real:
  *   - exploration/spike     -> skill -> exploration-spike (covered)
  *   - execution/ready       -> skill -> primitive-executor (covered)
  *   - execution/decomposing -> skill -> epic-decompose (covered)
  *   - execution/evaluating  -> skill -> epic-evaluate (covered)
+ *   - execution/adjudicating -> skill -> adjudicate (covered)
  *   - authoring/draft       -> skill -> authoring-draft (covered)
  *   - authoring/refining    -> skill -> authoring-refining (covered)
  *
@@ -44,13 +46,14 @@ const EXPECTED_MACHINE_PHASES = [
 	"execution/ready",
 	"execution/decomposing",
 	"execution/evaluating",
+	"execution/adjudicating",
 	"authoring/draft",
 	"authoring/refining",
 	"exploration/spike",
 ];
 
 describe("machineActorPhases() — positive control", () => {
-	it("enumerates exactly the 6 machine-actor phases documented in docs/task-lifecycle-model.md §3", () => {
+	it("enumerates exactly the 7 machine-actor phases documented in docs/task-lifecycle-model.md §3", () => {
 		expect(machineActorPhases().sort()).toEqual([...EXPECTED_MACHINE_PHASES].sort());
 	});
 
@@ -135,7 +138,19 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 		expect(evaluating?.covered).toBe(true);
 	});
 
-	it("leaves zero machine phases uncovered — full coverage achieved across all 6 phases", () => {
+	it("registers execution/adjudicating as a skill, resolved to the published adjudicate skill (BACK-682)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		const entry = manifest.find((e) => e.phase === "execution/adjudicating");
+		expect(entry).toBeDefined();
+		expect(entry?.status).toBe("skill");
+		expect(entry?.skill).toBe("adjudicate");
+
+		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
+		const adjudicating = coverage.find((c) => c.phase === "execution/adjudicating");
+		expect(adjudicating?.covered).toBe(true);
+	});
+
+	it("leaves zero machine phases uncovered — full coverage achieved across all 7 phases", () => {
 		const gaps = uncoveredMachinePhases(REPO_ROOT).sort();
 		expect(gaps).toEqual([]);
 	});

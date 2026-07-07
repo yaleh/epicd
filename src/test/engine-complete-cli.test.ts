@@ -91,7 +91,7 @@ describe("engine complete CLI", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("merges the worktree branch and sets phase to done when DoD passes", async () => {
+	it("merges the worktree branch and sets phase to adjudicating (not done directly) when DoD passes (BACK-682 AC#1)", async () => {
 		const task = await createReadyTaskWithDoD(core, "CLI complete pass", ["true"]);
 		const worktreeDir = await makeTaskBranch(projectRoot, task.id);
 
@@ -100,7 +100,7 @@ describe("engine complete CLI", () => {
 		expect(result.exitCode).toBe(0);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.phase).toBe("done");
+		expect(updated?.phase).toBe("adjudicating");
 
 		// The commit made on the task branch should now be part of main's history.
 		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
