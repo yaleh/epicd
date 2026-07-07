@@ -3,7 +3,7 @@ id: BACK-660
 title: monitor 前台顺序 loop 执行（取代 scan-loop push + 座席外包受限后台 Agent），解锁前台全工具/skill 调用
 assignee: []
 created_date: '2026-07-06 07:44'
-updated_date: '2026-07-07 17:52'
+updated_date: '2026-07-07 18:13'
 labels:
   - 'kind:feature'
   - 'area:engine'
@@ -34,13 +34,6 @@ dependencies:
 - 保留每车道 driver/lane 抽象：单会话内顺序，多车道靠多会话；不写死单车道。
 - 更新 run/epicd-run 操作 skill，arm 新前台 loop。
 - payload 仍由引擎 author（dispatch.ts），仍自包含、仍过 ADR-015 swap-litmus；按 (pipeline,phase) 注入 skill 引用，前台会话 invoke。
-
-## 不变量（invariants）
-
-1. 核心状态机 & pipeline-as-data（ADR-011 D-2）：pipeline 定义、phase/actor 语义、interpreter scan 谓词不改。
-2. 完成路径（ENG-8）：engine complete/adjudicate/DoD 独立重跑/merge-lock/worktree 隔离 不改；worker 永不自证 done。
-3. ADR-015 swap-litmus & 分层：payload 仍自包含、仍由引擎 author（dispatch.ts）；prompt authoring 不下沉到 scan-loop 传输层，也不塞进 Monitor 核心。装了插件的裸 claude -p 也能按名 invoke skill。
-4. 认领 & 隔离：handle-basic-ready.sh 的 exec-lock/cap 幂等/.caps/.wt/.signal、单驱动守卫（.active-agents）、merge 串行化 不改。
 
 注(前瞻性备忘,非本任务的 invariant 要求)：不排除未来切到「后台 agent 支持的更大并发」模式；driver/lane 抽象要能容纳未来 N 并发，本 task 的单车道实现不得把这条路堵死。
 
@@ -74,7 +67,10 @@ dependencies:
 - [ ] #2 dispatch 按 (pipeline_id, phase) 从 phase-coverage.json 查出 skill 并注入 payload,有测试覆盖
 - [ ] #3 dispatch.ts 中 spawn 受限后台实现 Agent 的段落被移除/替换为前台执行指令,不再依赖后台 Agent 的 allowed-tools 白名单
 - [ ] #4 端到端:一个真实 task 经前台 loop 从 ready 到 done,全程未经过受限后台 Agent
-- [ ] #5 核心状态机/scan 谓词/完成路径(engine complete/DoD 独立重跑)/认领隔离机制(exec-lock/.caps/.wt/.signal/merge 串行化)保持不变,有既有测试覆盖回归
+- [ ] #5 ADR-015 swap-litmus & 分层:payload 仍完全由 src/engine/dispatch.ts 单点 author;scan-loop.cjs 不包含 skill 选择/prompt-authoring 逻辑;Monitor 座席核心不内嵌 phase→skill 路由规则;有结构检查或测试断言(如 scan-loop.cjs 无 skill 选择分支、dispatch.ts 是唯一注入点),且验证装了插件的裸 claude -p 按名 invoke skill 不依赖 Monitor 内部状态
+- [ ] #6 不改核心状态机 & pipeline-as-data(ADR-011 D-2):pipeline 定义、phase/actor 语义、interpreter scan 谓词不变;既有 scan 谓词测试套件全绿
+- [ ] #7 不改完成路径(ENG-8):engine complete/adjudicate/DoD 独立重跑/merge-lock/worktree 隔离不变,worker 永不自证 done;既有 engine complete 测试套件全绿
+- [ ] #8 不改认领 & 隔离机制:handle-basic-ready.sh 的 exec-lock/cap 幂等/.caps/.wt/.signal、单驱动守卫(.active-agents)、merge 串行化不变;既有隔离机制测试套件全绿
 <!-- AC:END -->
 
 ## Implementation Notes
