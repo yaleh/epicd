@@ -21,7 +21,6 @@ interface Props {
   onSubmit?: (taskData: Partial<Task>) => Promise<void>; // For creating new tasks
   onArchive?: () => void; // For archiving tasks
   availableStatuses?: string[]; // Available statuses for new tasks
-  isDraftMode?: boolean; // Whether creating a draft
   availableMilestones?: string[];
   milestoneEntities?: Milestone[];
   archivedMilestoneEntities?: Milestone[];
@@ -66,7 +65,6 @@ export const TaskDetailsModal: React.FC<Props> = ({
   availableMilestones: _availableMilestones,
   milestoneEntities,
   archivedMilestoneEntities,
-  isDraftMode,
   definitionOfDoneDefaults,
 }) => {
   const { theme } = useTheme();
@@ -236,7 +234,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
 
   // Sidebar metadata (inline edit)
   const [status, setStatus] = useState(
-    task ? displayStatus(task, availableStatuses ?? []) : isDraftMode ? "Draft" : availableStatuses?.[0] || "To Do",
+    task ? displayStatus(task, availableStatuses ?? []) : availableStatuses?.[0] || "To Do",
   );
   const [assignee, setAssignee] = useState<string[]>(task?.assignee || []);
   const [labels, setLabels] = useState<string[]>(task?.labels || []);
@@ -327,7 +325,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
     setFinalSummary(task?.finalSummary || "");
     setCriteria(task?.acceptanceCriteriaItems || []);
     setDefinitionOfDone(task?.definitionOfDoneItems || (isCreateMode ? defaultDefinitionOfDone : []));
-    setStatus(task ? displayStatus(task, availableStatuses ?? []) : isDraftMode ? "Draft" : availableStatuses?.[0] || "To Do");
+    setStatus(task ? displayStatus(task, availableStatuses ?? []) : availableStatuses?.[0] || "To Do");
     setAssignee(task?.assignee || []);
     setLabels(task?.labels || []);
     setPriority(task?.priority || "");
@@ -343,7 +341,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
     setError(null);
     // Preload tasks for dependency picker
     apiClient.fetchTasks().then(setAvailableTasks).catch(() => setAvailableTasks([]));
-  }, [task, isOpen, isCreateMode, isDraftMode, availableStatuses, defaultDefinitionOfDone]);
+  }, [task, isOpen, isCreateMode, availableStatuses, defaultDefinitionOfDone]);
 
   const refreshAfterCommentChange = useCallback(() => {
     if (!commentsChanged) return;
@@ -662,7 +660,7 @@ export const TaskDetailsModal: React.FC<Props> = ({
         refreshAfterCommentChange();
         onClose();
       }}
-      title={isCreateMode ? (isDraftMode ? "Create New Draft" : "Create New Task") : `${displayId} — ${task.title}`}
+      title={isCreateMode ? "Create New Task" : `${displayId} — ${task.title}`}
       maxWidthClass="max-w-5xl"
       disableEscapeClose={mode === "edit" || mode === "create"}
       actions={

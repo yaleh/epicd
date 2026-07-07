@@ -126,16 +126,6 @@ describe("Core", () => {
 			expect(lastCommit).toContain("backlog: Archive task TASK-1");
 		});
 
-		it("should demote task with auto-commit", async () => {
-			await core.createTask(sampleTask, true);
-
-			const demoted = await core.demoteTask("task-1", true);
-			expect(demoted).toBe(true);
-
-			const lastCommit = await core.gitOps.getLastCommitMessage();
-			expect(lastCommit).toContain("backlog: Demote task TASK-1");
-		});
-
 		it("should resolve tasks using flexible ID formats", async () => {
 			const standardTask: Task = { ...sampleTask, id: "task-5", title: "Standard" };
 			const paddedTask: Task = { ...sampleTask, id: "task-007", title: "Padded" };
@@ -563,95 +553,6 @@ describe("Core", () => {
 			expect(diff).toMatch(
 				new RegExp(`^R\\d*\\t${escapeForRegex(previousPath)}\\t${escapeForRegex(renamedPath)}`, "m"),
 			);
-		});
-	});
-
-	describe("draft operations", () => {
-		beforeEach(async () => {
-			await initializeTestProject(core, "Draft Project", true);
-		});
-
-		it("should create draft without auto-commit", async () => {
-			const { task: draft } = await core.createTaskFromInput(
-				{
-					title: "Draft Task",
-					status: "Draft",
-					description: "Draft task",
-				},
-				false,
-			);
-
-			const loaded = await core.filesystem.loadDraft(draft.id);
-			expect(loaded?.id).toBe("DRAFT-1");
-		});
-
-		it("should create draft with auto-commit", async () => {
-			const { task: draft } = await core.createTaskFromInput(
-				{
-					title: "Draft Task",
-					status: "Draft",
-					description: "Draft task",
-				},
-				true,
-			);
-
-			const loaded = await core.filesystem.loadDraft(draft.id);
-			expect(loaded?.id).toBe("DRAFT-1");
-
-			const lastCommit = await core.gitOps.getLastCommitMessage();
-			expect(lastCommit).toBeDefined();
-			expect(lastCommit.length).toBeGreaterThan(0);
-		});
-
-		it("should promote draft with auto-commit", async () => {
-			const { task: draft } = await core.createTaskFromInput(
-				{
-					title: "Draft Task",
-					status: "Draft",
-					description: "Draft task",
-				},
-				true,
-			);
-
-			const promoted = await core.promoteDraft(draft.id, true);
-			expect(promoted).toBe(true);
-
-			const lastCommit = await core.gitOps.getLastCommitMessage();
-			expect(lastCommit).toContain(`backlog: Promote draft ${draft.id.toUpperCase()}`);
-		});
-
-		it("should archive draft with auto-commit", async () => {
-			const { task: draft } = await core.createTaskFromInput(
-				{
-					title: "Draft Task",
-					status: "Draft",
-					description: "Draft task",
-				},
-				true,
-			);
-
-			const archived = await core.archiveDraft(draft.id, true);
-			expect(archived).toBe(true);
-
-			const lastCommit = await core.gitOps.getLastCommitMessage();
-			expect(lastCommit).toContain(`backlog: Archive draft ${draft.id.toUpperCase()}`);
-		});
-
-		it("should preserve draft metadata through the canonical create path", async () => {
-			const { task: draft } = await core.createTaskFromInput(
-				{
-					title: "Draft Array",
-					status: "Draft",
-					description: "Draft task",
-					assignee: ["@frank"],
-					labels: ["draft"],
-				},
-				false,
-			);
-
-			const loaded = await core.filesystem.loadDraft(draft.id);
-			expect(loaded?.assignee).toEqual(["@frank"]);
-			expect(loaded?.labels).toEqual(["draft"]);
 		});
 	});
 

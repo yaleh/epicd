@@ -1,7 +1,8 @@
 ---
-id: DRAFT-4
+id: BACK-674
+pipeline_id: authoring
+phase: draft
 title: Add CODE OF CONDUCT
-status: To Do
 assignee: []
 created_date: '2025-06-09'
 labels:

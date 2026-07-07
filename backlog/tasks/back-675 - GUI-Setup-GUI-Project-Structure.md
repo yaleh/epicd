@@ -1,7 +1,8 @@
 ---
-id: DRAFT-5
+id: BACK-675
+pipeline_id: authoring
+phase: draft
 title: 'GUI: Setup GUI Project Structure'
-status: To Do
 assignee: []
 reporter: '@MrLesk'
 created_date: '2025-06-04'

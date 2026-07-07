@@ -1,7 +1,8 @@
 ---
-id: DRAFT-7
+id: BACK-677
+pipeline_id: authoring
+phase: draft
 title: 'CLI: Export milestones board as roadmap'
-status: To Do
 assignee: []
 created_date: '2025-06-10'
 labels: []

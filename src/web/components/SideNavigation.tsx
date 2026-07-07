@@ -535,21 +535,6 @@ const SideNavigation = memo(function SideNavigation({
 							<span className="ml-3 text-sm font-medium">Milestones</span>
 						</NavLink>
 
-						{/* Drafts Navigation */}
-						<NavLink
-							to="/drafts"
-							className={({ isActive }) =>
-								`flex items-center px-3 py-2 rounded-lg transition-colors duration-200 ${
-									isActive
-										? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium'
-										: 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
-								}`
-							}
-						>
-							<Icons.Draft />
-							<span className="ml-3 text-sm font-medium">Drafts</span>
-						</NavLink>
-
 						{/* Statistics Navigation */}
 						<NavLink
 							to="/statistics"
@@ -703,23 +688,6 @@ const SideNavigation = memo(function SideNavigation({
 						>
 							<div className="w-6 h-6 flex items-center justify-center">
 								<Icons.List />
-							</div>
-						</NavLink>
-						{/* Drafts Navigation */}
-						<NavLink
-							to="/drafts"
-							data-tooltip-id="sidebar-tooltip"
-							data-tooltip-content="Drafts"
-							className={({ isActive }) =>
-								`flex items-center justify-center p-3 rounded-md transition-colors duration-200 ${
-									isActive
-										? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-400'
-										: 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
-								}`
-							}
-						>
-							<div className="w-6 h-6 flex items-center justify-center">
-								<Icons.Draft />
 							</div>
 						</NavLink>
 						{/* Milestones Navigation */}

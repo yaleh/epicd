@@ -58,24 +58,6 @@ describe("create commands", () => {
 		expect(task?.title).toBe("CLI Auto Commit Task");
 	});
 
-	it("should honor autoCommit config for draft create", async () => {
-		// CLI-CONTRACT: verifies 'draft create' triggers an auto-commit when autoCommit=true in config; checks commit count and message
-		const beforeCount = Number((await $`git rev-list --count HEAD`.cwd(TEST_DIR).text()).trim());
-		const output = await $`bun ${CLI_PATH} draft create "CLI Auto Commit Draft"`.cwd(TEST_DIR).text();
-		const afterCount = Number((await $`git rev-list --count HEAD`.cwd(TEST_DIR).text()).trim());
-
-		const core = new Core(TEST_DIR);
-		const git = await core.getGitOps();
-		const draft = await core.filesystem.loadDraft("draft-1");
-
-		expect(draft).not.toBeNull();
-		expect(output).toContain(`Created draft ${draft?.id}`);
-		expect(afterCount).toBe(beforeCount + 1);
-		expect(await git.isClean()).toBe(true);
-		expect(await git.getLastCommitMessage()).toContain(`Create draft ${draft?.id}`);
-		expect(draft?.title).toBe("CLI Auto Commit Draft");
-	});
-
 	it("should accept dependencies from other active branches", async () => {
 		const core = new Core(TEST_DIR);
 
@@ -170,13 +152,5 @@ describe("create commands", () => {
 		const core = new Core(TEST_DIR);
 		const task = await core.filesystem.loadTask("task-1");
 		expect(task).toBeNull();
-	});
-
-	it("--draft still creates a Draft and is unaffected by the authoring/draft default", async () => {
-		await $`bun ${CLI_PATH} task create "Still a draft" --draft`.cwd(TEST_DIR).quiet();
-
-		const core = new Core(TEST_DIR);
-		const draft = await core.filesystem.loadDraft("draft-1");
-		expect(draft?.status).toBe("Draft");
 	});
 });

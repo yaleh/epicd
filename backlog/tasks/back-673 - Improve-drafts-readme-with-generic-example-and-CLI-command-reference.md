@@ -1,7 +1,8 @@
 ---
-id: DRAFT-3
+id: BACK-673
+pipeline_id: authoring
+phase: draft
 title: Improve drafts readme with generic example and CLI command reference
-status: To Do
 assignee: []
 reporter: '@MrLesk'
 created_date: '2025-06-09'

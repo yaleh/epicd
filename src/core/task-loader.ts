@@ -29,7 +29,6 @@ export interface BranchTaskStateEntry {
 
 const STATE_DIRECTORIES: Array<{ path: string; type: TaskDirectoryType }> = [
 	{ path: "tasks", type: "task" },
-	{ path: "drafts", type: "draft" },
 	{ path: "archive/tasks", type: "archived" },
 	{ path: "completed", type: "completed" },
 ];

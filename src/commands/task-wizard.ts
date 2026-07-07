@@ -129,16 +129,14 @@ function buildStatusPromptValues(params: { statuses: string[]; mode: "create" | 
 	initial: string;
 } {
 	const configuredStatuses = normalizeStringList(params.statuses.map((status) => status.trim())) ?? [];
-	const baseStatuses = configuredStatuses.length > 0 ? configuredStatuses : [...DEFAULT_STATUSES];
-	const hasDraftStatus = baseStatuses.some((status) => normalizeStatusKey(status) === normalizeStatusKey("Draft"));
-	const selectableStatuses = hasDraftStatus ? baseStatuses : ["Draft", ...baseStatuses];
+	const selectableStatuses = configuredStatuses.length > 0 ? configuredStatuses : [...DEFAULT_STATUSES];
 	const options: PromptChoice[] = selectableStatuses.map((status) => ({
 		label: status,
 		value: status,
 	}));
 
 	if (params.mode === "create") {
-		const createDefault = getDefaultCreateStatus(baseStatuses);
+		const createDefault = getDefaultCreateStatus(selectableStatuses);
 		return {
 			options,
 			initial: createDefault,
@@ -149,7 +147,7 @@ function buildStatusPromptValues(params: { statuses: string[]; mode: "create" | 
 	if (!initialStatus) {
 		return {
 			options,
-			initial: getDefaultCreateStatus(baseStatuses),
+			initial: getDefaultCreateStatus(selectableStatuses),
 		};
 	}
 

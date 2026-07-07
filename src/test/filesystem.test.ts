@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, readdir, rename, stat } from "node:fs/promises";
+import { readdir, rename, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { FileSystem } from "../file-system/operations.ts";
-import { serializeTask } from "../markdown/serializer.ts";
 import type { BacklogConfig, Decision, Document, Task } from "../types/index.ts";
 import { createUniqueTestDir, safeCleanup } from "./test-utils.ts";
 
@@ -30,9 +29,7 @@ describe("FileSystem", () => {
 			const expectedDirs = [
 				join(TEST_DIR, "backlog"),
 				join(TEST_DIR, "backlog", "tasks"),
-				join(TEST_DIR, "backlog", "drafts"),
 				join(TEST_DIR, "backlog", "archive", "tasks"),
-				join(TEST_DIR, "backlog", "archive", "drafts"),
 				join(TEST_DIR, "backlog", "docs"),
 				join(TEST_DIR, "backlog", "decisions"),
 			];
@@ -186,203 +183,6 @@ Invalid content`,
 			// Check that file exists in archive
 			const archiveFiles = await readdir(join(TEST_DIR, "backlog", "archive", "tasks"));
 			expect(archiveFiles.some((f) => f.startsWith("task-1"))).toBe(true);
-		});
-
-		it("should demote a task to drafts with new draft- ID", async () => {
-			await filesystem.saveTask(sampleTask);
-
-			const demoted = await filesystem.demoteTask("task-1");
-			expect(demoted).toBe(true);
-
-			// Task should be removed from tasks directory
-			const tasksFiles = await readdir(join(TEST_DIR, "backlog", "tasks"));
-			expect(tasksFiles.some((f) => f.startsWith("task-1"))).toBe(false);
-
-			// Draft should exist with new draft- ID
-			const draftsFiles = await readdir(join(TEST_DIR, "backlog", "drafts"));
-			expect(draftsFiles.some((f) => f.startsWith("draft-1"))).toBe(true);
-
-			// Verify the demoted draft can be loaded and has correct ID
-			const demotedDraft = await filesystem.loadDraft("draft-1");
-			expect(demotedDraft?.id).toBe("DRAFT-1");
-			expect(demotedDraft?.title).toBe(sampleTask.title);
-		});
-	});
-
-	describe("draft operations", () => {
-		// Drafts now use DRAFT-X id format and draft-x filename prefix
-		const sampleDraft: Task = {
-			id: "draft-1",
-			title: "Draft Task",
-			status: "Draft",
-			assignee: [],
-			createdDate: "2025-06-07",
-			labels: [],
-			dependencies: [],
-			description: "Draft description",
-		};
-
-		it("should save and load a draft", async () => {
-			await filesystem.saveDraft(sampleDraft);
-
-			const loaded = await filesystem.loadDraft("draft-1");
-			expect(loaded?.id).toBe("DRAFT-1"); // IDs are normalized to uppercase
-			expect(loaded?.title).toBe(sampleDraft.title);
-		});
-
-		it("should list all drafts", async () => {
-			await filesystem.saveDraft(sampleDraft);
-			await filesystem.saveDraft({ ...sampleDraft, id: "draft-2", title: "Second" });
-
-			const drafts = await filesystem.listDrafts();
-			expect(drafts.map((d) => d.id).sort()).toEqual(["DRAFT-1", "DRAFT-2"]);
-		});
-
-		it("should promote a draft to tasks with new task- ID", async () => {
-			await filesystem.saveDraft(sampleDraft);
-
-			const promoted = await filesystem.promoteDraft("draft-1");
-			expect(promoted).toBe(true);
-
-			// Draft should be removed from drafts directory
-			const draftsFiles = await readdir(join(TEST_DIR, "backlog", "drafts"));
-			expect(draftsFiles.some((f) => f.startsWith("draft-1"))).toBe(false);
-
-			// Task should exist with new task- ID
-			const tasksFiles = await readdir(join(TEST_DIR, "backlog", "tasks"));
-			expect(tasksFiles.some((f) => f.startsWith("task-1"))).toBe(true);
-
-			// Verify the promoted task can be loaded and has correct ID
-			const promotedTask = await filesystem.loadTask("task-1");
-			expect(promotedTask?.id).toBe("TASK-1");
-			expect(promotedTask?.title).toBe(sampleDraft.title);
-			expect(promotedTask?.status).toBe("To Do");
-		});
-
-		it("should promote a draft to the configured default status", async () => {
-			const customConfig: BacklogConfig = {
-				projectName: "Custom Default Status Project",
-				defaultStatus: "Ready",
-				statuses: ["Ready", "In Progress", "Done"],
-				labels: [],
-				milestones: [],
-				dateFormat: "yyyy-MM-dd",
-			};
-			await filesystem.saveConfig(customConfig);
-			await filesystem.saveDraft(sampleDraft);
-
-			const promoted = await filesystem.promoteDraft("draft-1");
-			expect(promoted).toBe(true);
-
-			const promotedTask = await filesystem.loadTask("task-1");
-			expect(promotedTask?.id).toBe("TASK-1");
-			expect(promotedTask?.status).toBe("Ready");
-		});
-
-		it("should preserve a non-draft status when promoting a demoted task", async () => {
-			await filesystem.saveTask({
-				...sampleDraft,
-				id: "task-1",
-				title: "Demoted Task",
-				status: "In Progress",
-			});
-
-			const demoted = await filesystem.demoteTask("task-1");
-			expect(demoted).toBe(true);
-
-			const draft = await filesystem.loadDraft("draft-1");
-			expect(draft?.status).toBe("In Progress");
-
-			const promoted = await filesystem.promoteDraft("draft-1");
-			expect(promoted).toBe(true);
-
-			const promotedTask = await filesystem.loadTask("task-1");
-			expect(promotedTask?.id).toBe("TASK-1");
-			expect(promotedTask?.status).toBe("In Progress");
-		});
-
-		it("should promote draft with custom task prefix", async () => {
-			// Configure custom task prefix
-			const customConfig: BacklogConfig = {
-				projectName: "Custom Prefix Project",
-				statuses: ["To Do", "In Progress", "Done"],
-				labels: [],
-				milestones: [],
-				dateFormat: "yyyy-MM-dd",
-				prefixes: {
-					task: "JIRA",
-				},
-			};
-			await filesystem.saveConfig(customConfig);
-			await filesystem.saveDraft(sampleDraft);
-
-			const promoted = await filesystem.promoteDraft("draft-1");
-			expect(promoted).toBe(true);
-
-			// Draft should be removed
-			const draftsFiles = await readdir(join(TEST_DIR, "backlog", "drafts"));
-			expect(draftsFiles.some((f) => f.startsWith("draft-1"))).toBe(false);
-
-			// Task should exist with custom JIRA- prefix
-			const tasksFiles = await readdir(join(TEST_DIR, "backlog", "tasks"));
-			expect(tasksFiles.some((f) => f.startsWith("jira-1"))).toBe(true);
-
-			// Verify the promoted task can be loaded with the custom prefix
-			const promotedTask = await filesystem.loadTask("jira-1");
-			expect(promotedTask?.id).toBe("JIRA-1");
-			expect(promotedTask?.title).toBe(sampleDraft.title);
-		});
-
-		it("should not reuse completed task IDs when promoting draft", async () => {
-			// Create a completed task directly in the completed directory
-			// This simulates a task that was created and completed before the draft
-			const completedDir = join(TEST_DIR, "backlog", "completed");
-			await mkdir(completedDir, { recursive: true });
-
-			const completedTask: Task = {
-				id: "TASK-1",
-				title: "Completed Task",
-				status: "Done",
-				assignee: [],
-				createdDate: "2025-01-01",
-				labels: [],
-				dependencies: [],
-			};
-			const content = serializeTask(completedTask);
-			await Bun.write(join(completedDir, "task-1 - Completed Task.md"), content);
-
-			// Verify no active tasks exist
-			const activeTasks = await filesystem.listTasks();
-			expect(activeTasks.length).toBe(0);
-
-			// Verify completed task exists
-			const completedTasks = await filesystem.listCompletedTasks();
-			expect(completedTasks.length).toBe(1);
-			expect(completedTasks[0]?.id).toBe("TASK-1");
-
-			// Create and promote a draft
-			await filesystem.saveDraft(sampleDraft);
-			const promoted = await filesystem.promoteDraft("draft-1");
-			expect(promoted).toBe(true);
-
-			// BUG: Currently returns TASK-1 because promoteDraft only checks active tasks
-			// Expected: Should return TASK-2 to avoid collision with completed task
-			const promotedTask = await filesystem.loadTask("task-2");
-			expect(promotedTask?.id).toBe("TASK-2");
-			expect(promotedTask?.title).toBe(sampleDraft.title);
-		});
-
-		it("should archive a draft", async () => {
-			await filesystem.saveDraft(sampleDraft);
-
-			const archived = await filesystem.archiveDraft("draft-1");
-			expect(archived).toBe(true);
-
-			const draft = await filesystem.loadDraft("draft-1");
-			expect(draft).toBeNull();
-
-			const files = await readdir(join(TEST_DIR, "backlog", "archive", "drafts"));
-			expect(files.some((f) => f.startsWith("draft-1"))).toBe(true);
 		});
 	});
 

@@ -82,7 +82,7 @@ for (const filename of files) {
 		newContent = content.replace(/^status:.*\n/m, "");
 	} else {
 		// Extract status value (handle single-quoted values)
-		let statusValue = statusLineMatch[1].trim();
+		let statusValue = (statusLineMatch[1] ?? "").trim();
 		if (statusValue.startsWith("'") && statusValue.endsWith("'")) {
 			statusValue = statusValue.slice(1, -1);
 		}

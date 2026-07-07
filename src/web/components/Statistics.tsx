@@ -45,7 +45,6 @@ const Statistics: React.FC<StatisticsProps> = ({
 					'Loading completed tasks...',
 					'Merging tasks...',
 					'Checking task states across branches...',
-					'Loading drafts...',
 					'Calculating statistics...'
 				];
 
@@ -306,21 +305,7 @@ const Statistics: React.FC<StatisticsProps> = ({
 					</div>
 				</div>
 
-				{/* Drafts */}
-				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-					<div className="flex items-center">
-						<div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-							<svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-							</svg>
-						</div>
-						<div className="ml-4">
-							<p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.draftCount}</p>
-							<p className="text-gray-600 dark:text-gray-400 text-sm">Drafts</p>
-						</div>
-					</div>
-				</div>
-			</div>
+		</div>
 
 			{/* Progress Bar */}
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
