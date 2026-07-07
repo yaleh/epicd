@@ -5,7 +5,7 @@ description: Use when driving ANY task to a trustworthy, self-audited completion
 
 # fixpoint-convergence
 
-λ(task: Task) → FixpointResult
+λ(task: Task) → AcceptanceResult
 
 ## The one decision that shapes everything: does this task need children?
 
@@ -50,7 +50,7 @@ AuditPolicy  = Mandatory              -- loop-until-dry, no skipping
 
 DispatchDepth = Zero | One   -- main session = Zero; any agent it dispatches = One
 
-FixpointResult = Reached | NotReached { gaps : [String] }
+AcceptanceResult = Met | NotMet { gaps : [String] }   -- was FixpointResult (Reached/NotReached); renamed to drop the "fixpoint" descriptor
 
 -- Depth-1 dispatch constraint (drives every function below — read this first)
 --
@@ -65,7 +65,7 @@ FixpointResult = Reached | NotReached { gaps : [String] }
 
 -- Workflow
 
-driveTask :: Task → FixpointResult
+driveTask :: Task → AcceptanceResult
 driveTask(T) = {
   specced:  assessAndDecompose(T),                     -- Stage 1: decide + (maybe) CREATE children
   leaves:   case specced.children of
@@ -217,7 +217,7 @@ shouldDispatch(w) = estimatedDiffLines(w) > 50 ∧ touches(w, "src/")
 -- end (NOT the union of per-child DoDs). For a single leaf it IS the task's
 -- own structured DoD gate, re-run independently by the engine at merge —
 -- there is no separate assembled system, so no separate meter is needed.
-evaluate :: (Task, [MergeOutcome], [AuditReport]) → FixpointResult
+evaluate :: (Task, [MergeOutcome], [AuditReport]) → AcceptanceResult
 evaluate(T, merged, audits) = {
   assert: executesTarget(T.acceptance),                  -- runs it; not a manual claim, not per-child DoD union
   assert: ∀ m ∈ merged: m == Merged ∨ rootCause(m) == RealGate,
@@ -229,8 +229,8 @@ evaluate(T, merged, audits) = {
                                                           --   per red check. Single leaf: engine complete
                                                           --   re-running the structured DoD gate.
   return: case allGreen(meterResult) of
-    True  → Reached
-    False → NotReached { gaps: redChecks(meterResult) }
+    True  → Met
+    False → NotMet { gaps: redChecks(meterResult) }
 }
 ```
 
