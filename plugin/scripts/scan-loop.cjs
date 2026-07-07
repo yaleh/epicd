@@ -443,7 +443,15 @@ function isReapDue(claimedAt, now, thresholdMs = REAP_THRESHOLD_MS) {
 // when claiming the task — see handle-basic-ready.sh). Post-BACK-664, status: is no longer
 // persisted on disk for engine tasks (field-registry present gate); the claim cap note is
 // now the authoritative "worker is active" signal for the stale-in-progress reaper.
+// Terminal phases (done/needs-human) accumulate claimed: notes historically but are never
+// "in progress" — skip them to avoid false-positive stale-in-progress events.
 function isInProgress(filepath) {
+  try {
+    const content = fs.readFileSync(filepath, 'utf8');
+    const phaseMatch = content.match(/^phase:\s*(\S+)/m);
+    const phase = phaseMatch?.[1];
+    if (phase === 'done' || phase === 'needs-human') return false;
+  } catch { return false; }
   return readClaimedAt(filepath) !== null;
 }
 

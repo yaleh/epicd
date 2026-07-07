@@ -517,7 +517,7 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
 		expect(children.length).toBe(2);
 		for (const child of children) {
-			expect(child.status).toBe("READY");
+			expect(displayStatus(child, config?.statuses ?? [])).toBe("READY");
 		}
 	});
 });

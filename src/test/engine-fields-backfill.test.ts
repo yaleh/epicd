@@ -240,18 +240,28 @@ describe("runBackfill", () => {
 		expect(second.updated).toEqual([]);
 	});
 
-	it("second run after terminal-divergence reposition is a no-op", async () => {
+	it("corrupted status: in file is masked by parser — phase is canonical, backfill is a no-op", async () => {
+		// Post-BACK-664/665: parser derives task.status from phase for engine tasks;
+		// a corrupted status: line in the file is invisible to the backfill. Phase is
+		// the authoritative truth; terminal-divergence detection via status: is dead code.
 		const { task } = await core.createTaskFromInput(
 			{ title: "Terminal divergence", pipeline_id: "execution", phase: "needs-human" },
 			false,
 		);
-		await core.filesystem.saveTask({ ...task, status: "Basic: Done", pipeline_id: "execution", phase: "needs-human" });
+		// Inject corrupted status directly to simulate a pre-migration file on disk
+		// (saveTask's present-gate blocks writing status for engine tasks normally).
+		const filepath = await getTaskFilePath(core, task.id);
+		const content = await Bun.file(filepath).text();
+		const corrupted = content.replace(/^(pipeline_id:)/m, 'status: "Basic: Done"\n$1');
+		await writeFile(filepath, corrupted);
 
+		// Parser derives task.status = "Needs Human" from phase, ignoring the corrupted
+		// status: field. Backfill sees a consistent state — no update needed.
 		const first = await runBackfill(core);
-		expect(first.updated).toContain(task.id);
+		expect(first.updated).not.toContain(task.id);
 
 		const reloaded = await core.getTask(task.id);
-		expect(reloaded?.phase).toBe("done");
+		expect(reloaded?.phase).toBe("needs-human");
 
 		const second = await runBackfill(core);
 		expect(second.updated).toEqual([]);

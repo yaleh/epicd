@@ -172,7 +172,8 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		expect(taskFile).toBeDefined();
 		const taskContents = readFileSync(join(taskFileDir, taskFile as string), "utf8");
 		expect(taskContents).toContain("phase: done");
-		expect(taskContents).toContain("status: Done");
+		// Post-BACK-665: status: is not persisted for engine tasks (present-gate); phase: is canonical.
+		expect(taskContents).not.toContain("status:");
 
 		// ---- inbox skill: `backlog engine gate-log` over a fabricated GateEvent ----
 		const gateLogDir = join(scratchDir, "docs", "research");
