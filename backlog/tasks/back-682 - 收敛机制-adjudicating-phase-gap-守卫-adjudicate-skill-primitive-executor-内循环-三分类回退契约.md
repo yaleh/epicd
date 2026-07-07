@@ -5,7 +5,7 @@ title: >-
   三分类回退契约
 assignee: []
 created_date: '2026-07-07 14:46'
-updated_date: '2026-07-07 19:39'
+updated_date: '2026-07-07 19:42'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -14,7 +14,7 @@ dependencies: []
 priority: high
 ordinal: 92000
 pipeline_id: execution
-phase: needs-human
+phase: adjudicating
 dod:
   - text: bun test --parallel
     checked: false
