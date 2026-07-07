@@ -79,8 +79,8 @@ describe("epicd-run wiring (BACK-625 / ADR-015)", () => {
 		});
 	});
 
-	describe(".codex/skills/epicd-run/SKILL.md", () => {
-		const contents = read(".codex/skills/epicd-run/SKILL.md");
+	describe("plugin/skills/epicd-run/SKILL.md", () => {
+		const contents = read("plugin/skills/epicd-run/SKILL.md");
 		// The crystallization norm applies to the instruction BODY. The frontmatter
 		// `contracts:` block legitimately names the forbidden tokens (as not-grep
 		// declarations), so not-contain checks must run against the body only.
@@ -153,8 +153,8 @@ describe("epicd-run wiring (BACK-625 / ADR-015)", () => {
 		});
 	});
 
-	describe(".codex/skills/epicd-run/templates/basic-ready.md — retired", () => {
-		const contents = read(".codex/skills/epicd-run/templates/basic-ready.md");
+	describe("plugin/skills/epicd-run/templates/basic-ready.md — retired", () => {
+		const contents = read("plugin/skills/epicd-run/templates/basic-ready.md");
 
 		it("is no longer the dispatch authority (no substitution tokens)", () => {
 			expect(contents).not.toContain("__TASK_ID__");

@@ -69,11 +69,11 @@ describe("epicd-run assets (BACK-605.8 Phase A)", () => {
 	});
 
 	it("epicd-run SKILL.md exists and is non-empty", () => {
-		expectNonEmptyFile(".codex/skills/epicd-run/SKILL.md");
+		expectNonEmptyFile("plugin/skills/epicd-run/SKILL.md");
 	});
 
 	it("basic-ready.md template exists and is non-empty", () => {
-		expectNonEmptyFile(".codex/skills/epicd-run/templates/basic-ready.md");
+		expectNonEmptyFile("plugin/skills/epicd-run/templates/basic-ready.md");
 	});
 
 	it("handle-basic-ready.sh and complete-task.sh exist and are non-empty", () => {
@@ -81,8 +81,8 @@ describe("epicd-run assets (BACK-605.8 Phase A)", () => {
 		expectNonEmptyFile("plugin/scripts/complete-task.sh");
 	});
 
-	it("does not contain the stale 'engine run' wiring under .codex/skills/epicd-run", () => {
-		assertNoLiteralStringInDir(join(repoRoot, ".codex", "skills", "epicd-run"), "engine run");
+	it("does not contain the stale 'engine run' wiring under plugin/skills/epicd-run", () => {
+		assertNoLiteralStringInDir(join(repoRoot, "plugin", "skills", "epicd-run"), "engine run");
 	});
 
 	it("does not contain the stale 'engine run' wiring under .claude/skills/epicd-run", () => {

@@ -1,7 +1,7 @@
 {
 	"name": "epicd",
 	"version": "1.0.0",
-	"description": "epicd operation skill set: propose, promote, inbox, run, init — thin wrappers around the epicd engine CLI (`backlog` / `engine ...`). No external methodology-framework dependency; no methodology skills (only the 5 operation skills).",
+	"description": "epicd skill set: operation skills (propose, promote, inbox, run, init), lifecycle skills (primitive-executor, epic-decompose, epic-evaluate, exploration-spike, authoring-draft, authoring-refining), and methodology skills (fixpoint-convergence, context-hunter, epicd-run, backlog-technical-project-manager).",
 	"author": {
 		"name": "Yale Huang",
 		"url": "https://github.com/yaleh"
@@ -14,6 +14,16 @@
 		"./skills/promote/SKILL.md",
 		"./skills/inbox/SKILL.md",
 		"./skills/run/SKILL.md",
-		"./skills/init/SKILL.md"
+		"./skills/init/SKILL.md",
+		"./skills/primitive-executor/SKILL.md",
+		"./skills/epic-decompose/SKILL.md",
+		"./skills/epic-evaluate/SKILL.md",
+		"./skills/exploration-spike/SKILL.md",
+		"./skills/authoring-draft/SKILL.md",
+		"./skills/authoring-refining/SKILL.md",
+		"./skills/fixpoint-convergence/SKILL.md",
+		"./skills/context-hunter/SKILL.md",
+		"./skills/epicd-run/SKILL.md",
+		"./skills/backlog-technical-project-manager/SKILL.md"
 	]
 }
