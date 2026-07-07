@@ -541,3 +541,24 @@ jobs:
           commit_message: "chore: sync package.json version to ${{ github.ref_name }} [skip ci]"
           branch: main
           file_pattern: package.json
+
+  release-status-check:
+    # Terminal, additive job: publish-binaries/verify-platform-packages carry
+    # continue-on-error so a real failure there doesn't skip install-sanity/
+    # sync-version (which don't depend on platform binaries succeeding). But
+    # continue-on-error also makes the overall run conclusion "success" even
+    # when these jobs fail — silently masking a broken release. This job has
+    # no continue-on-error, so its failure flips the whole run to failure,
+    # surfacing the real state instead of hiding it behind green.
+    needs: [publish-binaries, verify-platform-packages]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail loudly if platform binary publish/verify did not succeed
+        run: |
+          echo "publish-binaries result: ${{ needs.publish-binaries.result }}"
+          echo "verify-platform-packages result: ${{ needs.verify-platform-packages.result }}"
+          if [[ "${{ needs.publish-binaries.result }}" != "success" || "${{ needs.verify-platform-packages.result }}" != "success" ]]; then
+            echo "::error::Platform binary publish/verify failed — release is incomplete (epicd may resolve a stale/wrong platform binary). Known cause: backlog.md-* npm packages are owned by the upstream maintainer, not this fork (see BACK-683)."
+            exit 1
+          fi
