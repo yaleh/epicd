@@ -89,7 +89,7 @@ jobs:
           ls -lh ${{ env.BIN }}
       - uses: actions/upload-artifact@v7
         with:
-          name: backlog-${{ matrix.target }}
+          name: epicd-${{ matrix.target }}
           path: ${{ env.BIN }}
 
   npm-publish:
@@ -114,6 +114,7 @@ jobs:
               .bin = {epicd:"cli.js"} |
               .files = ["cli.js","resolveBinary.cjs","postuninstall.cjs","package.json","README.md","LICENSE"] |
               .scripts = {"postuninstall": "node postuninstall.cjs"} |
+              .optionalDependencies = (.optionalDependencies | to_entries | map(.value = "'$TAG'") | from_entries) |
               .repository = {"type":"git","url":"https://github.com/yaleh/epicd"}' package.json > dist/package.json
           cp LICENSE README.md dist/ 2>/dev/null || true
       - uses: actions/setup-node@v6
@@ -141,32 +142,31 @@ jobs:
 
   publish-binaries:
     needs: build
-    continue-on-error: true
     strategy:
       matrix:
         include:
           - target: bun-linux-x64-baseline
-            package: backlog.md-linux-x64
+            package: epicd-linux-x64
             os: linux
             cpu: x64
           - target: bun-linux-arm64
-            package: backlog.md-linux-arm64
+            package: epicd-linux-arm64
             os: linux
             cpu: arm64
           - target: bun-darwin-x64
-            package: backlog.md-darwin-x64
+            package: epicd-darwin-x64
             os: darwin
             cpu: x64
           - target: bun-darwin-arm64
-            package: backlog.md-darwin-arm64
+            package: epicd-darwin-arm64
             os: darwin
             cpu: arm64
           - target: bun-windows-x64-baseline
-            package: backlog.md-windows-x64
+            package: epicd-windows-x64
             os: win32
             cpu: x64
           - target: bun-windows-arm64
-            package: backlog.md-windows-arm64
+            package: epicd-windows-arm64
             os: win32
             cpu: arm64
     runs-on: ubuntu-latest
@@ -174,7 +174,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
         with:
-          name: backlog-${{ matrix.target }}
+          name: epicd-${{ matrix.target }}
         timeout-minutes: 15
       - name: Prepare package
         shell: bash
@@ -183,9 +183,9 @@ jobs:
           mkdir -p pkg
           # Rename the binary to the expected name
           if [[ -f epicd-bin.exe ]]; then
-            mv epicd-bin.exe pkg/backlog.exe
+            mv epicd-bin.exe pkg/epicd.exe
           elif [[ -f epicd-bin ]]; then
-            mv epicd-bin pkg/backlog
+            mv epicd-bin pkg/epicd
           else
             echo "Error: No binary found"
             ls -la
@@ -198,7 +198,7 @@ jobs:
             "version": "${TAG}",
             "os": ["${{ matrix.os }}"],
             "cpu": ["${{ matrix.cpu }}"],
-            "files": ["backlog${{ contains(matrix.target,'windows') && '.exe' || '' }}","package.json","LICENSE"],
+            "files": ["epicd${{ contains(matrix.target,'windows') && '.exe' || '' }}","package.json","LICENSE"],
             "repository": {
               "type": "git",
               "url": "https://github.com/yaleh/epicd"
@@ -209,7 +209,7 @@ jobs:
         if: ${{ !contains(matrix.target,'windows') }}
         shell: bash
         run: |
-          chmod +x pkg/backlog
+          chmod +x pkg/epicd
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -236,7 +236,6 @@ jobs:
   verify-platform-packages:
     name: verify-platform-packages-${{ matrix.os }}
     needs: publish-binaries
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -255,8 +254,8 @@ jobs:
           VERSION="${RELEASE_TAG##v}"
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
-          PACKAGE_NAME="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`backlog.md-${platform}-${arch}`);')"
-          BINARY_PATH="node_modules/${PACKAGE_NAME}/backlog"
+          PACKAGE_NAME="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`epicd-${platform}-${arch}`);')"
+          BINARY_PATH="node_modules/${PACKAGE_NAME}/epicd"
 
           echo "Waiting for ${PACKAGE_NAME}@${VERSION} to become installable..."
           for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
@@ -295,12 +294,12 @@ jobs:
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
           PACKAGES=(
-            "backlog.md-linux-x64"
-            "backlog.md-linux-arm64"
-            "backlog.md-darwin-x64"
-            "backlog.md-darwin-arm64"
-            "backlog.md-windows-x64"
-            "backlog.md-windows-arm64"
+            "epicd-linux-x64"
+            "epicd-linux-arm64"
+            "epicd-darwin-x64"
+            "epicd-darwin-arm64"
+            "epicd-windows-x64"
+            "epicd-windows-arm64"
           )
 
           for pkg in "${PACKAGES[@]}"; do
@@ -337,8 +336,8 @@ jobs:
             throw "Unsupported runner arch: $Arch"
           }
 
-          $PackageName = "backlog.md-windows-$Arch"
-          $BinaryPath = Join-Path -Path "node_modules/$PackageName" -ChildPath "backlog.exe"
+          $PackageName = "epicd-windows-$Arch"
+          $BinaryPath = Join-Path -Path "node_modules/$PackageName" -ChildPath "epicd.exe"
 
           Write-Host "Waiting for $PackageName@$Version to become installable..."
           for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
@@ -397,7 +396,7 @@ jobs:
           VERSION="${RELEASE_TAG##v}"
           MAX_ATTEMPTS=40
           SLEEP_SECONDS=15
-          EXPECTED_PACKAGE="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`backlog.md-${platform}-${arch}`);')"
+          EXPECTED_PACKAGE="$(node -e 'const map = { win32: "windows", darwin: "darwin", linux: "linux" }; const platform = map[process.platform]; const arch = process.arch; if (!platform || !["x64","arm64"].includes(arch)) { process.exit(1); } process.stdout.write(`epicd-${platform}-${arch}`);')"
           echo "Waiting for epicd@${VERSION} install + ${EXPECTED_PACKAGE} optional dependency..."
 
           for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
@@ -443,7 +442,7 @@ jobs:
             throw "Unsupported runner arch: $Arch"
           }
 
-          $ExpectedPackage = "backlog.md-windows-$Arch"
+          $ExpectedPackage = "epicd-windows-$Arch"
           Write-Host "Waiting for epicd@$Version install + $ExpectedPackage optional dependency..."
 
           for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
@@ -499,7 +498,7 @@ jobs:
           mkdir -p binaries
           for dir in release-assets/*/; do
             if [ -d "$dir" ]; then
-              target=$(basename "$dir" | sed 's/backlog-//')
+              target=$(basename "$dir" | sed 's/epicd-//')
               echo "Processing target: $target"
               echo "Directory contents:"
               ls -la "$dir"
@@ -507,11 +506,11 @@ jobs:
               if [ -n "$binary" ]; then
                 echo "Found binary: $binary ($(ls -lh "$binary" | awk '{print $5}'))"
                 if [[ "$target" == *"windows"* ]] && [[ "$binary" == *".exe" ]]; then
-                  cp "$binary" "binaries/backlog-${target}.exe"
-                  echo "Copied to binaries/backlog-${target}.exe ($(ls -lh "binaries/backlog-${target}.exe" | awk '{print $5}'))"
+                  cp "$binary" "binaries/epicd-${target}.exe"
+                  echo "Copied to binaries/epicd-${target}.exe ($(ls -lh "binaries/epicd-${target}.exe" | awk '{print $5}'))"
                 else
-                  cp "$binary" "binaries/backlog-${target}"
-                  echo "Copied to binaries/backlog-${target} ($(ls -lh "binaries/backlog-${target}" | awk '{print $5}'))"
+                  cp "$binary" "binaries/epicd-${target}"
+                  echo "Copied to binaries/epicd-${target} ($(ls -lh "binaries/epicd-${target}" | awk '{print $5}'))"
                 fi
               fi
             fi
@@ -541,24 +540,3 @@ jobs:
           commit_message: "chore: sync package.json version to ${{ github.ref_name }} [skip ci]"
           branch: main
           file_pattern: package.json
-
-  release-status-check:
-    # Terminal, additive job: publish-binaries/verify-platform-packages carry
-    # continue-on-error so a real failure there doesn't skip install-sanity/
-    # sync-version (which don't depend on platform binaries succeeding). But
-    # continue-on-error also makes the overall run conclusion "success" even
-    # when these jobs fail — silently masking a broken release. This job has
-    # no continue-on-error, so its failure flips the whole run to failure,
-    # surfacing the real state instead of hiding it behind green.
-    needs: [publish-binaries, verify-platform-packages]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fail loudly if platform binary publish/verify did not succeed
-        run: |
-          echo "publish-binaries result: ${{ needs.publish-binaries.result }}"
-          echo "verify-platform-packages result: ${{ needs.verify-platform-packages.result }}"
-          if [[ "${{ needs.publish-binaries.result }}" != "success" || "${{ needs.verify-platform-packages.result }}" != "success" ]]; then
-            echo "::error::Platform binary publish/verify failed — release is incomplete (epicd may resolve a stale/wrong platform binary). Known cause: backlog.md-* npm packages are owned by the upstream maintainer, not this fork (see BACK-683)."
-            exit 1
-          fi
