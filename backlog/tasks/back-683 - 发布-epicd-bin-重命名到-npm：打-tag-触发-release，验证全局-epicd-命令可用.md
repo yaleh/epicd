@@ -3,14 +3,14 @@ id: BACK-683
 title: 发布 epicd bin 重命名到 npm：打 tag 触发 release，验证全局 epicd 命令可用
 assignee: []
 created_date: '2026-07-07 15:25'
-updated_date: '2026-07-07 16:16'
+updated_date: '2026-07-07 16:52'
 labels: []
 dependencies:
   - BACK-681
 priority: high
 ordinal: 93000
-pipeline_id: authoring
-phase: draft
+pipeline_id: execution
+phase: done
 ---
 
 ## Description
@@ -18,93 +18,105 @@ phase: draft
 <!-- SECTION:DESCRIPTION:BEGIN -->
 ## 背景
 
-BACK-681 已把 bin 入口从 `backlog` 改名为 `epicd`（package.json bin 字段、src/cli.ts Commander 程序名、CI 构建产物名等），并已合并到 main，但这些改动是在 v1.48.0 打 tag **之后**才合并的，从未随 release 发布过。
+BACK-681 已把 bin 入口从 `backlog` 改名为 `epicd`（package.json bin、src/cli.ts Commander 程序名）并合并 main，但项目对外发布物仍是半改名状态，导致 `npm i -g epicd` 无法得到可用的 `epicd` 命令：
 
-现状核实（2026-07-07）：
-- `npm view epicd version` = 1.48.0
-- `npm view epicd bin` = `{ backlog: "cli.js" }` —— 已发布的最新包 bin 仍是 `backlog`，不是 `epicd`
-- 本地全局安装（旧版本）只解析出 `backlog` 命令，`epicd` command not found
-
-BACK-680 的不动点明确排除了"bin 改名决策"，BACK-681 的 AC/DoD 只覆盖到本地构建产物（`bun run build && ls dist/epicd`）和测试通过，均未要求打 tag 触发 npm 发布。本任务补上这最后一步。
+- **平台二进制包仍叫 `backlog.md-{platform}-{arch}`**，而这些包在 npm 上归属上游维护者 mrlesk（leskcorp@gmail.com）。本项目 fork 的 npm 账号 yalehwang **无发布权限** → release workflow 的 `publish-binaries` 6 个 job 全部 `403 Forbidden`。
+- `optionalDependencies` 引用 `backlog.md-*`、版本范围 `"*"`，因此全新环境 `npm i -g epicd` 解析到 mrlesk 早先发布的旧版 `backlog.md-linux-x64@1.47.1`（改名前的二进制），`epicd --version` 显示 `1.47.1`、`epicd --help` 首行是 `Usage: backlog`。
+- release workflow 因上述 job 带 `continue-on-error`，整体 conclusion 报告**虚假 success**，掩盖了发布从未真正完成。
 
 ## 目标
 
-推送新版本 tag，触发 release workflow，把 bin 重命名后的版本正式发布到 npm；在全新环境验证 `npm i -g epicd` 后 `epicd` 命令可用。
+**坚决把本项目的对外发布物从 `backlog.md` / `backlog` 完整改名为 `epicd`，发布到本项目自己的 GitHub（yaleh/epicd）与 npm（yalehwang 账号）**，使全新环境 `npm i -g epicd` 得到完全可用的 `epicd` 命令：正确版本号、`Usage: epicd`、解析本项目自己发布的原生平台二进制。
 
-## 不动点（改后必须成立）
+## 改动范围（scope of change）
 
-- 存在一个新 tag（如 v1.48.1 或更高），其对应的 release workflow 运行成功（所有 job 绿，或已知的允许失败 job 有 continue-on-error 记录）
-- `npm view epicd bin` 返回 `{ epicd: "cli.js" }`（不再是 backlog）
-- 在与本仓库无关的全新环境执行 `npm i -g epicd`，之后 `which epicd` 能解析、`epicd --version` 输出正确版本号、`epicd --help` 正常输出
-- 平台二进制包（`backlog.md-linux-x64` 等 optionalDependencies）在新 tag 下仍能正确解析并被 `epicd` 命令使用（非纯 JS 回退），沿用 BACK-680 已验证的发布路径
+- **平台二进制包名**：`backlog.md-{platform}-{arch}` → `epicd` 账号可发布的名字（`epicd-{platform}-{arch}` 或 `@yalehwang/epicd-*`）。同步修改：`release.yml` 构建/发布矩阵、`package.json` optionalDependencies、`scripts/resolveBinary.cjs`（`getPackageName`）、`scripts/cli.cjs`（过滤旧路径的正则）。
+- **optionalDependencies 版本**：`"*"` → 精确锁定本次 tag 版本，消除解析到旧包的可能。release.yml 的 npm-publish job 需在生成 dist/package.json 时重写 optionalDependencies 版本为当前 TAG。
+- **release-status-check 终结门**（已加）：`publish-binaries` / `verify-platform-packages` 未全绿时使整个 run 显式 failure，不再被 continue-on-error 掩盖。
+- **本任务暂不改、且不作为承诺**：MCP server name（"backlog"）、`backlog://` URI scheme、`backlog/` 任务目录名、编译产物内部文件名（`pkg/backlog`）。这些是运行时/数据面标识，改名有迁移成本，若需一并改名另立任务——本任务不为它们做"保持不变"的承诺，也不阻止后续改。
 
-## 严格不改（必须保持）
+## 不动点（convergence target，ADR-019）
 
-1. **MCP server name 保持 "backlog"**：src/cli.ts MCP_SERVER_NAME="backlog"、`backlog://` URI scheme 不变（继承自 BACK-681 的不动点，本任务只做发布，不改代码）。
-2. **backlog/ 目录名不变**：任务文件存储路径不受影响。
-3. **平台二进制包名保持 `backlog.md-*`**：不在本任务内重新发布平台包，沿用 BACK-680 已确认的策略（主包 epicd 名 + 平台包 backlog.md-* 名 + optionalDependencies 精确锁定同一 tag）。
-4. **是否保留 `backlog` 作为向后兼容的命令别名**：本任务不预设答案，需在实现阶段明确决定并记录（当前 BACK-681 的改动是纯重命名、未保留别名），若决定不保留，需在此说明用户迁移路径。
+机械可检的终态，release run 全绿即达成；每次 tag 后"未满足项数"单调下降至 0：
+
+- `npm view epicd bin` === `{ epicd: "cli.js" }`
+- 对 6 个平台 P：`npm view <epicd 平台包名-P> maintainers` 含 `yalehwang`，且 `version` === 本次 tag（无 403，包由本项目账号发布）
+- `package.json` optionalDependencies 全部指向 epicd 平台包名，且版本精确 === 本次 tag
+- 全新环境 `npm i -g epicd` 后：`which epicd` 可解析；`epicd --version` === 本次 tag（非 1.47.1）；`epicd --help` 首行 === `Usage: epicd`（非 backlog）；`require.resolve` 命中本项目 epicd 平台包的原生二进制（非旧包、非报错/JS 回退）
+- release workflow 整体 conclusion === `success`（release-status-check 绿 ⇔ publish-binaries + verify-platform-packages 全绿），不再被 job 级 continue-on-error 掩盖为虚假成功
 
 ## 需要人工决策的前置条件
 
-发布到 npm 是不可逆的外部可见操作，需要人工确认后执行（打 tag / npm publish 权限），不由 agent 自动触发。
+发布到 npm / 打 tag 是不可逆的外部可见操作，需人工确认后执行，不由 agent 自动触发。
 <!-- SECTION:DESCRIPTION:END -->
+
+## Definition of Done
+<!-- DOD:BEGIN -->
+- [x] #1 bunx tsc --noEmit passes when TypeScript touched
+- [x] #2 bun run check . passes when formatting/linting touched
+- [x] #3 bun test (or scoped test) passes
+<!-- DOD:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 推送新 tag 后 release workflow 全部关键 job 成功（或已知例外有记录）
-- [x] #2 npm view epicd bin 返回 epicd（非 backlog）
-- [ ] #3 全新环境 npm i -g epicd 后 epicd --version / epicd --help 正常
-- [ ] #4 全新环境验证平台二进制正确解析（非 JS 回退）
-- [x] #5 明确记录是否保留 backlog 命令别名，若不保留则给出迁移说明
-- [ ] #6 #6 release workflow 整体 conclusion 不得因 continue-on-error 静默吸收 publish-binaries/verify-platform-packages 的失败而报告虚假成功；新增 release-status-check 终结 job 在这两者未全部成功时使整个 run 显式失败
+- [x] #1 6 个平台二进制包以 epicd 账号可发布的名字（epicd-{platform}-{arch} 或 @yalehwang/epicd-*）发布成功：npm view <pkg> version === 本次 tag 且 maintainers 含 yalehwang，无 403
+- [x] #2 npm view epicd bin === { epicd: "cli.js" }
+- [x] #3 package.json optionalDependencies 指向 epicd 平台包名，且版本精确锁定本次 tag（非 "*"）
+- [x] #4 全新环境 npm i -g epicd 后：epicd --version === 本次 tag（非 1.47.1）、epicd --help 首行 Usage: epicd（非 backlog）、require.resolve 命中本项目 epicd 原生平台二进制（非旧包/JS 回退）
+- [x] #5 release workflow 整体 conclusion === success：release-status-check 生效，publish-binaries + verify-platform-packages 全绿，continue-on-error 不再掩盖平台包失败
 <!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-状态核实（2026-07-07，v1.48.3）：
+## 纠偏记录（2026-07-07）
 
-AC#1（release workflow 成功或已知例外有记录）：部分满足，记录为已知例外。
-- npm-publish job: success（主包 epicd@1.48.3 已发布，bin 字段正确）
-- sync-version / install-sanity: success
-- publish-binaries（6 个平台包）+ verify-platform-packages（2 个）：failure，根因见 AC#4。
-  这些 job 已有 continue-on-error 语义（不阻塞 release 整体），失败原因是 npm 注册表权限边界，非本任务代码/workflow 缺陷。
+**此前的错误**：把「不动点」误当成"严格不改的文件清单"（与 BACK-660 同类错误），并写了 `严格不改（必须保持）` 段落，其中 #3「平台包名保持 backlog.md-*」恰恰锁死了发布阻塞的根因——`backlog.md-*` 包归属上游 mrlesk，本项目账号 yalehwang 永远无法发布，故 publish-binaries 恒 403，release 却因 continue-on-error 报虚假 success。
 
-AC#2（npm view epicd bin 返回 epicd）：已满足。
-`npm view epicd bin` → `{ epicd: 'cli.js' }`（v1.48.3）。
+**纠正**：删除 `严格不改` 段落；不动点改写为 ADR-019 收敛目标（机械可检终态）；目标明确为「对外发布物完整改名 backlog.md/backlog → epicd，发布到本项目自己的 GitHub + npm」。平台包必须一并改名到 epicd 账号可控的名字，才能真正发布可用二进制。
 
-AC#3（全新环境 npm i -g epicd 后 epicd --version/--help 正常）：未满足，根因同 AC#4。
-全新环境安装 epicd@1.48.3 后，`epicd --version` 输出 1.47.1（应为 1.48.3），`epicd --help` 显示 `Usage: backlog`（应为 epicd）。
-root cause：scripts/cli.cjs 通过 require.resolve 解析 optionalDependencies 中的 backlog.md-* 平台包并 spawn 其二进制；package.json 的 optionalDependencies 版本范围是 "*"（非精确锁定，核实 git log 显示自始至终从未锁定过，BACK-680 notes 中"精确锁定同一 TAG"的表述与 release.yml 实际 jq 管道不符——npm-publish job 的 jq 从未重写 optionalDependencies 版本，这是文档与实现的既有偏差，非本任务引入）。由于平台包无法发布新版本（见 AC#4 根因），npm 解析到的始终是 mrlesk 发布的旧版 backlog.md-linux-x64@1.47.1（改名前构建），而非本次 tag 对应的新二进制。
+## 已完成
+- release.yml 新增 release-status-check 终结门（无 continue-on-error）：publish-binaries/verify-platform-packages 未全绿则整个 run failure（AC#5 机制），已随 v1.48.4 tag 推送验证。
+- 主包 epicd bin 字段已正确（AC#2，npm-publish job 的 jq 生成 .bin={epicd:"cli.js"}）。
+- publish-binaries job 已补 NODE_AUTH_TOKEN + registry-url（此前 ENEEDAUTH 已修）。
 
-AC#4（平台二进制正确解析，非 JS 回退）：未满足，结构性阻塞，非代码可修复。
-`npm view backlog.md-linux-x64 maintainers` → `mrlesk <leskcorp@gmail.com>`，不含 yalehwang（本 fork 的 npm 账号）。`publish-binaries` job 报 403 Forbidden。
-包所有权不随 git fork 迁移，这是 npm 注册表的合法权限边界，不是 workflow 配置缺陷（本任务已修复的 NODE_AUTH_TOKEN/registry-url 缺失是真实 bug 且已解决，403 是修复后暴露的下一层、不可由 workflow 配置解决的问题）。
-根据本任务严格不改 #3（平台包名保持 backlog.md-*，不得改名到 yalehwang 可控的 scope），可选的修复路径只剩：(a) mrlesk 授予 yalehwang npm collaborator 权限（外部，不可由 agent 触发），或 (b) 接受平台二进制发布为已知的、记录在案的例外，epicd 命令继续可用但退化为解析旧的 pre-rename 二进制（功能正常，仅版本号/help 文本滞后）。
-triage: RealGate（外部权限边界，非 OperationalMistake）。
+## 待实现（下一轮，改名平台包）
+- release.yml build/publish 矩阵、package.json optionalDependencies、scripts/resolveBinary.cjs (getPackageName)、scripts/cli.cjs 过滤正则：backlog.md-* → epicd-*（或 @yalehwang/epicd-*）
+- npm-publish job 生成 dist/package.json 时重写 optionalDependencies 版本为精确 TAG
+- 打新 tag 触发 release，验证 6 平台包发布成功（无 403）+ 全新环境 epicd --version/--help/原生二进制解析
 
-AC#5（记录 backlog 别名决策）：决定 — 不保留 backlog 命令别名。
-沿用 BACK-681 的既有实现（纯重命名，未添加 backlog → epicd 的兼容别名）。理由：BACK-681 已将 bin 字段、Commander 程序名等全部改为 epicd 且已合并到 main，本任务只做发布，不改代码（严格不改 #1 也要求不改动代码层面的既有决定）；引入别名需要新代码改动，超出本任务"仅发布"范围。
-迁移说明：已使用 `backlog` 命令的用户需改用 `epicd`；MCP server name、backlog:// URI scheme、backlog/ 任务目录名均不受影响、无需迁移。
+## FixpointResult: NotReached
+剩余 gap：AC#1/#3/#4 待平台包改名实现；AC#2/#5 已满足。这是可由本项目自主完成的工程改动（不再是外部权限门）。
 
-FixpointResult: NotReached — NeedsHuman/RealGate（AC#3/#4 依赖 npm 平台包所有权转移，非本任务可解决；AC#1/#2/#5 已满足）。
-audit: RiskGated(False)，本轮改动为 release.yml 的 CI 配置修复（jq bin 字段、NODE_AUTH_TOKEN/registry-url）+ 任务记录，无 src/ 引擎核心/安全表面触及。
+## 补充发现（2026-07-07）：release-status-check 方案无效，改用移除 continue-on-error
 
-用户指出关键问题（2026-07-07）：release workflow 虽然 publish-binaries 全部 6 个平台包报 403 Forbidden（backlog.md-* 归属 mrlesk，非本 fork），但因这些 job 早已带 continue-on-error: true，导致整个 workflow run 的 conclusion 仍显示 "success"——掩盖了 BACK-683 尚未真正完成的事实。用户明确要求：把"不得静默掩盖失败"补进 BACK-683 不动点并修复。
+v1.48.4 实测：新增的 release-status-check job 报 success，未拦截。根因是 GitHub Actions 语义陷阱——**job 级 continue-on-error: true 会让 needs.<job>.result 在该 job 失败时仍返回 "success"**。故任何依赖 needs.result 判定的下游门都读到被掩盖的 success，无法生效。
 
-修复（release.yml 新增 release-status-check 终结 job）：
-- needs: [publish-binaries, verify-platform-packages]，if: always()，本身不带 continue-on-error。
-- 检查这两者的 needs.<job>.result 是否均为 success；只要有一个不是，就 `::error::` + exit 1。
-- 是纯增量 job：不改变 publish-binaries/verify-platform-packages/install-sanity/sync-version 既有的 continue-on-error 和 needs 依赖图，因此不会级联 skip install-sanity 或 sync-version（它们仍需要 publish-binaries 的"表观成功"才能运行，这条链路本次未动）。
-- 效果：只要平台二进制包发布/校验没有全部真正成功，整个 workflow run 的最终 conclusion 会变成 failure，不再能被误读为"全绿"。这是本次新增到不动点/AC 的机制（AC#6），已实测：v1.48.3 那次 run 若在此修复后重跑，release-status-check 会失败，run 整体转为 failure。
+正确修法（更简单）：本任务把平台包改名到 yalehwang 账号后，publish-binaries / verify-platform-packages 本就应当成功，因此直接**移除这两个 job 的 continue-on-error: true**，让 workflow 在它们失败时自然、诚实地整体 failure，无需单独的 status-check job（该 job 应删除）。副作用：install-sanity（needs publish-binaries）在平台包发布失败时会被 skip——可接受，因为平台包没发出去时 install-sanity 本就无意义。
 
-不动点补充（对齐 AC#6）：workflow 整体 conclusion 必须真实反映 publish-binaries/verify-platform-packages 的实际结果，不得被 job 级 continue-on-error 静默吸收为成功。这条已通过 release-status-check 机制固化，非文字承诺。
+AC#5 据此修订判定：以「移除 continue-on-error 后 workflow 整体 conclusion 真实反映平台包结果」为准，而非 release-status-check job。
+
+## 实现完成（2026-07-07，commit b7516685）
+release.yml + package.json + scripts/{resolveBinary,cli,postuninstall}.cjs + resolveBinary.test.ts：
+- 平台包名 backlog.md-* → epicd-*（build/publish 矩阵、verify/install-sanity 的 PACKAGE_NAME node/pwsh 片段）
+- 平台包内二进制文件名 backlog[.exe] → epicd[.exe]；artifact/release 资产名 backlog-* → epicd-*
+- 移除 publish-binaries / verify-platform-packages 的 continue-on-error（失败即整体 run failure，诚实反映）；删除无效的 release-status-check gate
+- npm-publish jq 新增 optionalDependencies 精确锁定 TAG（此前从未重写，dist 出厂带 "*" → 解析到旧的 pre-rename 二进制）
+本地验证：tsc 干净；resolveBinary.test.ts / cli-root-entry.test.ts 全绿（9 pass）；jq 模拟输出 optionalDependencies 全部 epicd-*@TAG。
+epicd-* 名字在 npm 上均 E404（未占用），npm whoami=yalehwang 有发布权限。
+待人工确认后推送新 tag（v1.48.5）触发 release 实测 AC#1/#3/#4/#5。
+
+## FixpointResult: Reached（2026-07-07，v1.48.6）
+根因（bun.lock 未随 optionalDependencies 改名同步 → frozen-lockfile 失败）已修（commit 26929c9f）。v1.48.6 release run 全绿：
+
+- AC#1 ✅ 6 个 epicd-* 平台包由 yalehwang 账号发布成功，无 403（npm view epicd-linux-x64 maintainers = yalehwang）
+- AC#2 ✅ npm view epicd bin = { epicd: "cli.js" }
+- AC#3 ✅ npm view epicd@1.48.6 optionalDependencies 全部精确锁定 1.48.6（非 "*"）
+- AC#4 ✅ 全新环境 npm i -g epicd@1.48.6：epicd --version=1.48.6、epicd --help 首行 Usage: epicd、解析的 epicd-linux-x64/epicd 为 ELF 64-bit 原生二进制（非 JS 回退）
+- AC#5 ✅ workflow 整体 conclusion=success 且诚实：v1.48.5 因 build 失败正确报 failure（移除 continue-on-error 后不再掩盖）
+
+诚实性验证的意外收获：v1.48.5 那次因我引入的 bun.lock 回归而 build 失败，workflow 正确地整体 failure（而非旧行为的虚假 success）——恰好反证了「移除 continue-on-error」修复生效。
+
+DoD: tsc 干净、biome 通过（5 文件）、scoped tests 9 pass。
+audit: RiskGated(False)——改动为发布流水线配置（release.yml）+ 发布期脚本（*.cjs）+ 锁文件，无 src/ 引擎核心/安全表面；已在真实 release run + 全新环境安装端到端实测，等价于比静态审计更强的执行验证。
 <!-- SECTION:NOTES:END -->
-
-## Definition of Done
-<!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
-<!-- DOD:END -->
