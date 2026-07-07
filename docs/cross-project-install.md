@@ -11,20 +11,14 @@ Verified install path as of 2026-07-07 (v1.47.1).
 ## Step 1 — Install the epicd engine globally
 
 ```sh
-# After the next release tag (v1.48.0+), use:
 npm i -g epicd
-
-# Until then (v1.47.1 still published as backlog.md):
-npm i -g backlog.md
 
 # Verify the bin is available:
 backlog --version
 ```
 
-> **Naming note:** The installed bin is `backlog` regardless of which package name you use.
-> The release workflow is ready: next `git tag v*.*.*` will publish the main package as
-> `epicd` and platform binaries as `backlog.md-linux-x64` etc. (cross-referenced via
-> `optionalDependencies`). The bin command stays `backlog` by design.
+> **Naming note:** The installed bin is `backlog`. The platform binary (`backlog.md-linux-x64`
+> etc.) is installed as an optional dependency and provides the native compiled executable.
 
 ## Step 2 — Install the epicd plugin (skills) into Claude Code
 
@@ -76,11 +70,8 @@ backlog task create "My feature" --pipeline execution --phase ready \
 | List tasks | `backlog task list` |
 | Board view | `backlog board` |
 
-## Known gaps (as of BACK-680, v1.47.1)
+## Status (as of BACK-680, epicd@1.47.2)
 
-- **`npm i -g epicd` not yet available** — `epicd` will be the published package name
-  starting from the next release tag. Until then use `npm i -g backlog.md`.
-- **End-to-end skill invocation** — `primitive-executor` and `fixpoint-convergence`
-  skill docs now use `backlog` commands (not `bun run cli`), so they are correctly
-  portable. Full agent-session verification in a live fresh project post-publish is a
-  non-mechanical one-time-proof; update this doc after the first successful run.
+- `npm i -g epicd` — ✅ 已发布，可用
+- skill 文档中的引擎调用命令均已改为 `backlog`（可跨项目使用）
+- AC#3/#4（/primitive-executor、/fixpoint-convergence 在 fresh 项目中端到端验证）为 non-mechanical one-time-proof，待实际执行后更新本文档
