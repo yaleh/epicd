@@ -4,7 +4,7 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 17:05'
+updated_date: '2026-07-08 17:09'
 labels: []
 dependencies:
   - BACK-681
