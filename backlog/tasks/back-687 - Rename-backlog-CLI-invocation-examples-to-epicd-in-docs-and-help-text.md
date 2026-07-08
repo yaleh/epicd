@@ -4,7 +4,7 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 16:44'
+updated_date: '2026-07-08 16:48'
 labels: []
 dependencies:
   - BACK-681
@@ -34,9 +34,9 @@ BACK-681 renamed the CLI bin entry from backlog to epicd (package.json bin, src/
 - [ ] #3 grep -c 'backlog task create' .github/PULL_REQUEST_TEMPLATE.md returns 0
 - [ ] #4 grep -rn 'backlog ' src/cli.ts shows no remaining literal backlog-command examples/messages in examples: arrays or console output strings
 - [ ] #5 grep -c 'backlog mcp start' src/mcp/README.md returns 0
-- [ ] #6 grep -rn 'MCP_SERVER_NAME' src/cli.ts still shows "backlog" (unchanged) and grep -c 'backlog://' src/cli.ts is > 0 (unchanged)
-- [ ] #7 bun test passes
-- [ ] #8 bunx tsc --noEmit passes
+- [ ] #6 bun test passes
+- [ ] #7 bunx tsc --noEmit passes
+- [ ] #8 grep -rn 'MCP_SERVER_NAME' src/cli.ts still shows "backlog" (unchanged) and grep -rc 'backlog://' src/mcp/*.ts sums > 0 (unchanged; backlog:// scheme lives in src/mcp/, not src/cli.ts — corrected AC target after audit found the original clause referenced the wrong file)
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -85,6 +85,8 @@ authoring/draft self-review: APPROVED after 1 round (description already states 
 authoring/refining self-review: APPROVED after 1 round (plan has 2 Phases with executable grep-based DoD per Phase, full Acceptance Gate re-runs test/tsc/check; scope matches Description's non-goals).
 
 Phase A+B done: replaced backlog-CLI-invocation examples with epicd in README.md, ADVANCED-CONFIG.md, CLI-INSTRUCTIONS.md, DEVELOPMENT.md, backlog/docs/doc-002 and doc-003 (incl. systemd/launchd/NSSM ExecStart paths), .github/PULL_REQUEST_TEMPLATE.md, src/cli.ts (examples arrays + console/help strings), src/mcp/README.md; also fixed src/utils/mcp-client-setup.ts which hardcoded 'backlog' as the spawned MCP-setup binary command (real invocation bug, not just prose) and updated its test. MCP_SERVER_NAME stays 'backlog' (untouched). Note: AC #6's 'grep -c backlog:// src/cli.ts > 0' clause is unsatisfiable as written — backlog:// never appears in src/cli.ts (verified pre-existing on HEAD before this task too; it lives in src/mcp/* files instead), so that count is 0 both before and after this diff. All other ACs pass; bun test/tsc/check green (see notes).
+
+needs-human triage: OperationalMistake, not RealGate. AC #6's second clause grepped 'backlog://' in src/cli.ts, but that URI scheme actually lives in src/mcp/*.ts (verified pre-existing on main, unaffected by this diff). Corrected AC #6 to grep the right file; invariant itself (backlog:// scheme untouched) was never violated. Re-running engine complete.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
