@@ -1329,7 +1329,7 @@ addHelpSchema(program.command("init [projectName]"), {
 						}`,
 					);
 				} else {
-					summaryLines.push(`${label("Advanced settings:")} ${muted("unchanged (run `backlog config` to customize)")}`);
+					summaryLines.push(`${label("Advanced settings:")} ${muted("unchanged (run `epicd config` to customize)")}`);
 				}
 				clack.note(summaryLines.join("\n"), "Initialization Summary");
 
@@ -1348,7 +1348,7 @@ addHelpSchema(program.command("init [projectName]"), {
 						.map((line) => `  ${line}`)
 						.join("\n");
 					console.warn(
-						`⚠️  Shell completion installation failed:\n${indentedError}\n  Run \`backlog completion install\` later to retry.\n`,
+						`⚠️  Shell completion installation failed:\n${indentedError}\n  Run \`epicd completion install\` later to retry.\n`,
 					);
 				}
 
@@ -1383,7 +1383,7 @@ addHelpSchema(program.command("init [projectName]"), {
 								[
 									"Warning: remoteOperations is enabled but no git remotes are configured.",
 									"Remote features will be skipped until a remote is added (e.g., 'git remote add origin <url>')",
-									"or disable remoteOperations via 'backlog config set remoteOperations false'.",
+									"or disable remoteOperations via 'epicd config set remoteOperations false'.",
 								].join(" "),
 							);
 						}
@@ -2981,7 +2981,7 @@ addHelpSchema(milestoneCmd.command("list"), {
 		{ name: "plain", type: "Boolean", description: "Use text output instead of interactive UI" },
 	],
 	output: "Milestone list with completion status",
-	examples: ["backlog milestone list --plain"],
+	examples: ["epicd milestone list --plain"],
 })
 	.description("list milestones with completion status")
 	.option("--show-completed", "show completed milestones")
@@ -3037,7 +3037,7 @@ addHelpSchema(milestoneCmd.command("add <name>"), {
 	optional: [{ name: "description", type: "Markdown", description: "Optional milestone description" }],
 	writes: "Creates a milestone markdown file in the active milestones directory",
 	output: "Created milestone title and ID",
-	examples: ['backlog milestone add "Release 1.0"', 'backlog milestone add "Beta" --description "Beta scope"'],
+	examples: ['epicd milestone add "Release 1.0"', 'epicd milestone add "Beta" --description "Beta scope"'],
 })
 	.description("add a milestone file")
 	.option("-d, --description <text>", "milestone description")
@@ -3061,8 +3061,8 @@ addHelpSchema(milestoneCmd.command("rename <from> <to>"), {
 	writes: "Renames the milestone file and, by default, updates matching local task milestone values",
 	output: "Rename summary, task update count, and file move path when changed",
 	examples: [
-		'backlog milestone rename "Release 1.0" "Release 2.0"',
-		'backlog milestone rename m-1 "Release 2.0" --no-update-tasks',
+		'epicd milestone rename "Release 1.0" "Release 2.0"',
+		'epicd milestone rename m-1 "Release 2.0" --no-update-tasks',
 	],
 })
 	.description("rename a milestone file and update local tasks by default")
@@ -3091,9 +3091,9 @@ addHelpSchema(milestoneCmd.command("remove <name>"), {
 	writes: "Moves the milestone file to the archived milestones directory and may clear or reassign local tasks",
 	output: "Removal summary and task handling count",
 	examples: [
-		'backlog milestone remove "Release 1.0"',
-		'backlog milestone remove "Release 1.0" --task-handling keep',
-		'backlog milestone remove "Release 1.0" --task-handling reassign --reassign-to "Release 2.0"',
+		'epicd milestone remove "Release 1.0"',
+		'epicd milestone remove "Release 1.0" --task-handling keep',
+		'epicd milestone remove "Release 1.0" --task-handling reassign --reassign-to "Release 2.0"',
 	],
 })
 	.description("remove a milestone file and clear, keep, or reassign matching tasks")
@@ -3122,7 +3122,7 @@ addHelpSchema(milestoneCmd.command("archive <name>"), {
 	optional: [],
 	writes: "Moves a milestone file into the archived milestones directory",
 	output: "Archive confirmation text",
-	examples: ["backlog milestone archive m-1"],
+	examples: ["epicd milestone archive m-1"],
 })
 	.description("archive a milestone by id or title")
 	.action(async (name: string) => {
@@ -3564,7 +3564,7 @@ const agentsCmd = addHelpSchema(program.command("agents"), {
 	writes:
 		"Creates or updates the managed Backlog.md CLI nudge in selected instruction files; preserves existing content outside the managed block",
 	output: "Interactive file selection followed by created, updated, or unchanged file summary",
-	examples: ["backlog agents --update-instructions"],
+	examples: ["epicd agents --update-instructions"],
 });
 
 agentsCmd
@@ -3630,7 +3630,7 @@ const configCmd = addHelpSchema(program.command("config"), {
 	optional: [],
 	writes: "Interactive configuration updates when run without a subcommand",
 	output: "Interactive wizard results or subcommand output",
-	examples: ["backlog config", "backlog config list", "backlog config get defaultEditor"],
+	examples: ["epicd config", "epicd config list", "epicd config get defaultEditor"],
 })
 	.description("manage backlog configuration")
 	.action(async () => {
@@ -3704,10 +3704,10 @@ const configCmd = addHelpSchema(program.command("config"), {
 					.map((line) => `  ${line}`)
 					.join("\n");
 				console.warn(
-					`⚠️  Shell completion installation failed:\n${indentedError}\n  Run \`backlog completion install\` later to retry.\n`,
+					`⚠️  Shell completion installation failed:\n${indentedError}\n  Run \`epicd completion install\` later to retry.\n`,
 				);
 			}
-			console.log("\nUse `backlog config list` to review all configuration values.");
+			console.log("\nUse `epicd config list` to review all configuration values.");
 		} catch (err) {
 			console.error("Failed to update configuration", err);
 			process.exitCode = 1;
@@ -3759,7 +3759,7 @@ addHelpSchema(configCmd.command("get <key>"), {
 	required: [{ name: "key", type: choiceType(CONFIG_GET_KEYS), description: "Configuration value to print" }],
 	optional: [],
 	output: "The selected configuration value",
-	examples: ["backlog config get defaultEditor"],
+	examples: ["epicd config get defaultEditor"],
 })
 	.description("get a configuration value")
 	.action(async (key: string) => {
@@ -3865,7 +3865,7 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 	optional: [],
 	writes: "Updates the project Backlog.md configuration file",
 	output: "Confirmation of the updated config value",
-	examples: ['backlog config set defaultEditor "code --wait"', "backlog config set autoCommit true"],
+	examples: ['epicd config set defaultEditor "code --wait"', "epicd config set autoCommit true"],
 })
 	.description("set a configuration value")
 	.action(async (key: string, value: string) => {
@@ -4031,15 +4031,15 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 					if (key === "milestones") {
 						console.error("milestones cannot be set directly.");
 						console.error(
-							"Use milestone files via milestone commands (e.g. `backlog milestone list`, `backlog milestone add`).",
+							"Use milestone files via milestone commands (e.g. `epicd milestone list`, `epicd milestone add`).",
 						);
 					} else if (key === "definitionOfDone") {
 						console.error("definitionOfDone cannot be set directly.");
 						console.error(
-							"Use `backlog config` for interactive editing, update the project config file (`backlog/config.yml`, `.backlog/config.yml`, or `backlog.config.yml`), or use Web UI Settings.",
+							"Use `epicd config` for interactive editing, update the project config file (`backlog/config.yml`, `.backlog/config.yml`, or `backlog.config.yml`), or use Web UI Settings.",
 						);
 					} else {
-						console.error(`${key} cannot be set directly. Use 'backlog config list-${key}' to view current values.`);
+						console.error(`${key} cannot be set directly. Use 'epicd config list-${key}' to view current values.`);
 						console.error("Array values should be edited in the config file directly.");
 					}
 					process.exit(1);
@@ -4071,7 +4071,7 @@ addHelpSchema(configCmd.command("list"), {
 	required: [],
 	optional: [],
 	output: "All public configuration values",
-	examples: ["backlog config list"],
+	examples: ["epicd config list"],
 })
 	.description("list all configuration values")
 	.action(async () => {
@@ -4120,7 +4120,7 @@ addHelpSchema(program.command("cleanup"), {
 	optional: [],
 	writes: "Moves selected terminal-status tasks to the completed folder",
 	output: "Interactive cleanup summary",
-	examples: ["backlog cleanup"],
+	examples: ["epicd cleanup"],
 })
 	.description("move completed tasks to completed folder based on age")
 	.action(async () => {

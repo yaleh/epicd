@@ -5,7 +5,7 @@
 <code>npm i -g epicd</code> or <code>bun add -g epicd</code> or <code>brew install backlog-md</code> or <code>nix run github:MrLesk/Backlog.md</code>
 </p>
 
-![Backlog demo GIF using: backlog board](./.github/backlog-v1.40.gif)
+![Backlog demo GIF using: epicd board](./.github/backlog-v1.40.gif)
 
 
 ---
@@ -20,16 +20,16 @@
 
 * 🤖 **AI-Ready** -- Works with Claude Code, Gemini CLI, Codex, Kiro & any other MCP or CLI compatible AI assistants
 
-* 📊 **Instant terminal Kanban** -- `backlog board` paints a live board in your shell
+* 📊 **Instant terminal Kanban** -- `epicd board` paints a live board in your shell
 
-* 🌐 **Modern web interface** -- `backlog browser` launches a sleek web UI for visual task management
+* 🌐 **Modern web interface** -- `epicd browser` launches a sleek web UI for visual task management
 
-* 🔍 **Powerful search** -- fuzzy search across tasks, docs & decisions with `backlog search`
+* 🔍 **Powerful search** -- fuzzy search across tasks, docs & decisions with `epicd search`
 
 * 📋 **Rich query commands** -- view, list, filter, or archive tasks with ease
 * ✅ **Definition of Done defaults** -- add a reusable checklist to every new task
 
-* 📤 **Board export** -- `backlog board export` creates shareable markdown reports
+* 📤 **Board export** -- `epicd board export` creates shareable markdown reports
 
 * 🔒 **100 % private & offline** -- backlog lives entirely inside your repo and you can manage everything locally
 
@@ -49,25 +49,25 @@ bun i -g epicd
 # or: brew install backlog-md
 
 # Initialize in any Git repo
-backlog init "My Awesome Project"
+epicd init "My Awesome Project"
 
 # Or initialize without Git for local/non-code projects
-backlog init "Personal Planning" --no-git
+epicd init "Personal Planning" --no-git
 ```
 
 The init wizard will ask how you want to connect AI tools:
-- **CLI instructions** (recommended) — creates a short instruction file that tells agents to run `backlog instructions overview`.
+- **CLI instructions** (recommended) — creates a short instruction file that tells agents to run `epicd instructions overview`.
 - **MCP connector** — optionally auto-configures Claude Code, Codex, Gemini CLI, Kiro or Cursor for teams that prefer MCP.
 - **Skip** — no AI setup; use Backlog.md purely as a task manager.
 
-Backlog data is stored in a project-local backlog folder such as `backlog/`, `.backlog/`, or a custom project-relative path configured through `backlog.config.yml`. Tasks remain human-readable Markdown files (e.g. `task-10 - Add core search functionality.md`). Git is optional: `backlog init --no-git` creates a filesystem-only project and disables cross-branch checks, remote operations, and auto-commit.
+Backlog data is stored in a project-local backlog folder such as `backlog/`, `.backlog/`, or a custom project-relative path configured through `backlog.config.yml`. Tasks remain human-readable Markdown files (e.g. `task-10 - Add core search functionality.md`). Git is optional: `epicd init --no-git` creates a filesystem-only project and disables cross-branch checks, remote operations, and auto-commit.
 
 ---
 
 ### Working with AI agents
 
 This is the recommended flow for Claude Code, Codex, Gemini CLI, Kiro and similar tools — following the **spec‑driven AI development** approach.
-After running `backlog init`, agents should start by running `backlog instructions overview`. Work in this loop:
+After running `epicd init`, agents should start by running `epicd instructions overview`. Work in this loop:
 
 **Step 1 — Describe your idea.** Tell the agent what you want to build and ask it to split the work into small tasks with clear descriptions and acceptance criteria.
 
@@ -102,20 +102,20 @@ Use Backlog.md as a standalone task manager from the terminal or browser.
 
 ```bash
 # Create and refine tasks
-backlog task create "Render markdown as kanban"
-backlog task edit BACK-1 -d "Detailed context" --ac "Clear acceptance criteria"
+epicd task create "Render markdown as kanban"
+epicd task edit BACK-1 -d "Detailed context" --ac "Clear acceptance criteria"
 
 # Track work
-backlog task list -s "To Do"
-backlog task edit BACK-1 --comment "Can we split the UI work into a separate PR?" --comment-author @sara
-backlog search "kanban"
-backlog board
+epicd task list -s "To Do"
+epicd task edit BACK-1 --comment "Can we split the UI work into a separate PR?" --comment-author @sara
+epicd search "kanban"
+epicd board
 
 # Work visually in the browser
-backlog browser
+epicd browser
 ```
 
-You can switch between AI-assisted and manual workflows at any time — both operate on the same Markdown task files. It is recommended to modify tasks via Backlog.md commands (CLI/MCP/Web) rather than editing task files manually, so field types and metadata stay consistent. Tasks can record project-root-relative modified files and later be found with `backlog search --modified-file src/path.ts --plain`. Use task comments for discussion and review notes; comment bodies may contain Markdown, but standalone `---` lines are reserved as comment delimiters. Use Implementation Notes for execution progress and Final Summary for completion notes.
+You can switch between AI-assisted and manual workflows at any time — both operate on the same Markdown task files. It is recommended to modify tasks via Backlog.md commands (CLI/MCP/Web) rather than editing task files manually, so field types and metadata stay consistent. Tasks can record project-root-relative modified files and later be found with `epicd search --modified-file src/path.ts --plain`. Use task comments for discussion and review notes; comment bodies may contain Markdown, but standalone `---` lines are reserved as comment delimiters. Use Implementation Notes for execution progress and Final Summary for completion notes.
 
 **Learn more:** [CLI reference](CLI-INSTRUCTIONS.md) | [Advanced configuration](ADVANCED-CONFIG.md)
 
@@ -127,13 +127,13 @@ Launch a modern, responsive web interface for visual task management:
 
 ```bash
 # Start the web server (opens browser automatically)
-backlog browser
+epicd browser
 
 # Custom port
-backlog browser --port 8080
+epicd browser --port 8080
 
 # Don't open browser automatically
-backlog browser --no-open
+epicd browser --no-open
 ```
 
 **Features:**
@@ -154,7 +154,7 @@ To keep the Web UI running as an auto-starting local service, see [Running Backl
 ## 🔧 MCP Integration (Model Context Protocol)
 
 CLI instructions are the default AI setup. MCP remains supported for AI coding assistants like Claude Code, Codex, Gemini CLI and Kiro when you explicitly prefer an MCP connector.
-You can run `backlog init` (even if you already initialized Backlog.md) and choose MCP integration, or follow the manual steps below.
+You can run `epicd init` (even if you already initialized Backlog.md) and choose MCP integration, or follow the manual steps below.
 
 ### Client guides
 
@@ -162,7 +162,7 @@ You can run `backlog init` (even if you already initialized Backlog.md) and choo
   <summary><strong>Claude Code</strong></summary>
 
   ```bash
-  claude mcp add backlog --scope user -- backlog mcp start
+  claude mcp add backlog --scope user -- epicd mcp start
   ```
 
 </details>
@@ -171,7 +171,7 @@ You can run `backlog init` (even if you already initialized Backlog.md) and choo
   <summary><strong>Codex</strong></summary>
 
   ```bash
-  codex mcp add backlog -- backlog mcp start
+  codex mcp add backlog -- epicd mcp start
   ```
 
 </details>
@@ -180,7 +180,7 @@ You can run `backlog init` (even if you already initialized Backlog.md) and choo
   <summary><strong>Gemini CLI</strong></summary>
 
   ```bash
-  gemini mcp add backlog -s user backlog mcp start
+  gemini mcp add backlog -s user epicd mcp start
   ```
 
 </details>
@@ -189,7 +189,7 @@ You can run `backlog init` (even if you already initialized Backlog.md) and choo
   <summary><strong>Kiro</strong></summary>
 
   ```bash
-  kiro-cli mcp add --scope global --name backlog --command backlog --args mcp,start
+  kiro-cli mcp add --scope global --name backlog --command epicd --args mcp,start
   ```
 
 </details>
@@ -202,7 +202,7 @@ Use the shared `backlog` server name everywhere. The server finds the active pro
 {
   "mcpServers": {
     "backlog": {
-      "command": "backlog",
+      "command": "epicd",
       "args": ["mcp", "start"],
       "env": {
         "BACKLOG_CWD": "/absolute/path/to/your/project"
@@ -217,8 +217,8 @@ If your IDE supports custom args but not env vars, you can also use `["mcp", "st
 
 > [!IMPORTANT]
 > When adding the MCP server manually, add a short instruction to your CLAUDE.md/AGENTS.md files telling agents to read `backlog://workflow/overview`.
-> This step is not required when using `backlog init` as it adds these instructions automatically.
-> For CLI-based setups, use `backlog instructions overview` to fetch the current workflow guidance.
+> This step is not required when using `epicd init` as it adds these instructions automatically.
+> For CLI-based setups, use `epicd instructions overview` to fetch the current workflow guidance.
 
 
 Once connected, agents can read the Backlog.md workflow instructions via `backlog://workflow/overview`, with detailed guides at `backlog://workflow/task-creation`, `backlog://workflow/task-execution`, and `backlog://workflow/task-finalization`.
@@ -230,9 +230,9 @@ Use `/mcp` command in your AI tool (Claude Code, Codex, Kiro) to verify if the c
 
 Full command reference — task management, search, board, docs, decisions, and more: **[CLI-INSTRUCTIONS.md](CLI-INSTRUCTIONS.md)**
 
-Quick examples: `backlog`, `backlog instructions`, `backlog task create`, `backlog task list`, `backlog task edit`, `backlog milestone add`, `backlog milestone rename`, `backlog milestone remove`, `backlog search`, `backlog board`, `backlog browser`.
+Quick examples: `epicd`, `epicd instructions`, `epicd task create`, `epicd task list`, `epicd task edit`, `epicd milestone add`, `epicd milestone rename`, `epicd milestone remove`, `epicd search`, `epicd board`, `epicd browser`.
 
-Full help: `backlog --help`
+Full help: `epicd --help`
 
 ---
 
@@ -246,9 +246,9 @@ Backlog.md merges the following layers (highest → lowest):
    - otherwise `backlog/config.yml` or `.backlog/config.yml`
 3. Built‑ins
 
-### Interactive wizard (`backlog config`)
+### Interactive wizard (`epicd config`)
 
-Run `backlog config` with no arguments to launch the full interactive wizard. This is the same experience triggered from `backlog init` when you opt into advanced settings, and it walks through the complete configuration surface:
+Run `epicd config` with no arguments to launch the full interactive wizard. This is the same experience triggered from `epicd init` when you opt into advanced settings, and it walks through the complete configuration surface:
 - Cross-branch accuracy: `checkActiveBranches`, `remoteOperations`, and `activeBranchDays`.
 - Git workflow: `autoCommit` and `bypassGitHooks`.
 - ID formatting: enable or size `zeroPaddedIds`.
@@ -263,13 +263,13 @@ Skipping the wizard (answering "No" during init) applies the safe defaults that 
 - `defaultEditor` unset (falls back to your environment).
 - `defaultPort=6420`, `autoOpenBrowser=true`.
 
-For filesystem-only projects, run `backlog init --no-git`. Backlog.md will not run `git init`, and the saved config forces `checkActiveBranches=false`, `remoteOperations=false`, and `autoCommit=false` so CLI, Web, and MCP local-file workflows do not depend on a Git repository.
+For filesystem-only projects, run `epicd init --no-git`. Backlog.md will not run `git init`, and the saved config forces `checkActiveBranches=false`, `remoteOperations=false`, and `autoCommit=false` so CLI, Web, and MCP local-file workflows do not depend on a Git repository.
 
-Whenever you revisit `backlog init` or rerun `backlog config`, the wizard pre-populates prompts with your current values so you can adjust only what changed.
+Whenever you revisit `epicd init` or rerun `epicd config`, the wizard pre-populates prompts with your current values so you can adjust only what changed.
 
 ### Definition of Done defaults
 
-Set project-wide DoD items with `backlog config` (or during `backlog init` advanced setup), in the Web UI (Settings → Definition of Done Defaults), or by editing the project config file directly:
+Set project-wide DoD items with `epicd config` (or during `epicd init` advanced setup), in the Web UI (Settings → Definition of Done Defaults), or by editing the project config file directly:
 
 ```yaml
 definition_of_done:

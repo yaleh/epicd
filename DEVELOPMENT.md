@@ -1,6 +1,6 @@
 ## Local Development
 
-> **Runtime requirement:** Use Bun 1.2.23. Later Bun 1.3.x builds currently trigger a websocket CPU regression ([oven-sh/bun#23536](https://github.com/oven-sh/bun/issues/23536)), which also affects `backlog browser`. Our CI is pinned to 1.2.23 until the upstream fix lands.
+> **Runtime requirement:** Use Bun 1.2.23. Later Bun 1.3.x builds currently trigger a websocket CPU regression ([oven-sh/bun#23536](https://github.com/oven-sh/bun/issues/23536)), which also affects `epicd browser`. Our CI is pinned to 1.2.23 until the upstream fix lands.
 
 Run these commands to bootstrap the project:
 
@@ -95,7 +95,7 @@ Open your agent and test:
 Each AI agent has different configuration requirements. Start the server from your project root and follow the assistant's instructions to register it:
 
 ```bash
-backlog mcp start
+epicd mcp start
 ```
 
 ### Testing with MCP Inspector

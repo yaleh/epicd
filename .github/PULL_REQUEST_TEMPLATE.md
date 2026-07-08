@@ -5,7 +5,7 @@ Briefly explain the purpose of this pull request.
 List task IDs this PR closes, e.g. `closes task-29`.
 
 > **📋 Important:** All PRs must have an associated task in the backlog.
-> - If no task exists, create one first using: `backlog task create "Your task title"`
+> - If no task exists, create one first using: `epicd task create "Your task title"`
 > - Follow the [task guidelines](../src/guidelines/agent-guidelines.md) when creating tasks
 > - Tasks should be atomic, testable, and well-defined with clear acceptance criteria
 

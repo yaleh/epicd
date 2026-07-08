@@ -25,7 +25,7 @@ segments such as `..` are rejected by the shared core/filesystem path handling.
 bun run cli mcp start
 
 # Or via the globally installed CLI
-backlog mcp start
+epicd mcp start
 
 # Tests
 bun test src/test/mcp-*.test.ts
