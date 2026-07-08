@@ -4,7 +4,7 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 17:01'
+updated_date: '2026-07-08 17:16'
 labels: []
 dependencies:
   - BACK-681
@@ -93,6 +93,8 @@ needs-human triage: OperationalMistake, not RealGate. AC #6's second clause grep
 needs-human triage (3rd round): OperationalMistake. Prior gate used 'HEAD~1 HEAD', which shifted after round 2's engine complete attempt committed a board-update commit on top of the implementation commit in the worktree branch — HEAD~1..HEAD then diffed only the board file, not the actual doc/code changes, so biome checked 0 real files. Fixed gate to diff against a stable merge-base with main instead. Verified standalone: exit 0, 4 files checked, 2 pre-existing warnings. Re-running engine complete.
 
 needs-human triage (4th round, root cause found): the actual blocker across rounds 1-3 was NOT the DoD gates — it was gitMergeBranch (src/harness/real-primitives.ts) expecting a branch literally named task/BACK-687, while the worktree dispatched via the Agent tool's isolation:worktree was on branch worktree-agent-a5768d98c08b3aa54. 'git merge --no-ff task/BACK-687' silently failed to find that branch every round, independent of DoD outcome — an operational/dispatch-convention mismatch, not a code or AC defect. Renamed the worktree's branch to task/BACK-687 to match the engine's merge convention. Re-running engine complete.
+
+needs-human triage (5th round, TRUE final root cause): the DoD gate 'bun test' failed every round because this worktree (created by the Agent tool's isolation:worktree, not the project's own EnterWorktree/handle-basic-ready.sh path) never got the node_modules symlink CLAUDE.md's L0 Config declares as required ('worktree-symlinks: node_modules'). Without it, src/test/epicd-plugin-synthetic-repo.test.ts's 'bun run build' step failed on a relative './node_modules/@tailwindcss/cli/...' lookup, unconditionally failing the bun test DoD gate regardless of this task's actual diff (completeTask routes to needs-human whenever any dodResult fails, before even attempting merge — this is why no merge/conflict output ever appeared in prior rounds). Symlinked node_modules into the worktree; bun test now passes clean (2065 pass / 0 fail / 2 skip). This — plus the earlier board-file-must-be-committed-in-main fix and the task/<id> branch-naming fix — were all operational/dispatch-setup gaps in how the leaf worktree was created, not gate or code defects. Filing an engine follow-up for the Agent-tool-worktree vs project node_modules-symlink-convention gap. Re-running engine complete for what should be the real attempt.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
