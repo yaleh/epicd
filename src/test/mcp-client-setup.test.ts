@@ -12,9 +12,9 @@ describe("MCP client setup commands", () => {
 		expect(setup).toEqual({
 			label: "OpenAI Codex",
 			command: "codex",
-			args: ["mcp", "add", "backlog", "--", "backlog", "mcp", "start"],
+			args: ["mcp", "add", "backlog", "--", "epicd", "mcp", "start"],
 		});
-		expect(formatMcpClientSetupCommand(setup.command, setup.args)).toBe("codex mcp add backlog -- backlog mcp start");
+		expect(formatMcpClientSetupCommand(setup.command, setup.args)).toBe("codex mcp add backlog -- epicd mcp start");
 	});
 
 	it("fails when a setup command exits non-zero", async () => {

@@ -7,7 +7,7 @@ created_date: '2026-04-25'
 
 # Running Backlog.md as a Service
 
-`backlog browser --no-open` keeps the Web UI running without opening a browser tab. This is useful when you want a long-lived local dashboard that starts on boot and restarts on failure.
+`epicd browser --no-open` keeps the Web UI running without opening a browser tab. This is useful when you want a long-lived local dashboard that starts on boot and restarts on failure.
 
 Pick the recipe that matches your OS.
 
@@ -26,7 +26,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/path/to/your/project
-ExecStart=/usr/local/bin/backlog browser --no-open --port 6420
+ExecStart=/usr/local/bin/epicd browser --no-open --port 6420
 Restart=on-failure
 RestartSec=5
 
@@ -46,7 +46,7 @@ systemctl --user status backlog-browser-<project>
 journalctl --user -u backlog-browser-<project> -f
 ```
 
-Adjust the `ExecStart` path to match `which backlog` on your system. For users with many projects, a systemd [template unit](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Description) such as `backlog-browser@.service` with `%i` can reduce repetition.
+Adjust the `ExecStart` path to match `which epicd` on your system. For users with many projects, a systemd [template unit](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Description) such as `backlog-browser@.service` with `%i` can reduce repetition.
 
 ## macOS (launchd LaunchAgent)
 
@@ -60,7 +60,7 @@ Create `~/Library/LaunchAgents/md.backlog.browser.<project>.plist`:
   <key>Label</key><string>md.backlog.browser.&lt;project&gt;</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/opt/homebrew/bin/backlog</string>
+    <string>/opt/homebrew/bin/epicd</string>
     <string>browser</string>
     <string>--no-open</string>
     <string>--port</string>
@@ -81,14 +81,14 @@ Load it:
 launchctl load -w ~/Library/LaunchAgents/md.backlog.browser.<project>.plist
 ```
 
-Use `/usr/local/bin/backlog` on Intel Macs, or the path returned by `which backlog`. The `Label` must be unique per project because launchd refuses to load two agents with the same label.
+Use `/usr/local/bin/epicd` on Intel Macs, or the path returned by `which epicd`. The `Label` must be unique per project because launchd refuses to load two agents with the same label.
 
 ## Windows (Task Scheduler or NSSM)
 
 For a setup that runs when you log in, register a Scheduled Task from PowerShell:
 
 ```powershell
-$action  = New-ScheduledTaskAction -Execute "backlog.exe" `
+$action  = New-ScheduledTaskAction -Execute "epicd.exe" `
             -Argument "browser --no-open --port 6420" `
             -WorkingDirectory "C:\path\to\your\project"
 $trigger = New-ScheduledTaskTrigger -AtLogOn
@@ -98,7 +98,7 @@ Register-ScheduledTask -TaskName "Backlog Browser (<project>)" -Action $action -
 For a true background service that starts before login and auto-restarts on failure, wrap the command with [NSSM](https://nssm.cc/):
 
 ```powershell
-nssm install BacklogBrowser_<project> "C:\path\to\backlog.exe" "browser --no-open --port 6420"
+nssm install BacklogBrowser_<project> "C:\path\to\epicd.exe" "browser --no-open --port 6420"
 nssm set BacklogBrowser_<project> AppDirectory "C:\path\to\your\project"
 nssm start BacklogBrowser_<project>
 ```

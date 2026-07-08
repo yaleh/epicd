@@ -41,14 +41,14 @@ source ~/.zshrc  # or ~/.bashrc
 Set the editor directly in Backlog.md's config:
 
 ```bash
-backlog config set defaultEditor "nvim"
+epicd config set defaultEditor "nvim"
 ```
 
 This stores the setting in `backlog/config.yml` and validates that the editor is available.
 
 ### Option 3: During Initial Setup
 
-When running `backlog init`, the configuration wizard will prompt:
+When running `epicd init`, the configuration wizard will prompt:
 ```
 Default editor command (leave blank to use system default): nvim
 ```
@@ -81,7 +81,7 @@ export EDITOR="nvim -c 'set noshowmode'"
 export EDITOR="nvim -c 'set noshowmode' -c 'set noruler'"
 
 # Or create an alias
-alias bv='EDITOR=nvim backlog'
+alias bv='EDITOR=nvim epicd'
 ```
 
 ### VIM with Specific Settings
@@ -117,7 +117,7 @@ export EDITOR="vim +startinsert"
 - Check if another process is holding the terminal
 - Try using the full path to your editor:
   ```bash
-  backlog config set defaultEditor "$(which nvim)"
+  epicd config set defaultEditor "$(which nvim)"
   ```
 
 ### Issue: Colors Not Working Properly
@@ -144,7 +144,7 @@ export EDITOR="nvim -c 'set termguicolors'"
 - Verify the file path is valid
 - Try with a minimal configuration:
   ```bash
-  EDITOR=vim backlog task edit 123
+  EDITOR=vim epicd task edit 123
   ```
 
 ## Best Practices
@@ -202,13 +202,13 @@ Verify your editor setup works:
 
 ```bash
 # Check which editor will be used
-backlog config get defaultEditor
+epicd config get defaultEditor
 
 # Test by viewing a task (press 'E' in the viewer to edit)
-backlog task 1
+epicd task 1
 
 # Test by editing directly
-backlog task edit 1
+epicd task edit 1
 ```
 
 ## Advanced: Context-Aware Editor Selection
@@ -220,14 +220,14 @@ You can use different editors for different contexts:
 export EDITOR=nvim
 
 # Create aliases for specific tools
-alias bt='backlog task'
-alias bv='EDITOR=vim backlog'  # Use vim specifically for backlog
-alias bn='EDITOR=nano backlog'  # Or nano for quick edits
+alias bt='epicd task'
+alias bv='EDITOR=vim epicd'  # Use vim specifically for backlog
+alias bn='EDITOR=nano epicd'  # Or nano for quick edits
 ```
 
 ## Integration with TUI (Terminal User Interface)
 
-When using Backlog.md's interactive board view (`backlog board`):
+When using Backlog.md's interactive board view (`epicd board`):
 
 1. Press `E` to edit the selected task
 2. The TUI properly suspends and hands control to your editor
@@ -272,16 +272,16 @@ If you encounter issues not covered here:
 1. Check the GitHub issues: https://github.com/MrLesk/Backlog.md/issues
 2. Create a new issue with:
    - Your editor command (`echo $EDITOR`)
-   - Backlog.md version (`backlog --version`)
+   - Backlog.md version (`epicd --version`)
    - Terminal type (`echo $TERM`)
    - Operating system and version
    - Description of the problem
 
 ## Related Configuration
 
-- See `backlog config list` for all available settings
-- Check `backlog config get defaultEditor` to see current value
-- Use `backlog help config` for configuration command help
+- See `epicd config list` for all available settings
+- Check `epicd config get defaultEditor` to see current value
+- Use `epicd help config` for configuration command help
 
 ## Version History
 

@@ -6,15 +6,15 @@ For getting started and the interactive wizard overview, see [README.md](README.
 
 | Action      | Example                                              |
 |-------------|------------------------------------------------------|
-| View all configs | `backlog config list` |
-| Get specific config | `backlog config get defaultEditor` |
-| Set config value | `backlog config set defaultEditor "code --wait"` |
-| Enable auto-commit | `backlog config set autoCommit true` |
-| Bypass git hooks | `backlog config set bypassGitHooks true` |
-| Enable cross-branch check | `backlog config set checkActiveBranches true` |
-| Set active branch days | `backlog config set activeBranchDays 30` |
+| View all configs | `epicd config list` |
+| Get specific config | `epicd config get defaultEditor` |
+| Set config value | `epicd config set defaultEditor "code --wait"` |
+| Enable auto-commit | `epicd config set autoCommit true` |
+| Bypass git hooks | `epicd config set bypassGitHooks true` |
+| Enable cross-branch check | `epicd config set checkActiveBranches true` |
+| Set active branch days | `epicd config set activeBranchDays 30` |
 
-Running `backlog config` with no arguments launches the interactive advanced wizard, including guided Definition of Done defaults editing (add/remove/reorder/clear).
+Running `epicd config` with no arguments launches the interactive advanced wizard, including guided Definition of Done defaults editing (add/remove/reorder/clear).
 
 ## Available Configuration Options
 

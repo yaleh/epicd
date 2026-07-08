@@ -57,7 +57,7 @@ describe("CLI agents command", () => {
 		expect(output).toContain("preserves existing content outside the managed block");
 		expect(output).toContain("Output:");
 		expect(output).toContain("Examples:");
-		expect(output).toContain("backlog agents --update-instructions");
+		expect(output).toContain("epicd agents --update-instructions");
 	});
 
 	it("should update selected agent instruction files", async () => {
