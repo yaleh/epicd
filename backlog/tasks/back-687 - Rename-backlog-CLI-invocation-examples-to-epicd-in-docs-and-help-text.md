@@ -10,7 +10,7 @@ dependencies:
   - BACK-681
 ordinal: 100000
 pipeline_id: execution
-phase: needs-human
+phase: implementing
 dod:
   - text: bun test
     checked: false
@@ -95,6 +95,8 @@ needs-human triage (2nd round): OperationalMistake, not RealGate. The 'bun run c
 needs-human triage (5th round, TRUE root cause): all prior rounds failed because gitMergeBranch runs a plain 'git merge' against the main repo checkout, and my own direct 'epicd task edit BACK-687 ...' calls (run from the main repo root while triaging, with the project's autoCommit=false default) left the board file locally modified/uncommitted in main. git refuses to even attempt a merge when local changes would be overwritten (distinct from an actual merge CONFLICT, which the engine's board-file special-case already resolves) — so the merge aborted silently before touching any DoD/AC logic, every round. This was an operational mistake in my own workflow (editing the board directly in main without committing), not a gate or code defect. Committed the pending board-file edits in main (commit e2351ad6); verified manually that 'git merge --no-ff task/BACK-687' now reaches the engine's known board-file add/add conflict path (which engine complete resolves in favor of main) instead of aborting pre-merge. Re-running engine complete for the actual attempt.
 
 correction: the previous 'engine complete → adjudicating' output was invalid — my own shell cwd had drifted into the task worktree itself (leftover from an earlier 'cd' in this session) when I ran that command, so requireProjectRoot() resolved the worktree as the project root and gitMergeBranch(cwd=worktree, task/BACK-687) merged the branch into itself ('Already up to date'), never touching main. Confirmed: main branch ref is still at c744fcfc, unchanged. Re-running engine complete from the actual main repo root this time.
+
+needs-human triage (6th round): OperationalMistake, not RealGate. DoD gate #3's committed frontmatter still held the OLD unscoped 'HEAD~1 HEAD' command, not the corrected 'git merge-base HEAD main' version described in notes — an earlier --dod-gate edit apparently never landed (or was overwritten by a subsequent board write during a needs-human round). Confirmed by loading the task via the store and running runDoD directly: gate #3 failed with 'No files were processed' because HEAD~1..HEAD in the worktree only spanned the latest board-only commit. Re-applied the fix via --remove-dod-gate 3 --dod-gate with the merge-base-scoped command; verified exit 0 in the worktree (2 pre-existing unrelated warnings only). Re-running engine complete.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
