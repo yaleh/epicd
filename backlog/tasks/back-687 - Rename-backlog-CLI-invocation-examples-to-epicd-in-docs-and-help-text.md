@@ -4,13 +4,13 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 17:37'
+updated_date: '2026-07-08 17:41'
 labels: []
 dependencies:
   - BACK-681
 ordinal: 100000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bun test
     checked: false
@@ -97,6 +97,8 @@ needs-human triage (5th round, TRUE root cause): all prior rounds failed because
 correction: the previous 'engine complete → adjudicating' output was invalid — my own shell cwd had drifted into the task worktree itself (leftover from an earlier 'cd' in this session) when I ran that command, so requireProjectRoot() resolved the worktree as the project root and gitMergeBranch(cwd=worktree, task/BACK-687) merged the branch into itself ('Already up to date'), never touching main. Confirmed: main branch ref is still at c744fcfc, unchanged. Re-running engine complete from the actual main repo root this time.
 
 needs-human triage (6th round): OperationalMistake, not RealGate. DoD gate #3's committed frontmatter still held the OLD unscoped 'HEAD~1 HEAD' command, not the corrected 'git merge-base HEAD main' version described in notes — an earlier --dod-gate edit apparently never landed (or was overwritten by a subsequent board write during a needs-human round). Confirmed by loading the task via the store and running runDoD directly: gate #3 failed with 'No files were processed' because HEAD~1..HEAD in the worktree only spanned the latest board-only commit. Re-applied the fix via --remove-dod-gate 3 --dod-gate with the merge-base-scoped command; verified exit 0 in the worktree (2 pre-existing unrelated warnings only). Re-running engine complete.
+
+Stage 3 audit (independent, fresh-context dispatched agent): all 8 ACs independently re-verified PASS via direct command execution (not self-report); bun test 2065 pass/0 fail, bunx tsc --noEmit clean. mcp-client-setup.ts fix confirmed genuine and correctly tested. 0 HIGH findings; 2 OUT_OF_SCOPE stale-mention findings noted for future follow-up (docs/task-lifecycle-model.md:207, docs/tasks/ui-smoke-test-report.md:19,96 — both outside this task's declared scope). Audit round 1: dry (0 new blockers) — loopUntilDry terminates after round 1. Stage 4 evaluate: AcceptanceResult = Met. Adjudicating -> done.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
