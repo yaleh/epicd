@@ -25,7 +25,11 @@ MERGE_LOCK="${REPO_ROOT}/backlog/.merge-lock"
 
 WT_PATH="$(cat "$WT_PATH_FILE" 2>/dev/null || echo "")"
 TASK_VIEW="$(epicd task view "$TASK_ID" --plain 2>/dev/null || echo "")"
-TITLE="$(printf '%s\n' "$TASK_VIEW" | grep -oP '^Task \S+ - \K.+' | head -1)"
+# NOTE: use sed -E (BSD/GNU-portable extended regex), not `grep -P` —
+# macOS's default /usr/bin/grep is BSD grep and does not support -P
+# (Perl-compatible regex incl. \K/lookbehind); it errors out, silently
+# starving downstream loops of any matches.
+TITLE="$(printf '%s\n' "$TASK_VIEW" | sed -E -n 's/^Task [^ ]+ - (.+)$/\1/p' | head -1)"
 [ -z "$TITLE" ] && TITLE="$TASK_ID"
 
 now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
@@ -75,7 +79,9 @@ $(printf '%s\n' "$dod_out" | head -5)"
     epicd task edit "$TASK_ID" \
       --append-notes "workerLoop DoD #${dod_n}: PASS — ${dod_cmd}" >/dev/null 2>&1 || true
     dod_n=$((dod_n + 1))
-  done < <(printf '%s\n' "$TASK_VIEW" | awk '/^DoD Gates:/{found=1;next} found && /^[A-Z]/{found=0} found && /^- #[0-9]/' | grep -oP '^- #\d+ .+')
+  # The awk filter already guarantees every emitted line matches `- #<n> ...`,
+  # so no further `grep -oP` extraction is needed (see NOTE above re: BSD grep).
+  done < <(printf '%s\n' "$TASK_VIEW" | awk '/^DoD Gates:/{found=1;next} found && /^[A-Z]/{found=0} found && /^- #[0-9]/')
 
   # BACK-654: no structured gates declared -> never auto-merge (mirrors
   # dod-runner.ts's "no dod -> completeTask always routes needs-human" semantics).
@@ -114,7 +120,7 @@ if [ "$SIGNAL_CONTENT" = "done" ]; then
       --append-notes "Completed: $(now_iso)" >/dev/null 2>&1 || true
     printf 'cap:execute=done %s\n' "$(now_iso)" >> "$CAP_FILE"
     # notifyParent (parent_task_id in task frontmatter)
-    parent="$(printf '%s\n' "$TASK_VIEW" | grep -oP '(?<=^Parent: )[A-Za-z][A-Za-z0-9]*-\d+(\.\d+)*' | head -1)"
+    parent="$(printf '%s\n' "$TASK_VIEW" | sed -E -n 's/^Parent: ([A-Za-z][A-Za-z0-9]*-[0-9]+(\.[0-9]+)*).*/\1/p' | head -1)"
     if [ -n "$parent" ]; then
       epicd task edit "$parent" --append-notes "Sub-task ${TASK_ID} completed: $(now_iso)" \
         >/dev/null 2>&1 || true

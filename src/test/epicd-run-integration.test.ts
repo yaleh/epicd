@@ -47,7 +47,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { $ } from "bun";
 import { Core } from "../core/backlog.ts";
@@ -127,6 +127,10 @@ describe("epicd-run integration (handle-basic-ready -> simulated agent -> engine
 		createdTaskIds = [];
 		projectRoot = createUniqueTestDir("epicd-run-integration");
 		await mkdir(projectRoot, { recursive: true });
+		// Canonicalize now (e.g. macOS /var -> /private/var) so every path built
+		// from projectRoot downstream matches what shell scripts/subprocesses
+		// naturally resolve to (they run under the real, non-symlinked path).
+		projectRoot = await realpath(projectRoot);
 		await $`git init -b main`.cwd(projectRoot).quiet();
 		await $`git config user.email "test@test.com"`.cwd(projectRoot).quiet();
 		await $`git config user.name "Test"`.cwd(projectRoot).quiet();
