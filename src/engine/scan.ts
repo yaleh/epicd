@@ -18,18 +18,22 @@ import { Interpreter } from "./interpreter.js";
 import { executionPipeline, type Pipeline } from "./pipeline.js";
 
 /**
- * Phase → event-channel prefix, keyed by pipeline id (BACK-628.4: decomposing/
- * evaluating crystallized alongside ready; BACK-603: generalized from a single
- * hardcoded execution-only map into a per-pipeline-id table so a caller can add
- * another pipeline's channel prefixes as a data change here — no interpreter/core
- * edit required, AC#3). A pipeline with no entry still scans (Interpreter.scan is
+ * Phase → event-channel prefix, keyed by pipeline id (BACK-603: generalized from a
+ * single hardcoded execution-only map into a per-pipeline-id table so a caller can add
+ * another pipeline's channel prefixes as a data change here — no interpreter/core edit
+ * required, AC#3). A pipeline with no entry still scans (Interpreter.scan is
  * pipeline-agnostic) but emits no machine line for its machine-actor phases.
+ *
+ * BACK-686.3: `decomposing`/`evaluating` retired as declared phases — `ready` unified
+ * into `implementing` (decompose is now a runtime branch inside it, not a separate
+ * dispatched phase) and `evaluating`'s logic folded into the `adjudicating` gate. The
+ * `basic-ready` channel prefix name is kept as-is (stable external machine key/transport
+ * contract — ADR-015 swap-litmus, `handle-basic-ready.sh`, scan-loop.cjs), even though it
+ * now covers the unified `implementing` phase.
  */
 const DEFAULT_PHASE_PREFIXES: Record<string, Record<string, string>> = {
 	[executionPipeline.id]: {
-		ready: "basic-ready",
-		decomposing: "epic-ready",
-		evaluating: "epic-eval-due",
+		implementing: "basic-ready",
 	},
 };
 

@@ -6,7 +6,7 @@
  *
  *   1. Set up a temp git repo + epicd board (same pattern as
  *      engine-complete-cli.test.ts / engine-safety-worktree.test.ts).
- *   2. Create a primitive task in the execution/ready phase.
+ *   2. Create a primitive task in the execution/implementing phase.
  *   3. Run the REAL `plugin/scripts/handle-basic-ready.sh <id>` against the
  *      temp board — this claims the task and creates a real git worktree +
  *      `task/<id>` branch, exactly as the epicd-run skill would.
@@ -56,10 +56,10 @@ import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 const HANDLE_BASIC_READY_SH = join(process.cwd(), "plugin", "scripts", "handle-basic-ready.sh");
 
-/** Create a primitive execution/ready task on the real board with one structured DoD gate. */
+/** Create a primitive execution/implementing task on the real board with one structured DoD gate. */
 async function createReadyTaskWithDoD(core: Core, title: string, dodCmd: string) {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do", dodGates: [dodCmd] }, false);
-	const withPipeline = { ...task, pipeline_id: "execution", phase: "ready" };
+	const withPipeline = { ...task, pipeline_id: "execution", phase: "implementing" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }

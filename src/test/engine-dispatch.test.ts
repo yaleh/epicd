@@ -10,7 +10,7 @@
  *      machine key once on the rising edge, suppresses re-emit while the key is present, and
  *      edge-clears it when it leaves the emit set — never inspecting the payload.
  *   + engine-boundary half of the bridge: `scanReadyLines` stops emitting a task once its
- *     phase advances off `ready` (what `engine complete` does).
+ *     phase advances off `implementing` (what `engine complete` does).
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
@@ -20,7 +20,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import { Core } from "../core/backlog.ts";
 import * as dispatchModule from "../engine/dispatch.ts";
-import { renderBasicReadyDispatch, renderEpicReadyDispatch } from "../engine/dispatch.ts";
+import { renderBasicReadyDispatch } from "../engine/dispatch.ts";
 import { scanReadyLines } from "../engine/scan.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
@@ -94,7 +94,7 @@ describe("engine dispatch <id> — CLI end-to-end", () => {
 
 	it("prints the self-contained dispatch block for an actionable task", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Dispatch me", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		const out = execFileSync("bun", [CLI_PATH, "engine", "dispatch", task.id], {
 			cwd: projectRoot,
@@ -110,17 +110,14 @@ describe("engine dispatch <id> — CLI end-to-end", () => {
 	});
 });
 
-describe("renderEpicReadyDispatch — self-contained payload (BACK-628.4)", () => {
-	it("epic-ready payload puts the machine key first and instructs decompose-apply", () => {
-		const payload = renderEpicReadyDispatch("BACK-999", "Some epic title");
-		expect(payload.split("\n")[0]).toBe("epic-ready:BACK-999");
-		expect(payload).toContain("engine decompose-apply BACK-999");
-		expect(payload).toContain("Do NOT re-arm the Monitor");
+describe("renderEpicReadyDispatch — retired (BACK-686.3)", () => {
+	it("dispatch.ts no longer exports renderEpicReadyDispatch — decompose is a runtime branch inside implementing, not a separately dispatched phase", () => {
+		expect("renderEpicReadyDispatch" in dispatchModule).toBe(false);
 	});
 });
 
 describe("renderEpicEvalDueDispatch — retired (BACK-686.2 AC#2/#3)", () => {
-	it("dispatch.ts no longer exports renderEpicEvalDueDispatch — evaluating is kind:script, never dispatched", () => {
+	it("dispatch.ts no longer exports renderEpicEvalDueDispatch — evaluating is retired, folded into the adjudicating gate", () => {
 		expect("renderEpicEvalDueDispatch" in dispatchModule).toBe(false);
 	});
 });
@@ -139,9 +136,12 @@ describe("engine dispatch <id> — branches by phase (BACK-628.4)", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("prints the epic-ready payload for a decomposing task", async () => {
-		const { task } = await core.createTaskFromInput({ title: "Epic to decompose", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "decomposing" } as Task, false);
+	it("prints the basic-ready payload for an epic-labeled task in implementing (BACK-686.3 — decompose-vs-leaf is now a runtime branch, not a dispatch-time fork)", async () => {
+		const { task } = await core.createTaskFromInput(
+			{ title: "Epic to decompose", status: "To Do", labels: ["kind:epic"] },
+			false,
+		);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		const out = execFileSync("bun", [CLI_PATH, "engine", "dispatch", task.id], {
 			cwd: projectRoot,
@@ -149,28 +149,10 @@ describe("engine dispatch <id> — branches by phase (BACK-628.4)", () => {
 			stdio: ["ignore", "pipe", "ignore"],
 		});
 
-		expect(out.split("\n")[0]).toBe(`epic-ready:${task.id}`);
-		expect(out).toContain(`engine decompose-apply ${task.id}`);
-	});
-
-	it("runs evaluating mechanically (kind:script) — no dispatch payload, no session spawn (BACK-686.2)", async () => {
-		const { task } = await core.createTaskFromInput({ title: "Epic to evaluate", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "evaluating" } as Task, false);
-
-		const out = execFileSync("bun", [CLI_PATH, "engine", "dispatch", task.id], {
-			cwd: projectRoot,
-			encoding: "utf8",
-			stdio: ["ignore", "pipe", "ignore"],
-		});
-
-		// Mechanical result line, not an "epic-eval-due:<id>" agent-dispatch payload.
-		expect(out).not.toContain("epic-eval-due:");
-		expect(out).not.toContain("Do NOT re-arm the Monitor");
-		expect(out).toContain(`${task.id} evaluated mechanically (kind:script)`);
-
-		const updated = await core.getTask(task.id);
-		// no children -> anyNeedsHuman is false -> done (same aggregation rule as before)
-		expect(updated?.phase).toBe("done");
+		// Same self-contained basic-ready payload as any other implementing task — the
+		// primitive-executor skill (dispatched via this payload) is the one that judges
+		// leaf vs compound and, if compound, calls `engine decompose-apply` itself.
+		expect(out.split("\n")[0]).toBe(`basic-ready:${task.id}`);
 	});
 });
 
@@ -225,9 +207,9 @@ describe("scanReadyLines — engine-boundary self-clear (AC #4)", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("emits a ready task, then stops once its phase advances off ready", async () => {
+	it("emits an implementing task, then stops once its phase advances off implementing", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Bridge", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		expect(scanReadyLines(await core.queryTasks({}))).toContain(`basic-ready:${task.id}`);
 

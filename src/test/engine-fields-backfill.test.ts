@@ -52,58 +52,58 @@ describe("deriveBarePhase", () => {
 });
 
 describe("resolvePipelinePhase", () => {
-	it("maps legacy Proposal → authoring/draft", () => {
-		expect(resolvePipelinePhase("Basic: Proposal")).toEqual({ pipeline_id: "authoring", phase: "draft" });
+	it("maps legacy Proposal → authoring/drafting", () => {
+		expect(resolvePipelinePhase("Basic: Proposal")).toEqual({ pipeline_id: "authoring", phase: "drafting" });
 	});
 
 	it("maps legacy Plan → authoring/refining", () => {
 		expect(resolvePipelinePhase("Basic: Plan")).toEqual({ pipeline_id: "authoring", phase: "refining" });
 	});
 
-	it("maps Backlog/Draft/Refining → authoring same-name phase", () => {
+	it("maps Backlog/Draft/Refining → authoring same-name phase (draft → drafting, BACK-686.3)", () => {
 		expect(resolvePipelinePhase("Basic: Backlog")).toEqual({ pipeline_id: "authoring", phase: "backlog" });
-		expect(resolvePipelinePhase("Basic: Draft")).toEqual({ pipeline_id: "authoring", phase: "draft" });
+		expect(resolvePipelinePhase("Basic: Draft")).toEqual({ pipeline_id: "authoring", phase: "drafting" });
 		expect(resolvePipelinePhase("Basic: Refining")).toEqual({ pipeline_id: "authoring", phase: "refining" });
 	});
 
-	it("maps In Progress → execution/ready (claim layer, never persisted as a phase)", () => {
-		expect(resolvePipelinePhase("Basic: In Progress")).toEqual({ pipeline_id: "execution", phase: "ready" });
+	it("maps In Progress → execution/implementing (claim layer, never persisted as a phase)", () => {
+		expect(resolvePipelinePhase("Basic: In Progress")).toEqual({ pipeline_id: "execution", phase: "implementing" });
 	});
 
-	it("maps Ready/Decomposing/Awaiting Children/Evaluating/Needs Human/Done → execution same-name phase", () => {
-		expect(resolvePipelinePhase("Basic: Ready")).toEqual({ pipeline_id: "execution", phase: "ready" });
-		expect(resolvePipelinePhase("Basic: Decomposing")).toEqual({ pipeline_id: "execution", phase: "decomposing" });
+	it("maps Ready/Decomposing/Awaiting Children/Evaluating/Needs Human/Done → execution's unified phases (BACK-686.3)", () => {
+		expect(resolvePipelinePhase("Basic: Ready")).toEqual({ pipeline_id: "execution", phase: "implementing" });
+		expect(resolvePipelinePhase("Basic: Decomposing")).toEqual({ pipeline_id: "execution", phase: "implementing" });
 		expect(resolvePipelinePhase("Basic: Awaiting Children")).toEqual({
 			pipeline_id: "execution",
 			phase: "awaiting-children",
 		});
-		expect(resolvePipelinePhase("Basic: Evaluating")).toEqual({ pipeline_id: "execution", phase: "evaluating" });
+		expect(resolvePipelinePhase("Basic: Evaluating")).toEqual({ pipeline_id: "execution", phase: "adjudicating" });
 		expect(resolvePipelinePhase("Basic: Needs Human")).toEqual({ pipeline_id: "execution", phase: "needs-human" });
 		expect(resolvePipelinePhase("Basic: Done")).toEqual({ pipeline_id: "execution", phase: "done" });
 	});
 
-	it("maps Spike → exploration/spike", () => {
-		expect(resolvePipelinePhase("Basic: Spike")).toEqual({ pipeline_id: "exploration", phase: "spike" });
+	it("maps Spike → exploration/spiking (BACK-686.3)", () => {
+		expect(resolvePipelinePhase("Basic: Spike")).toEqual({ pipeline_id: "exploration", phase: "spiking" });
 	});
 });
 
 describe("computeBackfillFields", () => {
-	it("selects authoring/draft for a legacy Proposal task instead of execution", () => {
+	it("selects authoring/drafting for a legacy Proposal task instead of execution", () => {
 		const task = baseTask({ status: "Basic: Proposal" });
 		const patch = computeBackfillFields(task);
 		expect(patch.pipeline_id).toBe("authoring");
-		expect(patch.phase).toBe("draft");
+		expect(patch.phase).toBe("drafting");
 	});
 
-	it("repositions a historically mis-tagged task (execution + illegal phase 'proposal') to authoring/draft", () => {
+	it("repositions a historically mis-tagged task (execution + illegal phase 'proposal') to authoring/drafting", () => {
 		const task = baseTask({ pipeline_id: "execution", phase: "proposal", status: "Basic: Proposal" });
 		const patch = computeBackfillFields(task);
 		expect(patch.pipeline_id).toBe("authoring");
-		expect(patch.phase).toBe("draft");
+		expect(patch.phase).toBe("drafting");
 	});
 
 	it("leaves a legal (pipeline_id, phase) combo untouched", () => {
-		const task = baseTask({ pipeline_id: "execution", phase: "ready", status: "Basic: Proposal" });
+		const task = baseTask({ pipeline_id: "execution", phase: "implementing", status: "Basic: Proposal" });
 		const patch = computeBackfillFields(task);
 		expect(patch.pipeline_id).toBeUndefined();
 		expect(patch.phase).toBeUndefined();
@@ -113,7 +113,21 @@ describe("computeBackfillFields", () => {
 		const task = baseTask({ status: "Basic: In Progress" });
 		const patch = computeBackfillFields(task);
 		expect(patch.pipeline_id).toBe("execution");
-		expect(patch.phase).toBe("ready");
+		expect(patch.phase).toBe("implementing");
+	});
+
+	it("renames a directly-persisted legacy 'ready' phase to 'implementing' regardless of status (BACK-686.3 AC#1)", () => {
+		const task = baseTask({ pipeline_id: "execution", phase: "ready", status: "" });
+		const patch = computeBackfillFields(task);
+		expect(patch.pipeline_id).toBe("execution");
+		expect(patch.phase).toBe("implementing");
+	});
+
+	it("renames a directly-persisted legacy 'decomposing' phase to 'implementing' (BACK-686.3 AC#4)", () => {
+		const task = baseTask({ pipeline_id: "execution", phase: "decomposing", status: "" });
+		const patch = computeBackfillFields(task);
+		expect(patch.pipeline_id).toBe("execution");
+		expect(patch.phase).toBe("implementing");
 	});
 
 	it("derives parent_id from legacy parentTaskId when parent_id is blank", () => {
@@ -132,7 +146,7 @@ describe("computeBackfillFields", () => {
 	it("returns no changes (empty object) when all structural fields are already present", () => {
 		const task = baseTask({
 			pipeline_id: "execution",
-			phase: "ready",
+			phase: "implementing",
 			parent_id: "back-600",
 		});
 		const patch = computeBackfillFields(task);
@@ -176,10 +190,10 @@ describe("runBackfill", () => {
 		const reloadedChild = await core.getTask(child.id);
 
 		expect(reloadedParent?.pipeline_id).toBe("authoring");
-		expect(reloadedParent?.phase).toBe("draft");
+		expect(reloadedParent?.phase).toBe("drafting");
 
 		expect(reloadedChild?.pipeline_id).toBe("authoring");
-		expect(reloadedChild?.phase).toBe("draft");
+		expect(reloadedChild?.phase).toBe("drafting");
 		expect(reloadedChild?.parent_id).toBe(parent.id);
 	});
 
@@ -224,7 +238,7 @@ describe("runBackfill", () => {
 
 		expect(reloadedA?.pipeline_id).toBe("authoring");
 		expect(reloadedB?.pipeline_id).toBe("execution");
-		expect(reloadedB?.phase).toBe("ready");
+		expect(reloadedB?.phase).toBe("implementing");
 	});
 
 	it("second run over already-repositioned tasks is a true no-op", async () => {

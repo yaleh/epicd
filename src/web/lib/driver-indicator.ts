@@ -66,7 +66,7 @@ export type GateAction = "approve" | "escalate";
  * approve = "promote past the human gate": the next actor="machine" phase in the same
  * pipeline, searching forward from the current phase and wrapping around if none is
  * found forward (e.g. execution's "needs-human" is the last human phase before the
- * terminal "done", so approving it wraps to "ready" — requeue for another machine pass).
+ * terminal "done", so approving it wraps to "implementing" — requeue for another machine pass).
  * Returns null when the pipeline/phase is unknown or declares no machine-actor phase at all.
  */
 export function computeApprovePhase(pipelineId: string | undefined, phase: string | undefined): string | null {

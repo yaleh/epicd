@@ -4,7 +4,7 @@
  * Asserts:
  *   1. runEngine() ticks to fixpoint (no pending machine-phase tasks remain).
  *   2. Single-active-driver guard: throws when .active-agents file exists.
- *   3. E2E: a primitive task in "ready" reaches "done" via stub spawn.
+ *   3. E2E: a primitive task in "implementing" reaches "done" via stub spawn.
  *   4. runEngine() is idempotent: second call with no pending work does 0 ticks.
  */
 
@@ -25,7 +25,7 @@ import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
  */
 async function createBoardTask(core: Core, title: string): Promise<Task> {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do" }, false);
-	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "ready" };
+	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "implementing" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }
@@ -72,7 +72,7 @@ describe("runEngine – fixpoint loop", () => {
 		await initializeTestProject(core, "engine-run-test");
 
 		// Children created via decompose carry the engine-derived "Basic: Ready"
-		// status (label("primitive", "ready")) — add it to the configured
+		// status (label("primitive", "implementing")) — add it to the configured
 		// statuses (mirroring this repo's own board, backlog/config.yml) so
 		// createTaskFromInput's canonical-status validation accepts it.
 		const config = await core.filesystem.loadConfig();
@@ -98,7 +98,7 @@ describe("runEngine – fixpoint loop", () => {
 		await expect(runEngine(core, stubWorktree)).rejects.toThrow("Single-active-driver guard");
 	});
 
-	it("E2E: primitive task ready → done (stub spawn)", async () => {
+	it("E2E: primitive task implementing → done (stub spawn)", async () => {
 		const task = await createBoardTask(core, "E2E task 1");
 
 		const result = await runEngine(core, stubWorktree);
@@ -108,7 +108,7 @@ describe("runEngine – fixpoint loop", () => {
 		expect(updated?.phase).toBe("done");
 	});
 
-	it("E2E: primitive task ready → needs-human (failing spawn)", async () => {
+	it("E2E: primitive task implementing → needs-human (failing spawn)", async () => {
 		const task = await createBoardTask(core, "E2E task 2");
 
 		const result = await runEngine(core, failingWorktree);
@@ -121,7 +121,12 @@ describe("runEngine – fixpoint loop", () => {
 	it("E2E: compound epic decomposes, then engine drives the created children to done", async () => {
 		// A compound epic enrolled in the execution pipeline (this is the E1 shape).
 		const { task } = await core.createTaskFromInput({ title: "E2E epic", status: "To Do" }, false);
-		const epic = { ...task, labels: [...(task.labels ?? []), "kind:epic"], pipeline_id: "execution", phase: "ready" };
+		const epic = {
+			...task,
+			labels: [...(task.labels ?? []), "kind:epic"],
+			pipeline_id: "execution",
+			phase: "implementing",
+		};
 		await core.updateTask(epic, false);
 
 		// Worker proposes two children; the engine creates them and drives them.

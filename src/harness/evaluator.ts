@@ -8,13 +8,14 @@
  *     terminal (`done` or `needs-human`) is advanced to `adjudicating` (actor: machine),
  *     replacing scan-loop.cjs's legacy `scanEvalDueEpics` status-string predicate.
  *     BACK-686.2 (Phase D, AC#5): this used to target `evaluating`; the epic path is
- *     now `awaiting-children -> adjudicating(gate) -> done/needs-human` — there is no
- *     independent `evaluating` phase left in the runtime path (evaluating still exists
- *     as a declared pipeline state, kind:script, reachable only via the manual
- *     `engine evaluate` CLI debug command). Once in `adjudicating`, the epic is picked
- *     up by the SAME generic `Interpreter.scan` machinery `decomposing`/`ready` already
- *     use, and `Driver.tick`'s adjudicating branch calls `gateAdjudicating`, whose epic
- *     path folds this module's IA+aggregation logic in directly (`adjudicate-gate.ts`).
+ *     now `awaiting-children -> adjudicating(gate) -> done/needs-human`. BACK-686.3
+ *     retires `evaluating` as a declared pipeline state entirely (it was already
+ *     unreachable at runtime) — this module's IA+aggregation logic (`computeEpicVerdict`)
+ *     lives on and is invoked directly by `gateAdjudicating` (`adjudicate-gate.ts`) for
+ *     the epic path, and by the manual `engine evaluate` CLI debug command
+ *     (`evaluateEpic`, below) — neither depends on `evaluating` being a legal phase.
+ *     Once in `adjudicating`, the epic is picked up by the SAME generic
+ *     `Interpreter.scan` machinery `implementing` already uses.
  *  2. `evaluateEpic` — the epic-eval-due dispatch handler. BACK-657.3 (ADR-019 gap fix):
  *     this used to ONLY aggregate children's terminal phases, never running the epic's
  *     own `## Integration Acceptance` — an epic could reach `done` with its own
@@ -88,21 +89,20 @@ export async function advanceAwaitingChildrenToAdjudicating(core: Core): Promise
 }
 
 /**
- * Evaluate an epic currently in `evaluating`. BACK-657.3: first runs the epic's own
- * `## Integration Acceptance` shell commands (if the Description declares any) — any
- * failing command routes the epic straight to `needs-human`, never falling through to
- * children aggregation. Only once Integration Acceptance is all-green (or absent) does
- * it aggregate children's terminal phases into the epic's own terminal phase, as
- * before: any child `needs-human` → epic `needs-human`; otherwise (all children
- * `done`) → epic `done`.
+ * Manually re-run an epic's IA+aggregation logic (debug/CLI entry point, `engine
+ * evaluate`). BACK-657.3: first runs the epic's own `## Integration Acceptance` shell
+ * commands (if the Description declares any) — any failing command routes the epic
+ * straight to `needs-human`, never falling through to children aggregation. Only once
+ * Integration Acceptance is all-green (or absent) does it aggregate children's
+ * terminal phases into the epic's own terminal phase: any child `needs-human` → epic
+ * `needs-human`; otherwise (all children `done`) → epic `done`.
  *
  * BACK-686.2: the actual verdict logic is factored into `computeEpicVerdict` below —
- * a pure-of-store function over `(task, children, repoRoot)` — so both this
- * `Core`-based entry point (kept for `engine evaluate`, the manual/debug CLI command)
- * and `Driver.tick`'s in-tick `execution/evaluating` branch (`src/engine/driver.ts`)
- * share exactly one implementation of the IA+aggregation logic. `evaluating` is now
- * `kind:script` (`plugin/skills/phase-coverage.json`) — the epic-evaluate skill that
- * used to be dispatched for this phase is retired.
+ * a pure-of-store function over `(task, children, repoRoot)` — so this `Core`-based
+ * entry point and `gateAdjudicating`'s epic path (`src/engine/adjudicate-gate.ts`,
+ * BACK-686.3) share exactly one implementation of the IA+aggregation logic. There is
+ * no dedicated `evaluating` phase or dispatched skill any more — this function is a
+ * manual/debug re-run, not something the engine dispatches to on its own.
  */
 export async function evaluateEpic(core: Core, epicId: string): Promise<void> {
 	const task = await core.getTask(epicId);

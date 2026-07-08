@@ -1,6 +1,6 @@
 {
 	"skill": "primitive-executor",
-	"phase": "execution/ready",
+	"phase": "execution/implementing",
 	"creation_path": "extract",
 	"provenance": "src/engine/dispatch.ts"
 }

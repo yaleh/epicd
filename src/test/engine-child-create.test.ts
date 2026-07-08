@@ -40,7 +40,7 @@ describe("engine-field-aware child task creation", () => {
 				title: "Child task",
 				status: "To Do",
 				pipeline_id: "execution",
-				phase: "ready",
+				phase: "implementing",
 				parent_id: epic.id,
 			},
 			false,
@@ -50,7 +50,7 @@ describe("engine-field-aware child task creation", () => {
 		const loaded = await core.getTask(child.id);
 		expect(loaded).toBeDefined();
 		expect(loaded?.pipeline_id).toBe("execution");
-		expect(loaded?.phase).toBe("ready");
+		expect(loaded?.phase).toBe("implementing");
 		expect(loaded?.parent_id).toBe(epic.id);
 	});
 
@@ -62,7 +62,7 @@ describe("engine-field-aware child task creation", () => {
 				title: "Child task",
 				status: "To Do",
 				pipeline_id: "execution",
-				phase: "ready",
+				phase: "implementing",
 				parent_id: epic.id,
 			},
 			false,
@@ -74,11 +74,11 @@ describe("engine-field-aware child task creation", () => {
 
 		// interpreter.scan should emit an item-ready event for this task
 		const interpreter = new Interpreter();
-		interpreter.register(executionPipeline, "ready", async () => {});
+		interpreter.register(executionPipeline, "implementing", async () => {});
 
 		const events = interpreter.scan([loaded]);
 		expect(events.length).toBe(1);
-		expect(events[0]).toBe(`item-ready: execution:ready:${child.id}`);
+		expect(events[0]).toBe(`item-ready: execution:implementing:${child.id}`);
 	});
 
 	it("task without engine fields is not visible to interpreter.scan()", async () => {
@@ -88,7 +88,7 @@ describe("engine-field-aware child task creation", () => {
 		if (!loaded) throw new Error("task not found after create");
 
 		const interpreter = new Interpreter();
-		interpreter.register(executionPipeline, "ready", async () => {});
+		interpreter.register(executionPipeline, "implementing", async () => {});
 
 		const events = interpreter.scan([loaded]);
 		expect(events.length).toBe(0);
@@ -102,7 +102,7 @@ describe("engine-field-aware child task creation", () => {
 			title: "MCP child task",
 			status: "To Do",
 			pipeline_id: "execution",
-			phase: "ready",
+			phase: "implementing",
 			parent_id: epic.id,
 			dodGates: ["echo ok"],
 		});
@@ -110,7 +110,7 @@ describe("engine-field-aware child task creation", () => {
 		const loaded = await core.getTask("task-2");
 		expect(loaded).toBeDefined();
 		expect(loaded?.pipeline_id).toBe("execution");
-		expect(loaded?.phase).toBe("ready");
+		expect(loaded?.phase).toBe("implementing");
 		expect(loaded?.parent_id).toBe(epic.id);
 		expect(loaded?.dod).toEqual([{ text: "echo ok", checked: false }]);
 	});

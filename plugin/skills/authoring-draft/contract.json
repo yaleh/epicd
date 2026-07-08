@@ -1,6 +1,6 @@
 {
 	"skill": "authoring-draft",
-	"phase": "authoring/draft",
+	"phase": "authoring/drafting",
 	"creation_path": "extract",
 	"provenance": "backlog/tasks/back-663 - 废弃旧-Draft-实体，折叠进-authoring-draft-phase.md",
 	"provenance_note": "Extracted from the proposal-draft-plus-self-review-loop methodology, which has been run and converged repeatedly across this repo's own task history (e.g. this cited task shows an explicit 'Proposal self-review: APPROVED' round before the description was promoted to plan-drafting; the same pattern recurs across dozens of tasks under backlog/tasks/, including this repo's own genesis tasks). This is empirical convergence evidence from repeated real use, not a dedicated docs/research/ methodology-bootstrapping write-up — see BACK-657.4's implementation notes for the full extract-vs-reference judgment call, since the shipped contract.json schema (plugin/skills/README.md) only recognizes extract/mechanical/experiment-pending and has no separate 'reference' bucket."

@@ -1,0 +1,80 @@
+# BACK-686.3 agent progress log
+
+## Phase A (AC#1): ready -> implementing rename
+Done in a prior session for production code; this session finished sweeping every
+remaining test-suite reference (fixtures, comments, config.yml `statuses:` lists used
+by cross-branch conflict resolution). `grep -rn '"ready"' src/engine/pipeline.ts`
+empty. `bun test src/test/pipeline.test.ts src/test/engine-fields-backfill.test.ts` green.
+
+## Phase B (AC#2, AC#5): promote de-fork; kind:epic as overridable hint
+`src/test/engine-promote.test.ts` already covers epic+primitive both landing on
+`execution/implementing`. `plugin/skills/promote/SKILL.md` updated (was still
+describing the old ready/decomposing fork). `plugin/skills/primitive-executor/SKILL.md`
+already documents the both-direction kind:epic override (Phase 0) as the AC#5 mechanism
+(prompt-driven judgment, not code — the CLI/decompose-apply plumbing it depends on is
+tested in engine-decompose.test.ts / task-provenance.test.ts).
+
+## Phase C (AC#3, AC#4): decompose folds into implementing; decomposing retires
+Production done previously (pipeline.ts, phase-coverage.json, decomposer.ts wiring).
+This session confirmed `engine-compound.test.ts` (Driver-level leaf/compound branch
+coverage) and `engine-decompose.test.ts` (real child creation) still pass with the new
+phase name and cover AC#3's branch split at the Driver/decomposer boundary (the
+skill-level decompose judgment itself is prompt-driven, not unit-testable).
+
+## Phase D (AC#6): forward-only guard, guarded single-step retreat
+Added `src/test/engine-implementing-no-flowback.test.ts` (new): proves a
+`classification: "decomposition"` gap retreats exactly one step from `adjudicating` to
+`entry_phase: "execution/implementing"` via the existing retreat.ts guard, rejects the
+same retreat attempted from any other phase, and proves Driver.tick's own forward scan
+never dispatches/mutates an `awaiting-children` (actor:none) task on its own.
+3 pass, 0 fail.
+
+## Phase E (AC#7): draft->drafting, spike->spiking
+Done previously; this session's sweep confirmed no stale literal remains outside
+intentional legacy-mapping code (engine-fields-backfill.ts) and skill-lint test
+fixtures (unrelated to phase legality, never validated against a real pipeline).
+
+## Phase F (AC#8): bootstrap self-hosting meter
+Added `src/test/engine-implementing-self-host-e2e.test.ts` (new): drives one real epic
+end-to-end using only engine-owned pieces (`runEngine` + `makeDecomposer` +
+`advanceAwaitingChildrenToAdjudicating` + `Driver.tick`) — no monitor/external driver —
+through implementing -> awaiting-children (children auto-resolve to done via the same
+runEngine run) -> adjudicating -> done. 1 pass, 0 fail.
+
+## AC#9: MCP/CLI surface unchanged
+`git diff --stat src/mcp/` — empty (no MCP files touched at all this task).
+`git diff src/cli.ts | grep -E '^\+.*\.(option|command|argument)\('` — empty (no new/
+changed CLI option/command/argument declarations; only literal `--phase`/phase-value
+strings changed in cli.ts, promote's phase assignment, and comments).
+
+## AC#10: exactly 5 execution phases
+`src/engine/pipeline.ts`'s `executionPipeline.states` = implementing, awaiting-children,
+adjudicating, needs-human, done (confirmed via grep + pipeline.test.ts).
+
+## Test-suite sweep (this session's main body of work)
+Swept ~30 test files for stale `"ready"`/`"decomposing"`/`"evaluating"`/`"draft"`/
+`"spike"` phase literals left over from the prior session's production-code rename,
+verifying each file individually with `bun test <file>` before moving on. Notable
+non-trivial fix: `src/test/epicd-plugin-synthetic-repo.test.ts` had a stale
+`backlog/config.yml` `statuses:` vocabulary list (missing "Implementing") that caused
+`Core.loadTasks()`'s cross-branch `resolveTaskConflict` ("most_progressed" ranking) to
+pick a stale branch-tip task snapshot over the correct, newer local one — fixed by
+adding "Implementing"/"Adjudicating" to that test's status list (test-content fix only,
+no production code changed).
+
+Also fixed a genuine Biome-flagged regex-literal-in-comment issue in
+`src/engine/pipeline.ts` (a doc comment contained a literal quoted `"ready"` inside a
+backtick code example, which `pipeline.test.ts`'s AC#1 grep-style test correctly caught
+as a false positive re-introduction) by rewording the comment.
+
+## Acceptance Gate (final, all green)
+- `bun test --parallel`: 2061 pass, 2 skip, 0 fail, 6300 expect() calls, 267 files.
+- `bunx tsc --noEmit`: clean, no errors.
+- `bun run check .`: 0 errors, 12 warnings (matches pre-existing baseline exactly,
+  confirmed via `git stash` diff before/after — none of the 12 warnings are new).
+- `bun test src/test/pipeline-coupling-discipline.test.ts src/test/harness-evaluator.test.ts`: 14 pass, 0 fail.
+- Pipeline state count: executionPipeline has exactly 5 states (AC#10).
+- MCP/CLI surface: unchanged (AC#9, verified via empty diffs above).
+
+Task ready for completion per dispatch protocol: commit (excluding backlog/tasks/**),
+then write the done signal file.

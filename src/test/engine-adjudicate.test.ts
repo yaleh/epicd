@@ -22,7 +22,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 		title: "Test Task",
 		status: "Basic: Ready",
 		pipeline_id: "execution",
-		phase: "ready",
+		phase: "implementing",
 		assignee: [],
 		labels: [],
 		dependencies: [],

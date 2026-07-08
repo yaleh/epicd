@@ -122,7 +122,7 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		let config = readFileSync(configPath, "utf8");
 		config = config.replace(
 			/^statuses:.*$/m,
-			'statuses: ["To Do", "In Progress", "Done", "Backlog", "Ready", "Needs Human"]',
+			'statuses: ["To Do", "In Progress", "Done", "Backlog", "Implementing", "Adjudicating", "Needs Human"]',
 		);
 		writeFileSync(configPath, config);
 
@@ -142,7 +142,7 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 
 		// ---- promote skill: `epicd engine promote <id>` ----
 		const promoteOut = sh(`${scratchBin} engine promote ${taskId}`, scratchDir);
-		expect(promoteOut).toContain("execution/ready");
+		expect(promoteOut).toContain("execution/implementing");
 
 		// ---- run skill's worker chain: handle-basic-ready.sh (claim + worktree) ----
 		const handleBasicReadySh = join(scratchDir, "plugin", "scripts", "handle-basic-ready.sh");

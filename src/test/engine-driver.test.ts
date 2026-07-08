@@ -110,10 +110,10 @@ describe("Driver detect→spawn→merge→advance loop", () => {
 	});
 
 	it("adjudicates to adjudicating for a primitive task with success result (BACK-682 AC#1)", async () => {
-		// Primitive task (no subtasks) in "ready" → spawn (success) → adjudicate → adjudicating
+		// Primitive task (no subtasks) in "implementing" → spawn (success) → adjudicate → adjudicating
 		const { executionPipeline } = await import("../engine/pipeline.ts");
 		const task: Task = {
-			...makeTask("task-1", "ready"),
+			...makeTask("task-1", "implementing"),
 			pipeline_id: "execution",
 		};
 		const { store, all } = makeStore([task]);

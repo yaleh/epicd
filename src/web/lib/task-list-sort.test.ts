@@ -32,13 +32,13 @@ function makeTask(overrides: Partial<Task> & Pick<Task, "id">): Task {
 const humanGateTask = makeTask({ id: "task-101", pipeline_id: "execution", phase: "needs-human" });
 
 // Scenario 2 (AC#7): actor=machine with an active Coordinator claim -> 🤖.
-const activeClaimTask = makeTask({ id: "task-102", pipeline_id: "execution", phase: "ready" });
+const activeClaimTask = makeTask({ id: "task-102", pipeline_id: "execution", phase: "implementing" });
 
 // Scenario 3 (AC#7): actor=machine with an expired/orphaned (stale) claim -> ⚠️.
-const orphanedClaimTask = makeTask({ id: "task-103", pipeline_id: "execution", phase: "ready" });
+const orphanedClaimTask = makeTask({ id: "task-103", pipeline_id: "execution", phase: "implementing" });
 
 // Extra fixtures to exercise the rest of the priority ladder.
-const queuedTask = makeTask({ id: "task-104", pipeline_id: "execution", phase: "ready" });
+const queuedTask = makeTask({ id: "task-104", pipeline_id: "execution", phase: "implementing" });
 const noPipelineTask = makeTask({ id: "task-105", status: "To Do" });
 const terminalPhaseTask = makeTask({ id: "task-106", pipeline_id: "execution", phase: "done" });
 const terminalStatusTask = makeTask({ id: "task-107", status: "Done" });

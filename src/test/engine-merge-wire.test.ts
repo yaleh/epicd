@@ -31,9 +31,9 @@ function makeTask(id: string, dod: Array<{ text: string; checked: boolean }> = [
 	return {
 		id,
 		title: `Task ${id}`,
-		status: "Basic: Ready",
+		status: "Basic: Implementing",
 		pipeline_id: "execution",
-		phase: "ready",
+		phase: "implementing",
 		filePath: `/fake/${id}.md`,
 		body: "",
 		definitionOfDoneItems: dod,

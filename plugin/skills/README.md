@@ -20,7 +20,7 @@ Every phase-execution skill directory carries a sibling `contract.json` next to 
 ```json
 {
 	"skill": "primitive-executor",
-	"phase": "execution/ready",
+	"phase": "execution/implementing",
 	"creation_path": "extract",
 	"provenance": "docs/research/<experiment-doc>.md"
 }
@@ -28,7 +28,7 @@ Every phase-execution skill directory carries a sibling `contract.json` next to 
 
 Fields (all required, all non-empty strings):
 
-- **`phase`** — `<pipeline_id>/<phase_name>` this skill executes, e.g. `execution/ready`.
+- **`phase`** — `<pipeline_id>/<phase_name>` this skill executes, e.g. `execution/implementing`.
   Must name a real machine-actor phase declared in `src/engine/pipeline.ts`
   (`ALL_PIPELINES`).
 - **`creation_path`** — one of:

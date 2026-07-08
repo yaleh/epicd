@@ -21,9 +21,9 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 	return {
 		id: "task-1",
 		title: "Test Task",
-		status: "Basic: Ready",
+		status: "Basic: Implementing",
 		pipeline_id: "execution",
-		phase: "ready",
+		phase: "implementing",
 		filePath: "/fake/task-1.md",
 		body: "",
 		...overrides,
@@ -140,13 +140,13 @@ describe("completeTask — adjudicate + merge + phase update", () => {
 
 		// Simulate worker completing — it cannot touch the store directly
 		const workerResult: CompletionResult = { success: true };
-		const phaseBeforeComplete = task.phase; // worker sees "ready"
+		const phaseBeforeComplete = task.phase; // worker sees "implementing"
 
 		await completeTask("task-1", workerResult, store);
 
-		// Worker saw "ready"; engine set it to "adjudicating" (BACK-682 AC#1) — the
+		// Worker saw "implementing"; engine set it to "adjudicating" (BACK-682 AC#1) — the
 		// worker never sees or self-declares a terminal phase either way.
-		expect(phaseBeforeComplete).toBe("ready");
+		expect(phaseBeforeComplete).toBe("implementing");
 		expect(getCurrent().phase).toBe("adjudicating");
 	});
 });
