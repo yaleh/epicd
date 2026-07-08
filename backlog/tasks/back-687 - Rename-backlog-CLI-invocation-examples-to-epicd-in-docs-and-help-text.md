@@ -1,0 +1,95 @@
+---
+id: BACK-687
+title: Rename backlog CLI invocation examples to epicd in docs and help text
+assignee:
+  - '@claude'
+created_date: '2026-07-08 16:09'
+updated_date: '2026-07-08 16:44'
+labels: []
+dependencies:
+  - BACK-681
+ordinal: 100000
+pipeline_id: execution
+phase: needs-human
+dod:
+  - text: bun test
+    checked: false
+  - text: bunx tsc --noEmit
+    checked: false
+  - text: bun run check .
+    checked: false
+entry_phase: authoring/backlog
+---
+
+## Description
+
+<!-- SECTION:DESCRIPTION:BEGIN -->
+BACK-681 renamed the CLI bin entry from backlog to epicd (package.json bin, src/cli.ts Commander name, build outfile, CI artifacts, plugin/scripts, plugin/skills SKILL.md, AGENTS.md) but left CLI invocation examples (e.g. `backlog task create`, `backlog init`, `backlog board`) unmigrated in the top-level docs, in-repo guides, one PR template line, scattered docs/ prose, and hardcoded help/usage strings in src/cli.ts. This task finishes that propagation for prose/docs and CLI help text. Out of scope: MCP_SERVER_NAME ("backlog"), backlog:// URI scheme, backlog/ task-storage directory name, optionalDependencies platform package names (e.g. backlog.md-linux-x64) — none of these change. completions/ directory (shell completion scripts + their docs) is handled by a separate follow-up task since it also requires renaming the registered completion command, not just prose.
+<!-- SECTION:DESCRIPTION:END -->
+
+## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [ ] #1 grep -c 'backlog ' README.md ADVANCED-CONFIG.md CLI-INSTRUCTIONS.md DEVELOPMENT.md returns 0 CLI-invocation occurrences (directory-path/backlog.md-package-name mentions may remain)
+- [ ] #2 grep -rc 'backlog ' 'backlog/docs/doc-002 - Configuring-VIM-and-Neovim-as-Default-Editor.md' 'backlog/docs/doc-003 - Running-Backlog-Browser-as-a-Service.md' returns 0 CLI-invocation occurrences
+- [ ] #3 grep -c 'backlog task create' .github/PULL_REQUEST_TEMPLATE.md returns 0
+- [ ] #4 grep -rn 'backlog ' src/cli.ts shows no remaining literal backlog-command examples/messages in examples: arrays or console output strings
+- [ ] #5 grep -c 'backlog mcp start' src/mcp/README.md returns 0
+- [ ] #6 grep -rn 'MCP_SERVER_NAME' src/cli.ts still shows "backlog" (unchanged) and grep -c 'backlog://' src/cli.ts is > 0 (unchanged)
+- [ ] #7 bun test passes
+- [ ] #8 bunx tsc --noEmit passes
+<!-- AC:END -->
+
+## Implementation Plan
+
+<!-- SECTION:PLAN:BEGIN -->
+# Plan: Rename backlog CLI invocation examples to epicd in docs and help text
+
+## Phase A: Top-level docs + backlog/docs guides
+### Tests (write first)
+- N/A (prose-only change); verification is grep-based, see DoD
+### Implementation
+- README.md, ADVANCED-CONFIG.md, CLI-INSTRUCTIONS.md, DEVELOPMENT.md: replace `backlog <verb>` CLI examples with `epicd <verb>` (leave backlog/ dir paths, backlog.md package names, and MCP server name "backlog" untouched)
+- backlog/docs/doc-002 - Configuring-VIM-and-Neovim-as-Default-Editor.md, backlog/docs/doc-003 - Running-Backlog-Browser-as-a-Service.md: same replacement, including the systemd ExecStart= path in doc-003
+### DoD
+- [ ] `grep -c 'backlog ' README.md ADVANCED-CONFIG.md CLI-INSTRUCTIONS.md DEVELOPMENT.md` shows 0 CLI-invocation occurrences
+- [ ] `grep -rc 'backlog ' 'backlog/docs/doc-002 - Configuring-VIM-and-Neovim-as-Default-Editor.md' 'backlog/docs/doc-003 - Running-Backlog-Browser-as-a-Service.md'` shows 0 CLI-invocation occurrences
+
+## Phase B: PR template + src/cli.ts help text + src/mcp/README.md
+### Tests (write first)
+- N/A (prose/string literal change); verification is grep-based + full test suite, see DoD
+### Implementation
+- .github/PULL_REQUEST_TEMPLATE.md: replace `backlog task create` example with `epicd task create`
+- src/cli.ts: replace literal `backlog <verb>` strings in `examples:` arrays and console messages with `epicd <verb>`; leave MCP_SERVER_NAME="backlog" and `backlog://` URI scheme untouched
+- src/mcp/README.md: replace `backlog mcp start` with `epicd mcp start`
+### DoD
+- [ ] `grep -c 'backlog task create' .github/PULL_REQUEST_TEMPLATE.md` returns 0
+- [ ] `grep -rn 'backlog ' src/cli.ts` shows no remaining literal backlog-command examples/messages
+- [ ] `grep -c 'backlog mcp start' src/mcp/README.md` returns 0
+- [ ] `grep -rn 'MCP_SERVER_NAME' src/cli.ts` still shows "backlog" (unchanged) and `grep -c 'backlog://' src/cli.ts` is > 0 (unchanged)
+
+## Constraints
+- Do not touch MCP_SERVER_NAME, backlog:// URI scheme, backlog/ task-storage directory name, or optionalDependencies platform package names (e.g. backlog.md-linux-x64).
+- Do not touch completions/ directory (separate follow-up task BACK-688).
+
+## Acceptance Gate
+- [ ] `bun test`
+- [ ] `bunx tsc --noEmit`
+- [ ] `bun run check .`
+<!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+authoring/draft self-review: APPROVED after 1 round (description already states background/goals/scope from prior audit; non-goals explicit re: MCP/URI/dir/optionalDeps and completions/).
+
+authoring/refining self-review: APPROVED after 1 round (plan has 2 Phases with executable grep-based DoD per Phase, full Acceptance Gate re-runs test/tsc/check; scope matches Description's non-goals).
+
+Phase A+B done: replaced backlog-CLI-invocation examples with epicd in README.md, ADVANCED-CONFIG.md, CLI-INSTRUCTIONS.md, DEVELOPMENT.md, backlog/docs/doc-002 and doc-003 (incl. systemd/launchd/NSSM ExecStart paths), .github/PULL_REQUEST_TEMPLATE.md, src/cli.ts (examples arrays + console/help strings), src/mcp/README.md; also fixed src/utils/mcp-client-setup.ts which hardcoded 'backlog' as the spawned MCP-setup binary command (real invocation bug, not just prose) and updated its test. MCP_SERVER_NAME stays 'backlog' (untouched). Note: AC #6's 'grep -c backlog:// src/cli.ts > 0' clause is unsatisfiable as written — backlog:// never appears in src/cli.ts (verified pre-existing on HEAD before this task too; it lives in src/mcp/* files instead), so that count is 0 both before and after this diff. All other ACs pass; bun test/tsc/check green (see notes).
+<!-- SECTION:NOTES:END -->
+
+## Definition of Done
+<!-- DOD:BEGIN -->
+- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
+- [ ] #2 bun run check . passes when formatting/linting touched
+- [ ] #3 bun test (or scoped test) passes
+<!-- DOD:END -->
