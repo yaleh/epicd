@@ -56,7 +56,7 @@ describe("Driver adjudicating retreat — worktree/claim preservation (BACK-682 
 		// for the "full" audit depth (here: an area:engine label) to still reach
 		// the dispatch-skill path this test exercises; otherwise the light path
 		// resolves straight to done without ever calling adjudicateHandler.
-		const task = makeTask("task-1", "adjudicating", { entry_phase: "ready", labels: ["area:engine"] });
+		const task = makeTask("task-1", "adjudicating", { entry_phase: "implementing", labels: ["area:engine"] });
 		const { store, all } = makeStore([task]);
 
 		const spawnCalls: string[] = [];
@@ -82,7 +82,7 @@ describe("Driver adjudicating retreat — worktree/claim preservation (BACK-682 
 		await driver.tick(all());
 
 		// Retreat moved the task back to its entry_phase — no re-spawn/re-merge happened.
-		expect(all().find((t) => t.id === "task-1")?.phase).toBe("ready");
+		expect(all().find((t) => t.id === "task-1")?.phase).toBe("implementing");
 		expect(spawnCalls).toEqual([]);
 		expect(mergeCalls).toEqual([]);
 	});
@@ -92,7 +92,7 @@ describe("Driver adjudicating retreat — worktree/claim preservation (BACK-682 
 		// for the "full" audit depth (here: an area:engine label) to still reach
 		// the dispatch-skill path this test exercises; otherwise the light path
 		// resolves straight to done without ever calling adjudicateHandler.
-		const task = makeTask("task-1", "adjudicating", { entry_phase: "ready", labels: ["area:engine"] });
+		const task = makeTask("task-1", "adjudicating", { entry_phase: "implementing", labels: ["area:engine"] });
 		const { store, all } = makeStore([task]);
 
 		const worktree: WorktreeOps = {
@@ -114,7 +114,7 @@ describe("Driver adjudicating retreat — worktree/claim preservation (BACK-682 
 		expect(updated?.retreat_log?.length).toBe(1);
 		expect(updated?.gap_history).toEqual(["abc123"]);
 		expect(updated?.retreat_log?.[0]?.from).toBe("execution/adjudicating");
-		expect(updated?.retreat_log?.[0]?.toPhase).toBe("ready");
+		expect(updated?.retreat_log?.[0]?.toPhase).toBe("implementing");
 	});
 });
 

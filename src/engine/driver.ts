@@ -95,21 +95,11 @@ export class Driver {
 						const repoRoot = safety?.repoPath ?? process.cwd();
 						// BACK-686.2 AC#6: dispatch decides purely from the phase's declared
 						// `kind` (plugin/skills/phase-coverage.json), not a hardcoded phase-name
-						// match — a `kind:script` phase is always handled by an in-tick call,
-						// never a dispatched skill/spawned session, regardless of its name.
+						// match. BACK-686.3: the only remaining machine-actor phases are
+						// `implementing` (kind:skill) and `adjudicating` (kind:gate) —
+						// `evaluating` (formerly kind:script) is retired as a declared phase, its
+						// IA+aggregation logic folded entirely into the `adjudicating` gate below.
 						const kind = kindForPhase(repoRoot, `${pipeline.id}/${phase}`);
-
-						// BACK-686.2 AC#2/#3: evaluating is `kind:script` — a mechanical,
-						// in-tick call to the epic-evaluate logic (IA + child aggregation),
-						// never a dispatched skill/spawned session. Distinct from
-						// `adjudicating` below (kind:gate), which CAN escalate to a dispatch.
-						if (kind === "script") {
-							const { computeEpicVerdict } = await import("../harness/evaluator.js");
-							const children = this.tasksSnapshot.filter((t) => t.parent_id === task.id);
-							const verdict = await computeEpicVerdict(task, children, repoRoot);
-							await store.updateTask({ ...task, phase: verdict });
-							return;
-						}
 
 						// BACK-682: adjudicating is resolved by an independent judgment
 						// call (audit), never re-spawned like a fresh primitive attempt.

@@ -69,9 +69,9 @@ describe("engine-tracer-fixpoint — Stage 1 sandbox convergence", () => {
 
 	it("routes primitive task to done via role branching (not linear advance)", async () => {
 		// Primitive task (no subtasks) + stub spawn success:
-		//   ready(machine) → adjudicate → done(none)
-		// Role-based routing skips decomposing/evaluating for primitive tasks.
-		const task = makeTask("e-1", "ready", "execution");
+		//   implementing(machine) → adjudicate → done(none)
+		// Role-based routing skips the compound/decompose branch for primitive tasks.
+		const task = makeTask("e-1", "implementing", "execution");
 		const result = await runToFixpoint([task], [executionPipeline]);
 
 		const finalTask = result.tasks.find((t) => t.id === "e-1");

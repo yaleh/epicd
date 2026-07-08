@@ -2,7 +2,7 @@
  * Exploration pipeline handlers (BACK-603 603.3).
  *
  * A `WorktreeOps` implementation for `explorationPipeline`'s single machine
- * phase ("spike"). Lives entirely at the handler/data layer — it is injected
+ * phase ("spiking"). Lives entirely at the handler/data layer — it is injected
  * into the generic `Driver` exactly the way `executionPipeline`'s worktree ops
  * are, and never requires an interpreter/driver/complete/adjudicate edit
  * (AC#3): registering a new pipeline only touches data definition (pipeline.ts)

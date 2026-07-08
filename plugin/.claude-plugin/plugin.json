@@ -1,7 +1,7 @@
 {
 	"name": "epicd",
 	"version": "1.0.0",
-	"description": "epicd skill set: operation skills (propose, promote, inbox, run, init), lifecycle skills (primitive-executor, epic-decompose, adjudicate, exploration-spike, authoring-draft, authoring-refining), and methodology skills (fixpoint-convergence, epicd-run). execution/evaluating is now kind:script (mechanical, no dispatched skill — BACK-686.2).",
+	"description": "epicd skill set: operation skills (propose, promote, inbox, run, init), lifecycle skills (primitive-executor, adjudicate, exploration-spike, authoring-draft, authoring-refining), and methodology skills (fixpoint-convergence, epicd-run). execution/implementing folds decompose in as an internal branch (epic-decompose retired as a standalone skill — BACK-686.3); execution/evaluating is retired, folded into the execution/adjudicating gate (BACK-686.2/.3).",
 	"author": {
 		"name": "Yale Huang",
 		"url": "https://github.com/yaleh"
@@ -16,7 +16,6 @@
 		"./skills/run/SKILL.md",
 		"./skills/init/SKILL.md",
 		"./skills/primitive-executor/SKILL.md",
-		"./skills/epic-decompose/SKILL.md",
 		"./skills/exploration-spike/SKILL.md",
 		"./skills/authoring-draft/SKILL.md",
 		"./skills/authoring-refining/SKILL.md",

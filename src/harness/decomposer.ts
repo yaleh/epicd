@@ -220,14 +220,14 @@ export async function applyProposedChildren(
 				...(child.description ? { description: child.description } : {}),
 				dodGates: [...dodGates],
 				pipeline_id: "execution",
-				phase: "ready",
+				phase: "implementing",
 				parent_id: task.id,
 			},
 			false,
 		);
 	}
 
-	// Explicit phase advance (ready/decomposing → awaiting-children); awaiting-children
+	// Explicit phase advance (implementing → awaiting-children); awaiting-children
 	// actor=none so the engine stops driving the epic.
 	await core.updateTask({ ...task, phase: "awaiting-children" }, false);
 

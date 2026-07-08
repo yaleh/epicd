@@ -19,10 +19,9 @@ const STATUSES = [
 	"Proposal",
 	"Plan",
 	"Backlog",
-	"Ready",
-	"Decomposing",
+	"Implementing",
 	"Awaiting Children",
-	"Evaluating",
+	"Adjudicating",
 	"Done",
 	"Needs Human",
 	"Draft",
@@ -45,19 +44,19 @@ function baseTask(overrides: Partial<Task> = {}): Task {
 
 describe("label(role, phase) projection — phase-only, no role prefix", () => {
 	it("is purely a function of phase — role never affects the output", () => {
-		expect(label("primitive", "ready", STATUSES)).toBe("Ready");
-		expect(label("compound", "ready", STATUSES)).toBe("Ready");
+		expect(label("primitive", "implementing", STATUSES)).toBe("Implementing");
+		expect(label("compound", "implementing", STATUSES)).toBe("Implementing");
 		expect(label("primitive", "needs-human", STATUSES)).toBe(label("compound", "needs-human", STATUSES));
 	});
 
 	it("resolves canonical casing for multi-word kebab phases against config", () => {
 		expect(label("primitive", "needs-human", STATUSES)).toBe("Needs Human");
 		expect(label("compound", "awaiting-children", STATUSES)).toBe("Awaiting Children");
-		expect(label("compound", "decomposing", STATUSES)).toBe("Decomposing");
+		expect(label("compound", "adjudicating", STATUSES)).toBe("Adjudicating");
 	});
 
 	it("is the config-declared string exactly (no residual hand-built concat)", () => {
-		for (const phase of ["ready", "in-progress", "done", "needs-human"]) {
+		for (const phase of ["implementing", "in-progress", "done", "needs-human"]) {
 			expect(STATUSES).toContain(label("primitive", phase, STATUSES));
 		}
 	});
@@ -81,10 +80,10 @@ describe("displayStatus(task, statuses) — the single display read", () => {
 	});
 
 	it("is unaffected by compound-ness (children present or kind:epic label)", () => {
-		const withChildren = baseTask({ status: "Backlog", phase: "ready", subtasks: ["task-1.1"] });
-		const withEpicLabel = baseTask({ phase: "ready", labels: ["kind:epic"] });
-		expect(displayStatus(withChildren, STATUSES)).toBe("Ready");
-		expect(displayStatus(withEpicLabel, STATUSES)).toBe("Ready");
+		const withChildren = baseTask({ status: "Backlog", phase: "implementing", subtasks: ["task-1.1"] });
+		const withEpicLabel = baseTask({ phase: "implementing", labels: ["kind:epic"] });
+		expect(displayStatus(withChildren, STATUSES)).toBe("Implementing");
+		expect(displayStatus(withEpicLabel, STATUSES)).toBe("Implementing");
 	});
 
 	it("falls back to the persisted status string when no engine phase is present", () => {
@@ -96,9 +95,9 @@ describe("displayStatus(task, statuses) — the single display read", () => {
 describe("display consumers repointed to the projection (Phase B)", () => {
 	it("board groups an engine-advanced task by its derived display status", () => {
 		// status persisted stale as "Backlog", but the engine advanced phase.
-		const task = baseTask({ status: "Backlog", phase: "ready" });
+		const task = baseTask({ status: "Backlog", phase: "implementing" });
 		const { groupedTasks } = buildKanbanStatusGroups([task], STATUSES);
-		expect(groupedTasks.get("Ready")?.map((t) => t.id)).toEqual(["task-1"]);
+		expect(groupedTasks.get("Implementing")?.map((t) => t.id)).toEqual(["task-1"]);
 		expect(groupedTasks.get("Backlog") ?? []).toEqual([]);
 	});
 

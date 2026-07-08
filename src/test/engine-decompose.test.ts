@@ -37,7 +37,7 @@ async function createEpic(core: Core, title: string): Promise<Task> {
 		...task,
 		labels: [...(task.labels ?? []), "kind:epic"],
 		pipeline_id: "execution",
-		phase: "decomposing",
+		phase: "implementing",
 	};
 	await core.updateTask(epic, false);
 	return epic;
@@ -55,14 +55,14 @@ describe("makeDecomposer (integration, real Core)", () => {
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-decompose-test");
 
-		// Children are created with the engine-derived "Ready" status
-		// (label("primitive", "ready")) — add it to the configured statuses
+		// Children are created with the engine-derived "Implementing" status
+		// (label("primitive", "implementing")) — add it to the configured statuses
 		// (mirroring this repo's own board, backlog/config.yml) so
 		// createTaskFromInput's canonical-status validation accepts it,
 		// alongside the default vocabulary createEpic's "To Do" needs.
 		const config = await core.filesystem.loadConfig();
 		if (config) {
-			config.statuses = [...(config.statuses ?? []), "Ready"];
+			config.statuses = [...(config.statuses ?? []), "Implementing"];
 			await core.filesystem.saveConfig(config);
 		}
 	});
@@ -83,7 +83,7 @@ describe("makeDecomposer (integration, real Core)", () => {
 		expect(children.length).toBe(2);
 		for (const child of children) {
 			expect(child.pipeline_id).toBe("execution");
-			expect(child.phase).toBe("ready");
+			expect(child.phase).toBe("implementing");
 			expect(child.parent_id).toBe(epic.id);
 		}
 		expect(children.map((c) => c.title).sort()).toEqual(["Child Alpha", "Child Beta"]);
@@ -176,7 +176,7 @@ describe("makeDecomposer (integration, real Core)", () => {
 		// Simulate crash-recovery: phase regressed/stale relative to children already on board.
 		const afterFirstRun = await core.getTask(epic.id);
 		if (!afterFirstRun) throw new Error("epic not found after first decompose run");
-		await core.updateTask({ ...afterFirstRun, phase: "decomposing" }, false);
+		await core.updateTask({ ...afterFirstRun, phase: "implementing" }, false);
 
 		await decompose(epic, projectRoot); // re-entry: children exist, phase differs → stabilise
 
@@ -248,7 +248,7 @@ describe("makeDecomposer (integration, real Core)", () => {
 		expect(reloaded?.implementationNotes).toContain("src/b.ts");
 	});
 
-	it("created children get a status consistent with phase:ready", async () => {
+	it("created children get a status consistent with phase:implementing", async () => {
 		const epic = await createEpic(core, "Epic children status");
 
 		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
@@ -258,7 +258,7 @@ describe("makeDecomposer (integration, real Core)", () => {
 		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
 		expect(children.length).toBe(2);
 		for (const child of children) {
-			expect(child.status).toBe(label("primitive", "ready"));
+			expect(child.status).toBe(label("primitive", "implementing"));
 		}
 	});
 
@@ -380,7 +380,7 @@ describe("engine evaluate <taskId> — CLI end-to-end (BACK-628.4)", () => {
 
 	it("aggregates children into the epic's terminal phase (all done → done)", async () => {
 		const epic = await createEpic(core, "Epic via evaluate");
-		await core.updateTask({ ...epic, phase: "evaluating" }, false);
+		await core.updateTask({ ...epic, phase: "awaiting-children" }, false);
 		const { task: c1 } = await core.createTaskFromInput({ title: "Child 1", status: "To Do" }, false);
 		await core.updateTask({ ...c1, pipeline_id: "execution", phase: "done", parent_id: epic.id } as Task, false);
 		const { task: c2 } = await core.createTaskFromInput({ title: "Child 2", status: "To Do" }, false);
@@ -481,7 +481,7 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-decompose-default-board-test");
 		// No config.statuses patch here — this is the regression case from finding #2:
-		// a board that never declares "Ready" must not fail child creation.
+		// a board that never declares "Implementing" must not fail child creation.
 
 		const epic = await createEpic(core, "Epic on default board");
 		const fakeSpawn = async (): Promise<CompletionResult> => ({ success: true, output: CHILDREN_JSON });
@@ -491,8 +491,8 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
 		expect(children.length).toBe(2);
 		for (const child of children) {
-			expect(child.status).toBe("Ready");
-			expect(displayStatus(child)).toBe("Ready");
+			expect(child.status).toBe("Implementing");
+			expect(displayStatus(child)).toBe("Implementing");
 		}
 	});
 
@@ -501,11 +501,11 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		core = new Core(projectRoot);
 		await initializeTestProject(core, "engine-decompose-custom-casing-test");
 
-		// A board that declares off-title-case vocabulary for the "ready" phase
+		// A board that declares off-title-case vocabulary for the "implementing" phase
 		// (status is phase-only now — no role prefix; only the phase casing varies).
 		const config = await core.filesystem.loadConfig();
 		if (config) {
-			config.statuses = [...(config.statuses ?? []), "READY"];
+			config.statuses = [...(config.statuses ?? []), "IMPLEMENTING"];
 			await core.filesystem.saveConfig(config);
 		}
 
@@ -517,7 +517,7 @@ describe("BACK-627: create-path status derivation does not require board vocabul
 		const children = (await core.queryTasks({})).filter((t) => t.parent_id === epic.id);
 		expect(children.length).toBe(2);
 		for (const child of children) {
-			expect(displayStatus(child, config?.statuses ?? [])).toBe("READY");
+			expect(displayStatus(child, config?.statuses ?? [])).toBe("IMPLEMENTING");
 		}
 	});
 });

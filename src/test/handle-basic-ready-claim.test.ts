@@ -39,14 +39,14 @@ describe("handle-basic-ready.sh — claim preserves engine structural fields (BA
 		// repo's own board (backlog/config.yml) — mirror that here.
 		const config = await core.filesystem.loadConfig();
 		if (config) {
-			config.statuses = ["Ready", "In Progress", "Done"];
+			config.statuses = ["Implementing", "In Progress", "Done"];
 			await core.filesystem.saveConfig(config);
 		}
 
 		const { task } = await core.createTaskFromInput(
 			{
 				title: "Claim preserves structural fields",
-				status: "Ready",
+				status: "Implementing",
 				dodGates: ["true", "bunx tsc --noEmit"],
 			},
 			false,
@@ -54,7 +54,7 @@ describe("handle-basic-ready.sh — claim preserves engine structural fields (BA
 		const withStructuralFields = {
 			...task,
 			pipeline_id: "execution",
-			phase: "ready",
+			phase: "implementing",
 			parent_id: "BACK-601",
 		};
 		await core.updateTask(withStructuralFields, false);
@@ -76,7 +76,7 @@ describe("handle-basic-ready.sh — claim preserves engine structural fields (BA
 		// see the real file the script wrote, not a stale in-memory snapshot.
 		const before = await core.filesystem.loadTask(taskId);
 		expect(before?.pipeline_id).toBe("execution");
-		expect(before?.phase).toBe("ready");
+		expect(before?.phase).toBe("implementing");
 		expect(before?.parent_id).toBe("BACK-601");
 		expect(before?.dod?.length ?? 0).toBeGreaterThan(0);
 

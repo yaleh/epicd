@@ -64,7 +64,7 @@ describe("engine promote writes entry_phase (BACK-686.1 A1)", () => {
 		const updated = await core.getTask(task.id);
 		expect(updated?.entry_phase).toBe("/");
 		expect(updated?.pipeline_id).toBe("execution");
-		expect(updated?.phase).toBe("ready");
+		expect(updated?.phase).toBe("implementing");
 	});
 
 	it("records the exact prior pipeline_id/phase when the task already had one (e.g. authoring/backlog explicit)", async () => {
@@ -78,7 +78,7 @@ describe("engine promote writes entry_phase (BACK-686.1 A1)", () => {
 		const updated = await core.getTask(task.id);
 		expect(updated?.entry_phase).toBe("authoring/backlog");
 		expect(updated?.pipeline_id).toBe("execution");
-		expect(updated?.phase).toBe("ready");
+		expect(updated?.phase).toBe("implementing");
 	});
 
 	it("does not overwrite an already-recorded entry_phase on a second promote-like update", async () => {

@@ -39,7 +39,7 @@ describe("supervisorTick", () => {
 
 	it("dispatches each ready task once, persisting a cap marker before emitting", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Ready task", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		const spawned: string[] = [];
 		const dispatched = await supervisorTick(core, projectRoot, async (taskId, payload) => {
@@ -56,7 +56,7 @@ describe("supervisorTick", () => {
 
 	it("does not re-dispatch a task already carrying the dispatch cap marker (ENG-1/ENG-4 restart safety)", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Ready task", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		const firstSpawns: string[] = [];
 		await supervisorTick(core, projectRoot, async (taskId) => {
@@ -65,7 +65,7 @@ describe("supervisorTick", () => {
 		expect(firstSpawns).toEqual([task.id]);
 
 		// Simulate a supervisor restart: a fresh tick against the same on-disk
-		// state (task is still "ready" — the agent hasn't completed it yet).
+		// state (task is still "implementing" — the agent hasn't completed it yet).
 		const secondSpawns: string[] = [];
 		const secondDispatched = await supervisorTick(core, projectRoot, async (taskId) => {
 			secondSpawns.push(taskId);
@@ -77,11 +77,11 @@ describe("supervisorTick", () => {
 
 	it("dispatches a new ready task while skipping an already-dispatched one", async () => {
 		const { task: a } = await core.createTaskFromInput({ title: "A", status: "To Do" }, false);
-		await core.updateTask({ ...a, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...a, pipeline_id: "execution", phase: "implementing" } as Task, false);
 		await supervisorTick(core, projectRoot, async () => {});
 
 		const { task: b } = await core.createTaskFromInput({ title: "B", status: "To Do" }, false);
-		await core.updateTask({ ...b, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...b, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		const dispatched = await supervisorTick(core, projectRoot, async () => {});
 		expect(dispatched).toEqual([b.id]);
@@ -161,7 +161,7 @@ describe("engine supervisor — CLI end-to-end (BACK-628.2)", () => {
 	// `claude` subprocess itself.
 	it("prints the self-contained dispatch payload for a ready task instead of spawning anything", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Ready task", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		const out = execFileSync("bun", [CLI_PATH, "engine", "supervisor", "--once"], {
 			cwd: projectRoot,

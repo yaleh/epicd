@@ -11,13 +11,24 @@ export interface Pipeline {
 }
 
 // The single execution pipeline (four-axis model)
+//
+// BACK-686.3: the former leaf and epic entry phases unify into one entry phase,
+// `implementing` — a static promote-time fork (epic vs. leaf) used to pick between
+// them, but both were already driven identically (the compound/leaf decision is a
+// runtime check — `isCompound(task)` in driver.ts — not a phase-name distinction), so
+// the extra declared state carried no behavior of its own. Decompose is now an
+// internal branch of `implementing`, not a separate dispatched phase. `evaluating`
+// (BACK-686.2) is fully folded into the `adjudicating` gate for the epic path
+// (awaiting-children → adjudicating(gate) → done/needs-human) and, being unreachable
+// at runtime, is retired as a declared state too — its mechanical IA+aggregation
+// logic (`evaluateEpic`/`computeEpicVerdict`, harness/evaluator.ts) lives on and is
+// still invoked directly (by the adjudicating gate and by `engine evaluate` as a
+// manual/debug entry point); only the standalone pipeline phase is gone.
 export const executionPipeline: Pipeline = {
 	id: "execution",
 	states: [
-		{ name: "ready", actor: "machine" }, // ready/in-progress merged; machine picks up
-		{ name: "decomposing", actor: "machine" },
+		{ name: "implementing", actor: "machine" }, // ready/in-progress/decomposing merged; machine picks up
 		{ name: "awaiting-children", actor: "none" },
-		{ name: "evaluating", actor: "machine" },
 		// BACK-682: independent judgmental audit gate. A primitive whose DoD goes
 		// green lands here (not directly on "done") — completeTask (complete.ts)
 		// routes ENG-8's "done" verdict to "adjudicating" for this pipeline. It is
@@ -30,12 +41,12 @@ export const executionPipeline: Pipeline = {
 };
 
 // The authoring pipeline (workitem-lifecycle-state.puml Authoring lane).
-// Draft/Refining have no driver wired yet (out of scope until E7/BACK-608);
+// Drafting/Refining have no driver wired yet (out of scope until E7/BACK-608);
 // Backlog is the human-gated boundary `engine promote` reads from.
 export const authoringPipeline: Pipeline = {
 	id: "authoring",
 	states: [
-		{ name: "draft", actor: "machine" },
+		{ name: "drafting", actor: "machine" },
 		{ name: "refining", actor: "machine" },
 		{ name: "backlog", actor: "human" },
 	],
@@ -48,7 +59,7 @@ export const authoringPipeline: Pipeline = {
  * generic `Driver`/`Interpreter` (both pipeline-agnostic, see AC#3) is enough
  * to drive it — no interpreter/driver/complete/adjudicate edit required.
  *
- * `spike` is the single machine-actor phase: the injected `WorktreeOps.spawn`
+ * `spiking` is the single machine-actor phase: the injected `WorktreeOps.spawn`
  * (see `exploration-handlers.ts`) both runs the spike AND makes the
  * kill-vs-promote call, because the shared primitive path
  * (`Driver` → `completeTask` → `adjudicate`) only understands two terminal
@@ -65,7 +76,7 @@ export const authoringPipeline: Pipeline = {
 export const explorationPipeline: Pipeline = {
 	id: "exploration",
 	states: [
-		{ name: "spike", actor: "machine" },
+		{ name: "spiking", actor: "machine" },
 		{ name: "done", actor: "none" },
 	],
 };

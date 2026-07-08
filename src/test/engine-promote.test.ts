@@ -5,18 +5,19 @@
  * `bun src/cli.ts engine promote ...`), following the same real-process
  * pattern as engine-complete-cli.test.ts.
  *
- * Asserts:
+ * Asserts (BACK-686.3: promote de-forks — every promote lands on
+ * `execution/implementing` regardless of `kind:epic`; the leaf-vs-compound
+ * decompose decision is now a runtime branch inside `implementing`'s skill,
+ * not a promote-time fork):
  *   1. Promoting a "Basic: Backlog" task sets pipeline_id: execution,
- *      phase: ready, status: "Basic: Ready".
- *   2. Promoting an "Epic: Backlog" task sets phase: decomposing (role derives to
- *      "compound" via roleOf()), status: "Epic: Decomposing" (BACK-631 — must NOT
- *      be phase: ready, which scan.ts's PHASE_PREFIX would misroute as
- *      basic-ready instead of epic-ready).
+ *      phase: implementing, status: "Implementing".
+ *   2. Promoting an "Epic: Backlog" task ALSO sets phase: implementing (role still
+ *      derives to "compound" via roleOf() from the kind:epic label — that label is
+ *      now only a hint consumed by the implementing skill, not a promote-time gate).
  *   3. Promoting a task NOT at a Backlog status is rejected (non-zero exit,
  *      task unchanged).
- *   4. A promoted Basic task is reported by `engine scan --once` as `basic-ready:<id>`.
- *   5. A promoted Epic is reported by `engine scan --once` as `epic-ready:<id>`,
- *      never `basic-ready:<id>` (BACK-631).
+ *   4. A promoted task (Basic or Epic-labeled) is reported by `engine scan --once`
+ *      as `basic-ready:<id>` — there is only one dispatch channel for `implementing`.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
@@ -72,37 +73,39 @@ describe("engine promote CLI", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("promotes a Basic: Backlog task to pipeline_id execution, phase ready, status Ready", async () => {
+	it("promotes a Basic: Backlog task to pipeline_id execution, phase implementing, status Implementing", async () => {
 		const task = await createTaskWithStatus(core, "Backlog task", "Basic: Backlog");
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
 		expect(result.exitCode).toBe(0);
-		expect(result.stdout).toContain(`engine promote: ${task.id} → execution/ready`);
+		expect(result.stdout).toContain(`engine promote: ${task.id} → execution/implementing`);
 
 		const updated = await core.getTask(task.id);
 		expect(updated?.pipeline_id).toBe("execution");
-		expect(updated?.phase).toBe("ready");
-		expect(updated?.status).toBe("Ready");
+		expect(updated?.phase).toBe("implementing");
+		expect(updated?.status).toBe("Implementing");
 	});
 
-	it("promotes an Epic: Backlog task to pipeline_id execution, phase decomposing, status Decomposing (BACK-631)", async () => {
+	it("promotes an Epic: Backlog task to pipeline_id execution, phase implementing too (de-forked, BACK-686.3 AC#2)", async () => {
 		const task = await createTaskWithStatus(core, "Epic backlog task", "Epic: Backlog", ["kind:epic"]);
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
 		expect(result.exitCode).toBe(0);
-		expect(result.stdout).toContain(`engine promote: ${task.id} → execution/decomposing`);
+		expect(result.stdout).toContain(`engine promote: ${task.id} → execution/implementing`);
 
 		const updated = await core.getTask(task.id);
 		expect(updated?.pipeline_id).toBe("execution");
-		expect(updated?.phase).toBe("decomposing");
+		expect(updated?.phase).toBe("implementing");
 		expect(updated && roleOf(updated)).toBe("compound");
-		expect(updated?.status).toBe("Decomposing");
+		expect(updated?.status).toBe("Implementing");
 	});
 
-	it("promotes an Epic: Backlog task even with no children (role derives from kind:epic label, BACK-643)", async () => {
+	it("promotes an Epic: Backlog task even with no children (role derives from kind:epic label, BACK-643) — still lands on implementing", async () => {
 		// There is no `role` field to write or pre-declare anymore (BACK-664.2) —
 		// roleOf() derives "compound" directly from the kind:epic label for a
 		// pre-decompose epic (BACK-643), so promote never needs a stored role (BACK-631).
+		// BACK-686.3: promote no longer reads kind:epic at all — this only proves roleOf()
+		// still resolves "compound" for display/has-children purposes downstream.
 		const task = await createTaskWithStatus(core, "Epic with no children", "Epic: Backlog", ["kind:epic"]);
 
 		const result = await runCli(["engine", "promote", task.id], projectRoot);
@@ -110,7 +113,7 @@ describe("engine promote CLI", () => {
 
 		const updated = await core.getTask(task.id);
 		expect(updated && roleOf(updated)).toBe("compound");
-		expect(updated?.phase).toBe("decomposing");
+		expect(updated?.phase).toBe("implementing");
 	});
 
 	it("rejects promote when status is not a Backlog status, task unchanged", async () => {
@@ -145,15 +148,14 @@ describe("engine promote CLI", () => {
 		expect(scanResult.stdout).toContain(`basic-ready:${task.id}`);
 	});
 
-	it("a promoted Epic is reported by engine scan --once as epic-ready:<id>, never basic-ready (BACK-631 negative control)", async () => {
-		const task = await createTaskWithStatus(core, "Promote epic then scan", "Epic: Backlog");
+	it("a promoted Epic is reported by engine scan --once as basic-ready:<id> too — one dispatch channel for implementing (BACK-686.3, was BACK-631's epic-ready negative control)", async () => {
+		const task = await createTaskWithStatus(core, "Promote epic then scan", "Epic: Backlog", ["kind:epic"]);
 
 		const promoteResult = await runCli(["engine", "promote", task.id], projectRoot);
 		expect(promoteResult.exitCode).toBe(0);
 
 		const scanResult = await runCli(["engine", "scan", "--once"], projectRoot);
 		expect(scanResult.exitCode).toBe(0);
-		expect(scanResult.stdout).toContain(`epic-ready:${task.id}`);
-		expect(scanResult.stdout).not.toContain(`basic-ready:${task.id}`);
+		expect(scanResult.stdout).toContain(`basic-ready:${task.id}`);
 	});
 });

@@ -98,24 +98,26 @@ describe("create commands", () => {
 		expect(createdTask?.dependencies).toEqual(["TASK-1"]);
 	});
 
-	it("defaults a bare create to authoring/draft (not Basic: Proposal)", async () => {
+	it("defaults a bare create to authoring/drafting (not Basic: Proposal)", async () => {
 		await $`bun ${CLI_PATH} task create "Bare create"`.cwd(TEST_DIR).quiet();
 
 		const core = new Core(TEST_DIR);
 		const task = await core.filesystem.loadTask("task-1");
 		expect(task?.pipeline_id).toBe("authoring");
-		expect(task?.phase).toBe("draft");
-		expect(task?.status).toBe("Draft");
+		expect(task?.phase).toBe("drafting");
+		expect(task?.status).toBe("Drafting");
 	});
 
 	it("honors explicit --pipeline/--phase", async () => {
-		await $`bun ${CLI_PATH} task create "Explicit pipeline" --pipeline execution --phase ready`.cwd(TEST_DIR).quiet();
+		await $`bun ${CLI_PATH} task create "Explicit pipeline" --pipeline execution --phase implementing`
+			.cwd(TEST_DIR)
+			.quiet();
 
 		const core = new Core(TEST_DIR);
 		const task = await core.filesystem.loadTask("task-1");
 		expect(task?.pipeline_id).toBe("execution");
-		expect(task?.phase).toBe("ready");
-		expect(task?.status).toBe("Ready");
+		expect(task?.phase).toBe("implementing");
+		expect(task?.status).toBe("Implementing");
 	});
 
 	it("rejects --pipeline given without --phase (BACK-661 asymmetric validation)", async () => {
@@ -131,7 +133,7 @@ describe("create commands", () => {
 	});
 
 	it("rejects --phase given without --pipeline (BACK-661 asymmetric validation)", async () => {
-		const result = await $`bun ${CLI_PATH} task create "Half pair phase only" --phase ready`
+		const result = await $`bun ${CLI_PATH} task create "Half pair phase only" --phase implementing`
 			.cwd(TEST_DIR)
 			.nothrow()
 			.quiet();

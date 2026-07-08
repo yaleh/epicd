@@ -47,7 +47,7 @@ describe("computeDrift", () => {
 	});
 
 	it("does not flag a legal (pipeline_id, phase) combo", () => {
-		const task = baseTask({ pipeline_id: "execution", phase: "ready" });
+		const task = baseTask({ pipeline_id: "execution", phase: "implementing" });
 		const drift = computeDrift([task]);
 		expect(drift.find((d) => d.id === task.id)).toBeUndefined();
 	});
@@ -98,7 +98,7 @@ describe("engine drift-lint (CLI)", () => {
 
 	it("exits zero on a clean board", async () => {
 		const core = new Core(TEST_DIR);
-		await core.createTaskFromInput({ title: "Clean task", pipeline_id: "execution", phase: "ready" }, false);
+		await core.createTaskFromInput({ title: "Clean task", pipeline_id: "execution", phase: "implementing" }, false);
 
 		const result = await $`bun ${CLI_PATH} engine drift-lint`.cwd(TEST_DIR).nothrow();
 		expect(result.exitCode).toBe(0);

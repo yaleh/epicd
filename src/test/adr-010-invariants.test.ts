@@ -145,7 +145,7 @@ describe("ADR-010 ENG-4: event consumption idempotency — re-processing the sam
 
 	it("does not re-dispatch a task already carrying the dispatch cap marker across a simulated restart (adapted from engine-supervisor.test.ts:57)", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Ready task", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		const firstSpawns: string[] = [];
 		await supervisorTick(core, projectRoot, async (taskId) => {

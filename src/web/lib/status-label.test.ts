@@ -29,7 +29,7 @@ describe("label(phase, actor) — converged status-badge color projection (BACK-
 describe("getStatusBadgeClass — phase/pipeline-data-driven with legacy status-string fallback", () => {
 	it("resolves color via pipeline-data when phase + pipeline_id are known", () => {
 		expect(getStatusBadgeClass("Basic: Needs Human", "needs-human", "execution")).toContain("amber");
-		expect(getStatusBadgeClass("Basic: Ready", "ready", "execution")).toContain("blue");
+		expect(getStatusBadgeClass("Basic: Implementing", "implementing", "execution")).toContain("blue");
 		expect(getStatusBadgeClass("Basic: Done", "done", "execution")).toContain("green");
 	});
 

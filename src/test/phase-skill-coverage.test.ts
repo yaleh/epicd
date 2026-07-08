@@ -5,20 +5,17 @@
  * `contract.json` `phase` matches `<pipeline_id>/<phase_name>`) OR explicitly
  * marked `experiment-pending` pointing at a real experiment task.
  *
- * Current expected state (BACK-657.1 delivered the gate itself; BACK-657.2 registered
- * execution/ready; BACK-657.3 registered execution/decomposing + execution/evaluating;
- * BACK-657.4 registered authoring/draft + authoring/refining; BACK-658 converged its
- * spike/exploration methodology experiment and registered exploration/spike as a real
- * skill; BACK-682 added the execution/adjudicating phase itself and registered it).
- * All 7 machine-actor phases are now covered — see the full-coverage invariant
- * test below, whose `.failing()` modifier has been removed now that it passes for real:
- *   - exploration/spike     -> skill -> exploration-spike (covered)
- *   - execution/ready       -> skill -> primitive-executor (covered)
- *   - execution/decomposing -> skill -> epic-decompose (covered)
- *   - execution/evaluating  -> mechanical (kind:script, in-tick evaluateEpic — BACK-686.2; epic-evaluate skill retired)
- *   - execution/adjudicating -> skill -> adjudicate (kind:gate, full-path only — BACK-686.2)
- *   - authoring/draft       -> skill -> authoring-draft (covered)
- *   - authoring/refining    -> skill -> authoring-refining (covered)
+ * BACK-686.3 collapsed the machine-actor phase set from 7 to 5:
+ *   - execution/ready + execution/decomposing -> unified into execution/implementing
+ *     (decompose-vs-leaf is now a runtime branch inside primitive-executor, which
+ *     folds in epic-decompose's method; epic-decompose retired as a standalone
+ *     dispatched-phase skill)
+ *   - execution/evaluating -> fully retired (folded into the execution/adjudicating
+ *     gate, BACK-686.2 — no manifest entry, no phase, no coverage row at all)
+ *   - authoring/draft -> renamed authoring/drafting
+ *   - exploration/spike -> renamed exploration/spiking
+ * All 5 machine-actor phases are covered — see the full-coverage invariant test
+ * below.
  *
  * BACK-686.2 added a `kind ∈ {skill, script, gate}` to every manifest entry (actor
  * fidelity: which machine phases are worth a session spawn) — see the "manifest kind"
@@ -29,9 +26,7 @@
  * negative-control test (same pattern as pipeline-coupling-discipline.test.ts:
  * positive control on the real files/manifest, negative control on a fixture that
  * must trip the assertion) rather than by leaving a real assertion red in the
- * suite. Now that BACK-657.2/.3/.4 have all landed their skills, the full-coverage
- * invariant below asserts real, unconditional green (zero gaps) instead of being
- * marked `.failing()` — see https://bun.sh/docs/test/writing.
+ * suite — see https://bun.sh/docs/test/writing.
  */
 import { describe, expect, it } from "bun:test";
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
@@ -49,17 +44,15 @@ import {
 const REPO_ROOT = join(import.meta.dir, "..", "..");
 
 const EXPECTED_MACHINE_PHASES = [
-	"execution/ready",
-	"execution/decomposing",
-	"execution/evaluating",
+	"execution/implementing",
 	"execution/adjudicating",
-	"authoring/draft",
+	"authoring/drafting",
 	"authoring/refining",
-	"exploration/spike",
+	"exploration/spiking",
 ];
 
 describe("machineActorPhases() — positive control", () => {
-	it("enumerates exactly the 7 machine-actor phases documented in docs/task-lifecycle-model.md §3", () => {
+	it("enumerates exactly the 5 machine-actor phases (BACK-686.3 collapse from 7 to 5)", () => {
 		expect(machineActorPhases().sort()).toEqual([...EXPECTED_MACHINE_PHASES].sort());
 	});
 
@@ -71,44 +64,44 @@ describe("machineActorPhases() — positive control", () => {
 	});
 });
 
-describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)", () => {
-	it("registers exploration/spike as a skill, resolved to the published exploration-spike skill (BACK-658)", () => {
+describe("phase-coverage manifest — current, real state (BACK-686.3 scope)", () => {
+	it("registers exploration/spiking as a skill, resolved to the published exploration-spike skill", () => {
 		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
-		const entry = manifest.find((e) => e.phase === "exploration/spike");
+		const entry = manifest.find((e) => e.phase === "exploration/spiking");
 		expect(entry).toBeDefined();
 		expect(entry?.status).toBe("skill");
 		expect(entry?.skill).toBe("exploration-spike");
 
 		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
-		const spike = coverage.find((c) => c.phase === "exploration/spike");
-		expect(spike?.covered).toBe(true);
+		const spiking = coverage.find((c) => c.phase === "exploration/spiking");
+		expect(spiking?.covered).toBe(true);
 	});
 
-	it("registers execution/ready as a skill, resolved to the published primitive-executor skill (BACK-657.2)", () => {
+	it("registers execution/implementing as a skill, resolved to the published primitive-executor skill (BACK-686.3 — folds in decompose)", () => {
 		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
-		const entry = manifest.find((e) => e.phase === "execution/ready");
+		const entry = manifest.find((e) => e.phase === "execution/implementing");
 		expect(entry).toBeDefined();
 		expect(entry?.status).toBe("skill");
 		expect(entry?.skill).toBe("primitive-executor");
 
 		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
-		const ready = coverage.find((c) => c.phase === "execution/ready");
-		expect(ready?.covered).toBe(true);
+		const implementing = coverage.find((c) => c.phase === "execution/implementing");
+		expect(implementing?.covered).toBe(true);
 	});
 
-	it("registers authoring/draft as a skill, resolved to the published authoring-draft skill (BACK-657.4)", () => {
+	it("registers authoring/drafting as a skill, resolved to the published authoring-draft skill", () => {
 		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
-		const entry = manifest.find((e) => e.phase === "authoring/draft");
+		const entry = manifest.find((e) => e.phase === "authoring/drafting");
 		expect(entry).toBeDefined();
 		expect(entry?.status).toBe("skill");
 		expect(entry?.skill).toBe("authoring-draft");
 
 		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
-		const draft = coverage.find((c) => c.phase === "authoring/draft");
-		expect(draft?.covered).toBe(true);
+		const drafting = coverage.find((c) => c.phase === "authoring/drafting");
+		expect(drafting?.covered).toBe(true);
 	});
 
-	it("registers authoring/refining as a skill, resolved to the published authoring-refining skill (BACK-657.4)", () => {
+	it("registers authoring/refining as a skill, resolved to the published authoring-refining skill", () => {
 		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
 		const entry = manifest.find((e) => e.phase === "authoring/refining");
 		expect(entry).toBeDefined();
@@ -118,31 +111,6 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
 		const refining = coverage.find((c) => c.phase === "authoring/refining");
 		expect(refining?.covered).toBe(true);
-	});
-
-	it("registers execution/decomposing as a skill, resolved to the published epic-decompose skill (BACK-657.3)", () => {
-		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
-		const entry = manifest.find((e) => e.phase === "execution/decomposing");
-		expect(entry).toBeDefined();
-		expect(entry?.status).toBe("skill");
-		expect(entry?.skill).toBe("epic-decompose");
-
-		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
-		const decomposing = coverage.find((c) => c.phase === "execution/decomposing");
-		expect(decomposing?.covered).toBe(true);
-	});
-
-	it("registers execution/evaluating as mechanical (kind:script) — the epic-evaluate skill is retired (BACK-686.2)", () => {
-		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
-		const entry = manifest.find((e) => e.phase === "execution/evaluating");
-		expect(entry).toBeDefined();
-		expect(entry?.status).toBe("mechanical");
-		expect(entry?.kind).toBe("script");
-		expect(entry?.skill).toBeUndefined();
-
-		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
-		const evaluating = coverage.find((c) => c.phase === "execution/evaluating");
-		expect(evaluating?.covered).toBe(true);
 	});
 
 	it("registers execution/adjudicating as a skill, resolved to the published adjudicate skill, kind:gate (BACK-682/BACK-686.2)", () => {
@@ -158,7 +126,16 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 		expect(adjudicating?.covered).toBe(true);
 	});
 
-	it("leaves zero machine phases uncovered — full coverage achieved across all 7 phases", () => {
+	it("has no manifest entry at all for execution/decomposing or execution/evaluating — fully retired, not merely uncovered (BACK-686.3/BACK-686.2)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		expect(manifest.find((e) => e.phase === "execution/decomposing")).toBeUndefined();
+		expect(manifest.find((e) => e.phase === "execution/evaluating")).toBeUndefined();
+		expect(manifest.find((e) => e.phase === "execution/ready")).toBeUndefined();
+		expect(manifest.find((e) => e.phase === "authoring/draft")).toBeUndefined();
+		expect(manifest.find((e) => e.phase === "exploration/spike")).toBeUndefined();
+	});
+
+	it("leaves zero machine phases uncovered — full coverage achieved across all 5 phases", () => {
 		const gaps = uncoveredMachinePhases(REPO_ROOT).sort();
 		expect(gaps).toEqual([]);
 	});
@@ -174,8 +151,6 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 });
 
 describe("full-coverage invariant — the eventual goal, now met", () => {
-	// BACK-657.2/.3/.4 have all landed their skills; this assertion now holds for
-	// real (no `.failing()` modifier — see the header comment for history).
 	it("every machine-actor phase is covered by a published skill or experiment-pending pointer", () => {
 		const gaps = uncoveredMachinePhases(REPO_ROOT);
 		expect(gaps).toEqual([]);
@@ -184,8 +159,8 @@ describe("full-coverage invariant — the eventual goal, now met", () => {
 
 describe("coverage assertion — negative control (proves the gate really fails loud on a gap)", () => {
 	it("throws a clear, gap-listing error when a machine phase has no manifest entry", () => {
-		const phases = ["execution/ready", "execution/decomposing"];
-		const manifest = [{ phase: "execution/ready", status: "skill" as const, skill: "does-not-exist" }];
+		const phases = ["execution/implementing", "execution/adjudicating"];
+		const manifest = [{ phase: "execution/implementing", status: "skill" as const, skill: "primitive-executor" }];
 
 		const coverage = computeCoverage(REPO_ROOT, phases, manifest);
 		const gaps = coverage.filter((c) => !c.covered);
@@ -199,10 +174,8 @@ describe("coverage assertion — negative control (proves the gate really fails 
 			}
 		};
 
-		expect(gaps.map((g) => g.phase)).toEqual(["execution/ready", "execution/decomposing"]);
-		expect(() => assertFullCoverage()).toThrow(
-			/missing skill\/experiment-pending for: execution\/ready, execution\/decomposing/,
-		);
+		expect(gaps.map((g) => g.phase)).toEqual(["execution/adjudicating"]);
+		expect(() => assertFullCoverage()).toThrow(/missing skill\/experiment-pending for: execution\/adjudicating/);
 	});
 
 	it("does not false-positive: a phase with a correctly-registered skill IS reported covered", () => {
@@ -210,7 +183,7 @@ describe("coverage assertion — negative control (proves the gate really fails 
 		// contract.json declares phase "execution/ready" — proves computeCoverage can
 		// report `covered: true` for a genuinely-matching skill registration, not just
 		// gaps (a vacuously-always-failing assertion would be as useless as one that
-		// never fails).
+		// never fails). The phase name itself is arbitrary fixture data here.
 		const fixturesRoot = join(import.meta.dir, "fixtures", "skill-lint-fixture-repo-root");
 		// Build a minimal fake repo root: plugin/skills/<skill>/contract.json only.
 		const skillDir = join(fixturesRoot, "plugin", "skills", "fixture-extract");
@@ -262,9 +235,9 @@ describe("manifest kind — every entry declares exactly one kind ∈ {skill, sc
 		}
 	});
 
-	it("execution/evaluating is kind:script (BACK-686.2 AC#2)", () => {
-		const entry = loadPhaseCoverageManifest(REPO_ROOT).find((e) => e.phase === "execution/evaluating");
-		expect(entry?.kind).toBe("script");
+	it("execution/implementing is kind:skill (BACK-686.3 — decompose folded in, still a skill dispatch)", () => {
+		const entry = loadPhaseCoverageManifest(REPO_ROOT).find((e) => e.phase === "execution/implementing");
+		expect(entry?.kind).toBe("skill");
 	});
 
 	it("execution/adjudicating is kind:gate (BACK-686.2 AC#4)", () => {
@@ -274,7 +247,7 @@ describe("manifest kind — every entry declares exactly one kind ∈ {skill, sc
 
 	it("fails loud on a fixture entry missing kind — negative control", () => {
 		const badManifest: ManifestEntry[] = [
-			{ phase: "execution/ready", status: "skill" as const, skill: "primitive-executor" },
+			{ phase: "execution/implementing", status: "skill" as const, skill: "primitive-executor" },
 		];
 		expect(badManifest[0]?.kind).toBeUndefined();
 	});

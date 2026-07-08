@@ -28,7 +28,7 @@ const CLI_PATH = join(process.cwd(), "src", "cli.ts");
  */
 async function createReadyTaskWithDoD(core: Core, title: string, dodGates: string[]) {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do", dodGates }, false);
-	const withPipeline = { ...task, pipeline_id: "execution", phase: "ready" };
+	const withPipeline = { ...task, pipeline_id: "execution", phase: "implementing" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }

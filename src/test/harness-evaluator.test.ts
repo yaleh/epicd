@@ -46,7 +46,7 @@ describe("advanceAwaitingChildrenToAdjudicating (BACK-686.2 Phase D, AC#5: was '
 	it("does not advance while any child is still non-terminal", async () => {
 		const epic = await createTask(core, "Epic", { phase: "awaiting-children" });
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
-		await createTask(core, "Child 2", { phase: "ready", parent_id: epic.id });
+		await createTask(core, "Child 2", { phase: "implementing", parent_id: epic.id });
 
 		const advanced = await advanceAwaitingChildrenToAdjudicating(core);
 
@@ -80,7 +80,7 @@ describe("evaluateEpic", () => {
 	});
 
 	it("sets the epic to done when all children are done", async () => {
-		const epic = await createTask(core, "Epic", { phase: "evaluating" });
+		const epic = await createTask(core, "Epic", { phase: "adjudicating" });
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
 		await createTask(core, "Child 2", { phase: "done", parent_id: epic.id });
 
@@ -92,7 +92,7 @@ describe("evaluateEpic", () => {
 	});
 
 	it("sets the epic to needs-human when any child is needs-human", async () => {
-		const epic = await createTask(core, "Epic", { phase: "evaluating" });
+		const epic = await createTask(core, "Epic", { phase: "adjudicating" });
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
 		await createTask(core, "Child 2", { phase: "needs-human", parent_id: epic.id });
 
@@ -126,12 +126,12 @@ describe("evaluateEpic semantics via the tick path (BACK-686.2 AC#10)", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("Driver.tick resolves an evaluating epic to done when all children are done", async () => {
+	it("Driver.tick resolves an adjudicating epic to done when all children are done", async () => {
 		const { Driver } = await import("../engine/driver.ts");
 		const { executionPipeline } = await import("../engine/pipeline.ts");
 		const { makeBoardStore } = await import("../engine/store.ts");
 
-		const epic = await createTask(core, "Epic", { phase: "evaluating", subtasks: ["c1", "c2"] });
+		const epic = await createTask(core, "Epic", { phase: "adjudicating", subtasks: ["c1", "c2"] });
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
 		await createTask(core, "Child 2", { phase: "done", parent_id: epic.id });
 
@@ -148,12 +148,12 @@ describe("evaluateEpic semantics via the tick path (BACK-686.2 AC#10)", () => {
 		expect(reloaded?.phase).toBe("done");
 	});
 
-	it("Driver.tick resolves an evaluating epic to needs-human when any child is needs-human", async () => {
+	it("Driver.tick resolves an adjudicating epic to needs-human when any child is needs-human", async () => {
 		const { Driver } = await import("../engine/driver.ts");
 		const { executionPipeline } = await import("../engine/pipeline.ts");
 		const { makeBoardStore } = await import("../engine/store.ts");
 
-		const epic = await createTask(core, "Epic", { phase: "evaluating", subtasks: ["c1", "c2"] });
+		const epic = await createTask(core, "Epic", { phase: "adjudicating", subtasks: ["c1", "c2"] });
 		await createTask(core, "Child 1", { phase: "done", parent_id: epic.id });
 		await createTask(core, "Child 2", { phase: "needs-human", parent_id: epic.id });
 

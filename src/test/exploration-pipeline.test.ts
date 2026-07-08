@@ -22,7 +22,7 @@ function makeSpikeTask(id: string): Task {
 		labels: [],
 		dependencies: [],
 		pipeline_id: "exploration",
-		phase: "spike",
+		phase: "spiking",
 	} as Task;
 }
 
@@ -60,13 +60,13 @@ describe("exploration pipeline — spike → done (promote path)", () => {
 				spawnedExecutionTasks.push({
 					id: "EXEC-FROM-SPIKE-2",
 					title: `Promoted from spike: ${spikeTask.title}`,
-					status: "Basic: Ready",
+					status: "Basic: Implementing",
 					assignee: [],
 					createdDate: "2026-07-05",
 					labels: [],
 					dependencies: [],
 					pipeline_id: "execution",
-					phase: "ready",
+					phase: "implementing",
 					provenance: { spawned_from: spikeTask.id },
 				} as Task);
 			},

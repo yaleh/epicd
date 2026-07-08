@@ -21,24 +21,14 @@ describe("Pipeline definition", () => {
 		expect(executionPipeline.id).toBe("execution");
 	});
 
-	it("'ready' phase has actor 'machine'", () => {
-		const s = executionPipeline.states.find((s) => s.name === "ready");
-		expect(s?.actor).toBe("machine");
-	});
-
-	it("'decomposing' phase has actor 'machine'", () => {
-		const s = executionPipeline.states.find((s) => s.name === "decomposing");
+	it("'implementing' phase has actor 'machine'", () => {
+		const s = executionPipeline.states.find((s) => s.name === "implementing");
 		expect(s?.actor).toBe("machine");
 	});
 
 	it("'awaiting-children' phase has actor 'none'", () => {
 		const s = executionPipeline.states.find((s) => s.name === "awaiting-children");
 		expect(s?.actor).toBe("none");
-	});
-
-	it("'evaluating' phase has actor 'machine'", () => {
-		const s = executionPipeline.states.find((s) => s.name === "evaluating");
-		expect(s?.actor).toBe("machine");
 	});
 
 	it("'needs-human' phase has actor 'human'", () => {
@@ -55,26 +45,10 @@ describe("Pipeline definition", () => {
 describe("Interpreter.scan — event emission", () => {
 	it("emits item-ready for a task in a machine-actor phase (ready)", () => {
 		const interp = new Interpreter();
-		interp.register(executionPipeline, "ready", async () => {});
-		const tasks = [makeTask("task-1", "execution", "ready")];
+		interp.register(executionPipeline, "implementing", async () => {});
+		const tasks = [makeTask("task-1", "execution", "implementing")];
 		const events = interp.scan(tasks);
-		expect(events).toEqual(["item-ready: execution:ready:task-1"]);
-	});
-
-	it("emits item-ready for a task in 'decomposing' phase (actor=machine)", () => {
-		const interp = new Interpreter();
-		interp.register(executionPipeline, "decomposing", async () => {});
-		const tasks = [makeTask("task-1b", "execution", "decomposing")];
-		const events = interp.scan(tasks);
-		expect(events).toEqual(["item-ready: execution:decomposing:task-1b"]);
-	});
-
-	it("emits item-ready for a task in 'evaluating' phase (actor=machine)", () => {
-		const interp = new Interpreter();
-		interp.register(executionPipeline, "evaluating", async () => {});
-		const tasks = [makeTask("task-1c", "execution", "evaluating")];
-		const events = interp.scan(tasks);
-		expect(events).toEqual(["item-ready: execution:evaluating:task-1c"]);
+		expect(events).toEqual(["item-ready: execution:implementing:task-1"]);
 	});
 
 	it("emits no event for 'needs-human' phase (actor=human)", () => {
@@ -100,7 +74,7 @@ describe("Interpreter.scan — event emission", () => {
 
 	it("emits no event for tasks without pipeline_id", () => {
 		const interp = new Interpreter();
-		const task = makeTask("task-5", "execution", "ready");
+		const task = makeTask("task-5", "execution", "implementing");
 		(task as unknown as Record<string, unknown>).pipeline_id = undefined;
 		const events = interp.scan([task]);
 		expect(events).toEqual([]);
@@ -108,7 +82,7 @@ describe("Interpreter.scan — event emission", () => {
 
 	it("emits no event for tasks without phase", () => {
 		const interp = new Interpreter();
-		const task = makeTask("task-6", "execution", "ready");
+		const task = makeTask("task-6", "execution", "implementing");
 		(task as unknown as Record<string, unknown>).phase = undefined;
 		const events = interp.scan([task]);
 		expect(events).toEqual([]);
@@ -116,21 +90,21 @@ describe("Interpreter.scan — event emission", () => {
 
 	it("emits no event for unknown pipeline_id", () => {
 		const interp = new Interpreter();
-		const tasks = [makeTask("task-7", "unknown-pipeline", "ready")];
+		const tasks = [makeTask("task-7", "unknown-pipeline", "implementing")];
 		const events = interp.scan(tasks);
 		expect(events).toEqual([]);
 	});
 
 	it("emits events for multiple actionable tasks", () => {
 		const interp = new Interpreter();
-		interp.register(executionPipeline, "ready", async () => {});
+		interp.register(executionPipeline, "implementing", async () => {});
 		const tasks = [
-			makeTask("task-8", "execution", "ready"),
+			makeTask("task-8", "execution", "implementing"),
 			makeTask("task-9", "execution", "done"),
-			makeTask("task-10", "execution", "ready"),
+			makeTask("task-10", "execution", "implementing"),
 		];
 		const events = interp.scan(tasks);
-		expect(events).toEqual(["item-ready: execution:ready:task-8", "item-ready: execution:ready:task-10"]);
+		expect(events).toEqual(["item-ready: execution:implementing:task-8", "item-ready: execution:implementing:task-10"]);
 	});
 });
 
@@ -138,13 +112,13 @@ describe("Interpreter — pipeline registration enables scan", () => {
 	it("registers a pipeline when register() is called", () => {
 		const interp = new Interpreter();
 		// Before registration, unknown pipeline → no events
-		const before = interp.scan([makeTask("t1", "execution", "ready")]);
+		const before = interp.scan([makeTask("t1", "execution", "implementing")]);
 		expect(before).toEqual([]);
 
 		// After registration, known pipeline + machine-actor phase → event
-		interp.register(executionPipeline, "ready", async () => {});
-		const after = interp.scan([makeTask("t1", "execution", "ready")]);
-		expect(after).toEqual(["item-ready: execution:ready:t1"]);
+		interp.register(executionPipeline, "implementing", async () => {});
+		const after = interp.scan([makeTask("t1", "execution", "implementing")]);
+		expect(after).toEqual(["item-ready: execution:implementing:t1"]);
 	});
 });
 
@@ -152,25 +126,25 @@ describe("Interpreter.dispatch — handler routing", () => {
 	it("routes events to the registered handler by pipeline_id:phase", async () => {
 		const interp = new Interpreter();
 		const received: string[] = [];
-		interp.register(executionPipeline, "ready", async (event) => {
+		interp.register(executionPipeline, "implementing", async (event) => {
 			received.push(event);
 		});
 
-		const tasks = [makeTask("task-A", "execution", "ready")];
+		const tasks = [makeTask("task-A", "execution", "implementing")];
 		const events = interp.scan(tasks);
 		await interp.dispatch(events, tasks);
 
-		expect(received).toEqual(["item-ready: execution:ready:task-A"]);
+		expect(received).toEqual(["item-ready: execution:implementing:task-A"]);
 	});
 
 	it("passes the correct Task object to the handler", async () => {
 		const interp = new Interpreter();
 		const receivedTasks: Task[] = [];
-		interp.register(executionPipeline, "ready", async (_event, task) => {
+		interp.register(executionPipeline, "implementing", async (_event, task) => {
 			receivedTasks.push(task);
 		});
 
-		const task = makeTask("task-B", "execution", "ready");
+		const task = makeTask("task-B", "execution", "implementing");
 		const events = interp.scan([task]);
 		await interp.dispatch(events, [task]);
 
@@ -192,32 +166,32 @@ describe("Interpreter.dispatch — handler routing", () => {
 		const executionEvents: string[] = [];
 		const syntheticEvents: string[] = [];
 
-		interp.register(executionPipeline, "ready", async (event) => {
+		interp.register(executionPipeline, "implementing", async (event) => {
 			executionEvents.push(event);
 		});
 		interp.register(syntheticPipeline, "pending", async (event) => {
 			syntheticEvents.push(event);
 		});
 
-		const tasks = [makeTask("exec-1", "execution", "ready"), makeTask("syn-1", "synthetic", "pending")];
+		const tasks = [makeTask("exec-1", "execution", "implementing"), makeTask("syn-1", "synthetic", "pending")];
 		const events = interp.scan(tasks);
 		expect(events).toHaveLength(2);
 
 		await interp.dispatch(events, tasks);
 
-		expect(executionEvents).toEqual(["item-ready: execution:ready:exec-1"]);
+		expect(executionEvents).toEqual(["item-ready: execution:implementing:exec-1"]);
 		expect(syntheticEvents).toEqual(["item-ready: synthetic:pending:syn-1"]);
 	});
 
 	it("is a no-op for unregistered pipeline:phase key", async () => {
 		const interp = new Interpreter();
 		const received: string[] = [];
-		interp.register(executionPipeline, "ready", async (event) => {
+		interp.register(executionPipeline, "implementing", async (event) => {
 			received.push(event);
 		});
 
 		// Manually craft an event for a key with no handler
-		const tasks = [makeTask("task-C", "execution", "ready")];
+		const tasks = [makeTask("task-C", "execution", "implementing")];
 		const unregisteredEvents = ["item-ready: other-pipeline:other-phase:task-C"];
 		await interp.dispatch(unregisteredEvents, tasks);
 
@@ -227,11 +201,11 @@ describe("Interpreter.dispatch — handler routing", () => {
 	it("invokes multiple handlers in order when multiple events exist", async () => {
 		const interp = new Interpreter();
 		const order: string[] = [];
-		interp.register(executionPipeline, "ready", async (_event, task) => {
+		interp.register(executionPipeline, "implementing", async (_event, task) => {
 			order.push(task.id);
 		});
 
-		const tasks = [makeTask("first", "execution", "ready"), makeTask("second", "execution", "ready")];
+		const tasks = [makeTask("first", "execution", "implementing"), makeTask("second", "execution", "implementing")];
 		const events = interp.scan(tasks);
 		await interp.dispatch(events, tasks);
 

@@ -45,7 +45,7 @@ const SAMPLES: Record<string, Partial<Task>> = {
 	ordinal: { ordinal: 2000 },
 	onStatusChange: { onStatusChange: "echo hi" },
 	pipeline_id: { pipeline_id: "execution" },
-	phase: { phase: "ready" },
+	phase: { phase: "implementing" },
 	parent_id: { parent_id: "task-0" },
 	provenance: { provenance: { spawned_from: "task-9" } },
 	dod: { dod: [{ text: "tests pass", checked: false }] },

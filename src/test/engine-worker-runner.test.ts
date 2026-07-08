@@ -19,9 +19,9 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 	return {
 		id: "BACK-test-1",
 		title: "Implement feature X",
-		status: "Basic: Ready",
+		status: "Basic: Implementing",
 		pipeline_id: "execution",
-		phase: "ready",
+		phase: "implementing",
 		filePath: "/fake/back-test-1.md",
 		body: "",
 		assignee: [],

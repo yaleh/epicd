@@ -40,41 +40,41 @@ describe("computeDriverIndicator", () => {
 
 describe("getPhaseActor", () => {
 	it("looks up actor from the execution pipeline by phase name", () => {
-		expect(getPhaseActor("execution", "ready")).toBe("machine");
+		expect(getPhaseActor("execution", "implementing")).toBe("machine");
 		expect(getPhaseActor("execution", "needs-human")).toBe("human");
 		expect(getPhaseActor("execution", "done")).toBe("none");
 	});
 
 	it("looks up actor from the authoring pipeline by phase name", () => {
 		expect(getPhaseActor("authoring", "backlog")).toBe("human");
-		expect(getPhaseActor("authoring", "draft")).toBe("machine");
+		expect(getPhaseActor("authoring", "drafting")).toBe("machine");
 	});
 
 	it("looks up actor from the exploration pipeline by phase name", () => {
-		expect(getPhaseActor("exploration", "spike")).toBe("machine");
+		expect(getPhaseActor("exploration", "spiking")).toBe("machine");
 		expect(getPhaseActor("exploration", "done")).toBe("none");
 	});
 
 	it("returns undefined for unknown pipeline_id or phase, or missing inputs", () => {
-		expect(getPhaseActor("unknown-pipeline", "ready")).toBeUndefined();
+		expect(getPhaseActor("unknown-pipeline", "implementing")).toBeUndefined();
 		expect(getPhaseActor("execution", "unknown-phase")).toBeUndefined();
-		expect(getPhaseActor(undefined, "ready")).toBeUndefined();
+		expect(getPhaseActor(undefined, "implementing")).toBeUndefined();
 		expect(getPhaseActor("execution", undefined)).toBeUndefined();
 	});
 });
 
 describe("computeApprovePhase (BACK-646 604.3 inline gate-review: approve)", () => {
-	it("execution/needs-human wraps to 'ready' (last human phase before terminal 'done', no machine phase forward)", () => {
-		expect(computeApprovePhase("execution", "needs-human")).toBe("ready");
+	it("execution/needs-human wraps to 'implementing' (last human phase before terminal 'done', no machine phase forward)", () => {
+		expect(computeApprovePhase("execution", "needs-human")).toBe("implementing");
 	});
 
-	it("authoring/backlog (last state, no machine phase forward) wraps to 'draft'", () => {
-		expect(computeApprovePhase("authoring", "backlog")).toBe("draft");
+	it("authoring/backlog (last state, no machine phase forward) wraps to 'drafting'", () => {
+		expect(computeApprovePhase("authoring", "backlog")).toBe("drafting");
 	});
 
 	it("finds the next machine-actor phase forward without wrapping when one exists", () => {
-		// execution: decomposing(machine) -> awaiting-children(none) -> evaluating(machine)
-		expect(computeApprovePhase("execution", "awaiting-children")).toBe("evaluating");
+		// execution: awaiting-children(none) -> adjudicating(machine) — BACK-686.3 collapse
+		expect(computeApprovePhase("execution", "awaiting-children")).toBe("adjudicating");
 	});
 
 	it("returns null for unknown pipeline_id, unknown phase, or missing inputs", () => {
@@ -85,8 +85,8 @@ describe("computeApprovePhase (BACK-646 604.3 inline gate-review: approve)", () 
 	});
 
 	it("wraps back to the pipeline's single machine phase when advancing from its terminal state", () => {
-		// exploration: spike(machine) -> done(none) — no machine phase forward, wraps to "spike".
-		expect(computeApprovePhase("exploration", "done")).toBe("spike");
+		// exploration: spiking(machine) -> done(none) — no machine phase forward, wraps to "spiking".
+		expect(computeApprovePhase("exploration", "done")).toBe("spiking");
 	});
 });
 

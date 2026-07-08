@@ -67,7 +67,7 @@ async function createReadyTask(core: Core, title: string, opts: { dodGates: stri
 		},
 		false,
 	);
-	const withPipeline = { ...task, pipeline_id: "execution", phase: "ready" };
+	const withPipeline = { ...task, pipeline_id: "execution", phase: "implementing" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }

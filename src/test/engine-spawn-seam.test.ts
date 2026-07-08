@@ -19,9 +19,9 @@ function makeTask(id: string): Task {
 	return {
 		id,
 		title: `Task ${id}`,
-		status: "Basic: Ready",
+		status: "Basic: Implementing",
 		pipeline_id: "execution",
-		phase: "ready",
+		phase: "implementing",
 		filePath: `/fake/${id}.md`,
 		body: "",
 	} as unknown as Task;
