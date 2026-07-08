@@ -4,7 +4,7 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 16:57'
+updated_date: '2026-07-08 17:01'
 labels: []
 dependencies:
   - BACK-681
@@ -91,6 +91,8 @@ Phase A+B done: replaced backlog-CLI-invocation examples with epicd in README.md
 needs-human triage: OperationalMistake, not RealGate. AC #6's second clause grepped 'backlog://' in src/cli.ts, but that URI scheme actually lives in src/mcp/*.ts (verified pre-existing on main, unaffected by this diff). Corrected AC #6 to grep the right file; invariant itself (backlog:// scheme untouched) was never violated. Re-running engine complete.
 
 needs-human triage (3rd round): OperationalMistake. Prior gate used 'HEAD~1 HEAD', which shifted after round 2's engine complete attempt committed a board-update commit on top of the implementation commit in the worktree branch — HEAD~1..HEAD then diffed only the board file, not the actual doc/code changes, so biome checked 0 real files. Fixed gate to diff against a stable merge-base with main instead. Verified standalone: exit 0, 4 files checked, 2 pre-existing warnings. Re-running engine complete.
+
+needs-human triage (4th round, root cause found): the actual blocker across rounds 1-3 was NOT the DoD gates — it was gitMergeBranch (src/harness/real-primitives.ts) expecting a branch literally named task/BACK-687, while the worktree dispatched via the Agent tool's isolation:worktree was on branch worktree-agent-a5768d98c08b3aa54. 'git merge --no-ff task/BACK-687' silently failed to find that branch every round, independent of DoD outcome — an operational/dispatch-convention mismatch, not a code or AC defect. Renamed the worktree's branch to task/BACK-687 to match the engine's merge convention. Re-running engine complete.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
