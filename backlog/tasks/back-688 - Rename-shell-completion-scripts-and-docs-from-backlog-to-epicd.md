@@ -4,13 +4,13 @@ title: Rename shell completion scripts and docs from backlog to epicd
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 18:04'
+updated_date: '2026-07-08 18:07'
 labels: []
 dependencies:
   - BACK-681
 ordinal: 101000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bun test
     checked: false
@@ -39,8 +39,6 @@ BACK-681 renamed the CLI bin entry from backlog to epicd, but the completions/ d
 - [ ] #6 src/commands/completion.test.ts asserts (via installCompletion() with an injected homeDir, not the real $HOME) that installed completion script content for at least bash/zsh/fish registers the epicd command and contains no 'backlog' references, and that install path filenames use epicd naming; bun test src/commands/completion.test.ts passes
 - [ ] #7 grep -c 'backlog' completions/_epicd returns 0 CLI-command occurrences (script registers completion for epicd, e.g. #compdef epicd, _epicd()) — file renamed from completions/_backlog per AC#5's endorsed rename option, corrected after implementation to match the actual filename
 <!-- AC:END -->
-
-
 
 ## Implementation Plan
 
@@ -92,6 +90,8 @@ BACK-681 renamed the CLI bin entry from backlog to epicd, but the completions/ d
 authoring/draft self-review: APPROVED after 1 round. Background states WHY (BACK-681's bin rename left completions/ out of scope, functional not just prose) grounded in an actual read of src/commands/completion.ts (getScriptFilename/getEmbeddedCompletionScript/getInstallPaths all hardcode backlog-suffixed names — this widened scope beyond the original draft, now reflected in Description + 7 machine-checkable ACs). Goals are the 7 ACs, each a concrete grep/test command. Non-goals: original AC#5's non-mechanical interactive-TAB claim removed and replaced with an installCompletion()-with-injected-homeDir test assertion (AC#7) so every AC is machine-checkable per assessAndDecompose(b).
 
 authoring/refining review: APPROVED after 1 iteration. Goal coverage: Phase A covers AC#1/#2/#3/#5 (completions/ dir file renames+content), Phase B covers AC#6/#7 (completion.ts getScriptFilename/embedded scripts/install paths + completion.test.ts), Acceptance Gate covers AC#4 (bun test). TDD structure: Phase B has Tests-first (installCompletion with injected homeDir, not real $HOME) with bun test src/commands/completion.test.ts as first DoD item (red before Implementation, green after); Phase A is prose/script-only (no bun-test coverage possible) with grep-based DoD, same pattern accepted for BACK-687's doc-only phases. Acceptance Gate's first item is the full bun test suite. File paths confirmed to exist via a source read (completions/_backlog, completions/backlog.{bash,fish,ps1}, completions/README.md, completions/EXAMPLES.md, src/commands/completion.ts, src/commands/completion.test.ts).
+
+Stage 3 audit (independent, fresh-context dispatched agent): all 7 ACs independently re-verified PASS via direct command execution on main (not self-report), including AC#2's documented deviation (grep count 1, confirmed genuinely benign task-storage-directory prose, not a missed CLI-invocation rename). bun test 2068 pass/0 fail, bunx tsc --noEmit clean. File renames (_backlog->_epicd, backlog.{bash,fish,ps1}->epicd.{bash,fish,ps1}) confirmed as detected git renames. completion.test.ts's new tests confirmed to genuinely exercise installCompletion() with an injected homeDir (never real $HOME) and would fail on a revert. Out-of-scope invariants (src/completions/helper.ts, MCP_SERVER_NAME, backlog:// scheme, backlog/ dir name) confirmed untouched. 0 HIGH findings, 1 NIT (cosmetic README wording, not actionable). Audit round 1: dry (0 new blockers) — loopUntilDry terminates after round 1. Stage 4 evaluate: AcceptanceResult = Met. Adjudicating -> done.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
