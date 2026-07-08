@@ -25,10 +25,10 @@ type CompletionInstallOptions = {
 
 function getScriptFilename(shell: Shell): string {
 	const scriptFiles: Record<Shell, string> = {
-		bash: "backlog.bash",
-		zsh: "_backlog",
-		fish: "backlog.fish",
-		pwsh: "backlog.ps1",
+		bash: "epicd.bash",
+		zsh: "_epicd",
+		fish: "epicd.fish",
+		pwsh: "epicd.ps1",
 	};
 
 	return scriptFiles[shell];
@@ -139,18 +139,18 @@ async function getCompletionScript(shell: Shell): Promise<string> {
 function getEmbeddedCompletionScript(shell: Shell): string {
 	const scripts: Record<Shell, string> = {
 		bash: `#!/usr/bin/env bash
-# Bash completion script for backlog CLI
+# Bash completion script for epicd CLI
 #
 # Installation:
-#   - Copy to /etc/bash_completion.d/backlog
-#   - Or source directly in ~/.bashrc: source /path/to/backlog.bash
+#   - Copy to /etc/bash_completion.d/epicd
+#   - Or source directly in ~/.bashrc: source /path/to/epicd.bash
 #
 # Requirements:
 #   - Bash 4.x or 5.x
 #   - bash-completion package (optional but recommended)
 
-# Main completion function for backlog CLI
-_backlog() {
+# Main completion function for epicd CLI
+_epicd() {
 	# Initialize completion variables using bash-completion helper if available
 	# Falls back to manual initialization if bash-completion is not installed
 	local cur prev words cword
@@ -173,7 +173,7 @@ _backlog() {
 	# This delegates all completion logic to the TypeScript implementation
 	# Output format: one completion per line
 	local completions
-	completions=$(backlog completion __complete "$line" "$point" 2>/dev/null)
+	completions=$(epicd completion __complete "$line" "$point" 2>/dev/null)
 
 	# Check if the completion command failed
 	if [[ $? -ne 0 ]]; then
@@ -191,31 +191,31 @@ _backlog() {
 	return 0
 }
 
-# Register the completion function for the 'backlog' command
+# Register the completion function for the 'epicd' command
 # -F: use function for completion
-# _backlog: name of the completion function
-# backlog: command to complete
-complete -F _backlog backlog
+# _epicd: name of the completion function
+# epicd: command to complete
+complete -F _epicd epicd
 `,
-		zsh: `#compdef backlog
+		zsh: `#compdef epicd
 
-# Zsh completion script for backlog CLI
+# Zsh completion script for epicd CLI
 #
 # Installation:
 #   1. Copy this file to a directory in your $fpath
 #   2. Run: compinit
 #
-# Or use: backlog completion install --shell zsh
+# Or use: epicd completion install --shell zsh
 
-_backlog() {
+_epicd() {
 	# Get the current command line buffer and cursor position
 	local line=$BUFFER
 	local point=$CURSOR
 
-	# Call the backlog completion command to get dynamic completions
+	# Call the epicd completion command to get dynamic completions
 	# The __complete command returns one completion per line
 	local -a completions
-	completions=(\${(f)"$(backlog completion __complete "$line" "$point" 2>/dev/null)"})
+	completions=(\${(f)"$(epicd completion __complete "$line" "$point" 2>/dev/null)"})
 
 	# Check if we got any completions
 	if (( \${#completions[@]} == 0 )); then
@@ -226,25 +226,25 @@ _backlog() {
 	# Present the completions to the user
 	# _describe shows completions with optional descriptions
 	# The first argument is the tag name shown in completion groups
-	_describe 'backlog commands' completions
+	_describe 'epicd commands' completions
 }
 
-# Register the completion function for the backlog command
-compdef _backlog backlog
+# Register the completion function for the epicd command
+compdef _epicd epicd
 `,
 		fish: `#!/usr/bin/env fish
-# Fish completion script for backlog CLI
+# Fish completion script for epicd CLI
 #
 # Installation:
-#   - Copy to ~/.config/fish/completions/backlog.fish
-#   - Or use: backlog completion install --shell fish
+#   - Copy to ~/.config/fish/completions/epicd.fish
+#   - Or use: epicd completion install --shell fish
 #
 # Requirements:
 #   - Fish 3.x or later
 
 # Helper function to get completions from the CLI
 # This delegates all completion logic to the TypeScript implementation
-function __backlog_complete
+function __epicd_complete
 	# Get the current command line and cursor position
 	# -cp: get the command line with cursor position preserved
 	set -l line (commandline -cp)
@@ -256,28 +256,28 @@ function __backlog_complete
 	# Call the CLI's internal completion command
 	# Output format: one completion per line
 	# Redirect stderr to /dev/null to suppress error messages
-	backlog completion __complete "$line" "$point" 2>/dev/null
+	epicd completion __complete "$line" "$point" 2>/dev/null
 
 	# Fish will automatically handle the exit status
 	# If the command fails, no completions will be shown
 end
 
-# Register completion for the 'backlog' command
+# Register completion for the 'epicd' command
 # -c: specify the command to complete
 # -f: disable file completion (we handle all completions dynamically)
 # -a: add completion candidates from the function output
-complete -c backlog -f -a '(__backlog_complete)'
+complete -c epicd -f -a '(__epicd_complete)'
 `,
-		pwsh: `# PowerShell completion script for backlog CLI
+		pwsh: `# PowerShell completion script for epicd CLI
 #
 # Installation:
-#   - Recommended: backlog completion install --shell pwsh
+#   - Recommended: epicd completion install --shell pwsh
 #   - Manual: Save this file and source it from your $PROFILE.CurrentUserAllHosts
 #
 # Requirements:
 #   - PowerShell 7+ recommended
 
-$__backlogCompletionScriptBlock = {
+$__epicdCompletionScriptBlock = {
 	param($wordToComplete, $commandAst, $cursorPosition)
 
 	$line = $commandAst.ToString()
@@ -290,7 +290,7 @@ $__backlogCompletionScriptBlock = {
 	$point = [Math]::Min([Math]::Max($cursorPosition, 0), $line.Length)
 
 	try {
-		$completions = @(backlog completion __complete "$line" "$point" 2>$null)
+		$completions = @(epicd completion __complete "$line" "$point" 2>$null)
 		foreach ($completion in $completions) {
 			if ($completion) {
 				$completionText = "$completion "
@@ -307,7 +307,7 @@ $__backlogCompletionScriptBlock = {
 	}
 }
 
-Register-ArgumentCompleter -Native -CommandName @("backlog", "backlog.exe") -ScriptBlock $__backlogCompletionScriptBlock
+Register-ArgumentCompleter -Native -CommandName @("epicd", "epicd.exe") -ScriptBlock $__epicdCompletionScriptBlock
 `,
 	};
 
@@ -327,22 +327,22 @@ function getInstallPaths(
 		const profileDir = dirname(profilePath);
 
 		return {
-			user: join(profileDir, "Completions", "backlog-completion.ps1"),
+			user: join(profileDir, "Completions", "epicd-completion.ps1"),
 		};
 	}
 
 	const paths: Record<Exclude<Shell, "pwsh">, InstallPaths> = {
 		bash: {
-			system: "/etc/bash_completion.d/backlog",
-			user: join(home, ".local/share/bash-completion/completions/backlog"),
+			system: "/etc/bash_completion.d/epicd",
+			user: join(home, ".local/share/bash-completion/completions/epicd"),
 		},
 		zsh: {
-			system: "/usr/local/share/zsh/site-functions/_backlog",
-			user: join(home, ".zsh/completions/_backlog"),
+			system: "/usr/local/share/zsh/site-functions/_epicd",
+			user: join(home, ".zsh/completions/_epicd"),
 		},
 		fish: {
-			system: "/usr/share/fish/vendor_completions.d/backlog.fish",
-			user: join(home, ".config/fish/completions/backlog.fish"),
+			system: "/usr/share/fish/vendor_completions.d/epicd.fish",
+			user: join(home, ".config/fish/completions/epicd.fish"),
 		},
 	};
 
@@ -377,7 +377,7 @@ exec fish
 `,
 		pwsh: `
 To enable completions, add this to your PowerShell profile ($PROFILE.CurrentUserAllHosts):
-$completionScript = Join-Path (Split-Path -Parent $PROFILE.CurrentUserAllHosts) "Completions/backlog-completion.ps1"
+$completionScript = Join-Path (Split-Path -Parent $PROFILE.CurrentUserAllHosts) "Completions/epicd-completion.ps1"
 if (Test-Path $completionScript) { . $completionScript }
 
 Then restart PowerShell or run:
@@ -403,10 +403,10 @@ export async function installCompletion(
 		const message = [
 			"Could not detect your shell.",
 			"Please specify it manually:",
-			"  backlog completion install --shell bash",
-			"  backlog completion install --shell zsh",
-			"  backlog completion install --shell fish",
-			"  backlog completion install --shell pwsh",
+			"  epicd completion install --shell bash",
+			"  epicd completion install --shell zsh",
+			"  epicd completion install --shell fish",
+			"  epicd completion install --shell pwsh",
 		].join("\n");
 		throw new Error(message);
 	}
@@ -448,10 +448,10 @@ export async function installCompletion(
 						`Target path: ${installPath}`,
 						"",
 						"Ensure the profile directory is writable and run again:",
-						"  backlog completion install --shell pwsh",
+						"  epicd completion install --shell pwsh",
 						"",
 						"Then add this to your PowerShell profile ($PROFILE.CurrentUserAllHosts):",
-						'$completionScript = Join-Path (Split-Path -Parent $PROFILE.CurrentUserAllHosts) "Completions/backlog-completion.ps1"',
+						'$completionScript = Join-Path (Split-Path -Parent $PROFILE.CurrentUserAllHosts) "Completions/epicd-completion.ps1"',
 						"if (Test-Path $completionScript) { . $completionScript }",
 					].join("\n")
 				: [
@@ -512,7 +512,7 @@ export function registerCompletionCommand(program: Command): void {
 		.action(async (options: { shell?: string }) => {
 			try {
 				const result = await installCompletion(options.shell);
-				console.log(`📦 Installed ${result.shell} completion for backlog CLI.`);
+				console.log(`📦 Installed ${result.shell} completion for epicd CLI.`);
 				console.log(`✅ Completion script written to ${result.installPath}`);
 				console.log(result.instructions.trimEnd());
 			} catch (error) {

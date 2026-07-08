@@ -1,0 +1,35 @@
+#compdef epicd
+
+# Zsh completion script for epicd CLI
+#
+# NOTE: This script is embedded in the epicd binary and installed automatically
+# via 'epicd completion install'. This file serves as reference documentation.
+#
+# Installation:
+#   - Recommended: epicd completion install --shell zsh
+#   - Manual: Copy this file to a directory in your $fpath and run compinit
+
+_epicd() {
+	# Get the current command line buffer and cursor position
+	local line=$BUFFER
+	local point=$CURSOR
+
+	# Call the epicd completion command to get dynamic completions
+	# The __complete command returns one completion per line
+	local -a completions
+	completions=(${(f)"$(epicd completion __complete "$line" "$point" 2>/dev/null)"})
+
+	# Check if we got any completions
+	if (( ${#completions[@]} == 0 )); then
+		# No completions available
+		return 1
+	fi
+
+	# Present the completions to the user
+	# _describe shows completions with optional descriptions
+	# The first argument is the tag name shown in completion groups
+	_describe 'epicd commands' completions
+}
+
+# Register the completion function for the epicd command
+compdef _epicd epicd
