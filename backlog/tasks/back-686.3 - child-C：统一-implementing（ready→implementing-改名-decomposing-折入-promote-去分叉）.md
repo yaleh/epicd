@@ -4,7 +4,7 @@ title: child C：统一 implementing（ready→implementing 改名 + decomposing
 assignee:
   - '@claude'
 created_date: '2026-07-08 04:00'
-updated_date: '2026-07-08 05:05'
+updated_date: '2026-07-08 07:04'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -16,8 +16,8 @@ references:
 parent_task_id: BACK-686
 priority: high
 ordinal: 99000
-pipeline_id: authoring
-phase: backlog
+pipeline_id: execution
+phase: adjudicating
 dod:
   - text: bun test
     checked: false
@@ -29,6 +29,7 @@ dod:
     checked: false
   - text: bun test src/test/harness-evaluator.test.ts
     checked: false
+entry_phase: authoring/backlog
 ---
 
 ## Description
@@ -180,6 +181,8 @@ dod:
 
 <!-- SECTION:NOTES:BEGIN -->
 authoring/refining review: APPROVED after 1 iteration(s)
+
+claimed: 2026-07-08T05:38:06Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
