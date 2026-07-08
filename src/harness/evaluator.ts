@@ -3,13 +3,18 @@
  * harness/decomposer.ts. Two data-derived steps, both keyed off `parent_id`/`phase`
  * (never a status string — BACK-622's desync class):
  *
- *  1. `advanceAwaitingChildrenToEvaluating` — an epic sitting in `awaiting-children`
+ *  1. `advanceAwaitingChildrenToAdjudicating` — an epic sitting in `awaiting-children`
  *     (actor: none, so `Interpreter.scan` never surfaces it) whose children are ALL
- *     terminal (`done` or `needs-human`) is advanced to `evaluating` (actor: machine),
+ *     terminal (`done` or `needs-human`) is advanced to `adjudicating` (actor: machine),
  *     replacing scan-loop.cjs's legacy `scanEvalDueEpics` status-string predicate.
- *     Once in `evaluating`, the epic is picked up by the SAME generic
- *     `Interpreter.scan` machinery `decomposing`/`ready` already use — no special-casing
- *     needed in engine/scan.ts beyond the PHASE_PREFIX entry.
+ *     BACK-686.2 (Phase D, AC#5): this used to target `evaluating`; the epic path is
+ *     now `awaiting-children -> adjudicating(gate) -> done/needs-human` — there is no
+ *     independent `evaluating` phase left in the runtime path (evaluating still exists
+ *     as a declared pipeline state, kind:script, reachable only via the manual
+ *     `engine evaluate` CLI debug command). Once in `adjudicating`, the epic is picked
+ *     up by the SAME generic `Interpreter.scan` machinery `decomposing`/`ready` already
+ *     use, and `Driver.tick`'s adjudicating branch calls `gateAdjudicating`, whose epic
+ *     path folds this module's IA+aggregation logic in directly (`adjudicate-gate.ts`).
  *  2. `evaluateEpic` — the epic-eval-due dispatch handler. BACK-657.3 (ADR-019 gap fix):
  *     this used to ONLY aggregate children's terminal phases, never running the epic's
  *     own `## Integration Acceptance` — an epic could reach `done` with its own
@@ -60,10 +65,12 @@ export function extractIntegrationAcceptanceCommands(description: string): strin
 
 /**
  * Scan all tasks for epics in `awaiting-children` whose children are all terminal, and
- * advance each to `evaluating`. Returns the ids advanced. Read via one `queryTasks({})`
- * call up front so children-terminal checks are consistent within a single scan pass.
+ * advance each to `adjudicating` (BACK-686.2 Phase D, AC#5 — was `evaluating`; the gate
+ * at `adjudicating` now folds in the same IA+aggregation logic via `gateAdjudicating`).
+ * Returns the ids advanced. Read via one `queryTasks({})` call up front so
+ * children-terminal checks are consistent within a single scan pass.
  */
-export async function advanceAwaitingChildrenToEvaluating(core: Core): Promise<string[]> {
+export async function advanceAwaitingChildrenToAdjudicating(core: Core): Promise<string[]> {
 	const tasks = await core.queryTasks({});
 	const advanced: string[] = [];
 
@@ -73,7 +80,7 @@ export async function advanceAwaitingChildrenToEvaluating(core: Core): Promise<s
 		if (children.length === 0) continue;
 		if (!children.every((c) => c.phase !== undefined && TERMINAL_PHASES.has(c.phase))) continue;
 
-		await core.updateTask({ ...task, phase: "evaluating" }, false);
+		await core.updateTask({ ...task, phase: "adjudicating" }, false);
 		advanced.push(task.id);
 	}
 
@@ -88,6 +95,14 @@ export async function advanceAwaitingChildrenToEvaluating(core: Core): Promise<s
  * it aggregate children's terminal phases into the epic's own terminal phase, as
  * before: any child `needs-human` → epic `needs-human`; otherwise (all children
  * `done`) → epic `done`.
+ *
+ * BACK-686.2: the actual verdict logic is factored into `computeEpicVerdict` below —
+ * a pure-of-store function over `(task, children, repoRoot)` — so both this
+ * `Core`-based entry point (kept for `engine evaluate`, the manual/debug CLI command)
+ * and `Driver.tick`'s in-tick `execution/evaluating` branch (`src/engine/driver.ts`)
+ * share exactly one implementation of the IA+aggregation logic. `evaluating` is now
+ * `kind:script` (`plugin/skills/phase-coverage.json`) — the epic-evaluate skill that
+ * used to be dispatched for this phase is retired.
  */
 export async function evaluateEpic(core: Core, epicId: string): Promise<void> {
 	const task = await core.getTask(epicId);
@@ -95,18 +110,30 @@ export async function evaluateEpic(core: Core, epicId: string): Promise<void> {
 		throw new Error(`Task not found: ${epicId}`);
 	}
 
+	const children = (await core.queryTasks({})).filter((t) => t.parent_id === epicId);
+	const verdict = await computeEpicVerdict(task, children, core.filesystem.rootDir);
+	await core.updateTask({ ...task, phase: verdict }, false);
+}
+
+/**
+ * The store-agnostic epic-verdict core (BACK-686.2): runs the epic's own
+ * `## Integration Acceptance` shell commands (if any), then aggregates `children`'s
+ * terminal phases. Any failing IA command, or any child `needs-human` → `needs-human`;
+ * otherwise (IA green/absent AND all children `done`) → `done`. Takes `children`
+ * directly (rather than querying a store itself) so a caller already holding an
+ * in-memory task snapshot (e.g. `Driver.tick`) never needs a `Core`/`queryTasks` call.
+ */
+export async function computeEpicVerdict(
+	task: Task,
+	children: Task[],
+	repoRoot: string,
+): Promise<"done" | "needs-human"> {
 	const iaCommands = extractIntegrationAcceptanceCommands(task.description ?? "");
 	if (iaCommands.length > 0) {
-		const iaResults = await runShellCommands(iaCommands, core.filesystem.rootDir);
-		if (iaResults.some((r) => !r.passed)) {
-			await core.updateTask({ ...task, phase: "needs-human" }, false);
-			return;
-		}
+		const iaResults = await runShellCommands(iaCommands, repoRoot);
+		if (iaResults.some((r) => !r.passed)) return "needs-human";
 	}
 
-	const children = (await core.queryTasks({})).filter((t) => t.parent_id === epicId);
 	const anyNeedsHuman = children.some((c) => c.phase === "needs-human");
-	const verdict = anyNeedsHuman ? "needs-human" : "done";
-
-	await core.updateTask({ ...task, phase: verdict }, false);
+	return anyNeedsHuman ? "needs-human" : "done";
 }

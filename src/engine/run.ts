@@ -27,8 +27,15 @@ export function isDriverActive(backlogDir: string): boolean {
  * (BACK-603) from a single hardcoded `executionPipeline` check to an arbitrary
  * `pipelines` list — registering an additional pipeline (e.g. exploration) is a
  * data change at the call site, not an edit to this function's logic.
+ *
+ * BACK-686.2 AC#6: keeps `actor === "machine"` gating unchanged (AC#8) — a
+ * `kind:script`/`kind:gate` phase is still `actor: "machine"`, so it still counts
+ * as pending work here. `kind` only changes whether `Driver.tick`'s dispatch
+ * spends spawn cost for that phase (`driver.ts`), not whether scan/fixpoint
+ * detection sees it as actionable. Exported so `kind`-vs-`actor` behavior can be
+ * exercised directly in tests (`engine-scan-kind.test.ts`).
  */
-function hasPendingWork(tasks: Array<{ pipeline_id?: string; phase?: string }>, pipelines: Pipeline[]): boolean {
+export function hasPendingWork(tasks: Array<{ pipeline_id?: string; phase?: string }>, pipelines: Pipeline[]): boolean {
 	for (const task of tasks) {
 		if (!task.pipeline_id || !task.phase) continue;
 		const pipeline = pipelines.find((p) => p.id === task.pipeline_id);

@@ -1,0 +1,19 @@
+Phase A ✓ 2026-07-08T04:40:12Z
+DoD #1: PASS — bun test src/test/phase-skill-coverage.test.ts
+Phase B ✓ 2026-07-08T04:44:25Z
+DoD #2: PASS — bun test src/test/engine-evaluating-script.test.ts src/test/harness-evaluator.test.ts src/test/engine-dispatch.test.ts
+DoD #3: PASS — grep no evaluating->eval-due branch in dispatch.ts
+Phase C ✓ 2026-07-08T04:49:08Z
+DoD #4: PASS — bun test src/test/engine-adjudicating-gate.test.ts src/test/engine-adjudicating-fresh-context.test.ts (12 pass)
+Regression: PASS — bun test src/test/engine-adjudicate.test.ts src/test/engine-adjudicate-eng8.test.ts src/test/engine-adjudicating-dispatch.test.ts src/test/engine-pipeline-adjudicating.test.ts src/test/pipeline-coupling-discipline.test.ts src/test/engine-worktree-retreat-preserve.test.ts (51 pass, fixed 2 pre-existing fixtures to carry area:engine label so full-audit-depth dispatch path is still exercised)
+Phase D ✓ 2026-07-08T04:51:31Z
+DoD #5: PASS — bun test src/test/engine-epic-gate-fold.test.ts (renamed advanceAwaitingChildrenToEvaluating -> advanceAwaitingChildrenToAdjudicating in evaluator.ts/cli.ts, updated harness-evaluator.test.ts + adr-010-invariants.test.ts call sites)
+Phase E ✓ 2026-07-08T04:53:41Z
+DoD #6: PASS — bun test src/test/engine-scan-kind.test.ts (driver.ts dispatch now branches on kindForPhase(repoRoot, pipelineId/phase) instead of hardcoded phase-name string match; exported hasPendingWork from run.ts)
+Acceptance Gate ✓ 2026-07-08T05:01:36Z
+bun test: PASS (2042 pass, 2 skip, 0 fail, 6258 expect calls, 261 files)
+bunx tsc --noEmit: PASS (0 errors)
+bun run check .: PASS (exit 0; 12 pre-existing warnings unrelated to this task's diff, e.g. src/test/engine-safety-cap.test.ts noNonNullAssertion, src/test/test-helpers.ts noNonNullAssertion — confirmed via git diff main -- <file> showing no hunk touching those lines)
+AC#8/#9: git diff HEAD -- src/engine/pipeline.ts src/engine/complete.ts src/engine/adjudicate.ts is EMPTY (this task's own diff never touches these 3 files). Note: 'git diff main --' is non-empty only because this branch's base already carries BACK-682's prior legitimate changes to pipeline.ts/complete.ts, committed before BACK-686.2 dispatch began — not part of this task's diff.
+bun test src/test/pipeline-coupling-discipline.test.ts src/test/harness-evaluator.test.ts: PASS (14 pass)
+AC#3 grep dispatch.ts: no renderEpicEvalDueDispatch function/call remains (2 doc-comment mentions only)

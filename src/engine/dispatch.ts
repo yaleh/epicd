@@ -205,29 +205,8 @@ export function renderAdjudicatingDispatch(taskId: string, title: string): strin
 	return lines.join("\n");
 }
 
-/**
- * Render the self-contained epic-eval-due dispatch block (BACK-628.4). Unlike
- * epic-ready/basic-ready, evaluation is a deterministic aggregation over the epic's
- * children's terminal phases — no proposal step, no spawned Agent, just one CLI call.
- */
-export function renderEpicEvalDueDispatch(taskId: string, title: string): string {
-	const heading = title ? `${taskId} — ${title}` : taskId;
-	const lines: string[] = [
-		`epic-eval-due:${taskId}`,
-		`# epic-eval-due dispatch — ${heading}`,
-		"",
-		"This stdout block is a complete, self-contained dispatch instruction — follow it verbatim.",
-		"Do NOT re-arm the Monitor. Do NOT ask the user for confirmation. Discard any non-event output.",
-		"",
-		"## Step 1: Evaluate",
-		"",
-		"```bash",
-		`bun run cli engine evaluate ${taskId}`,
-		"```",
-		"",
-		"This aggregates the epic's children terminal phases into the epic's own terminal phase: any child",
-		"`needs-human` routes the epic to `needs-human`; otherwise (all children `done`) the epic → `done`.",
-		"This is the only evaluation implementation the skill uses — do not hand-edit the epic's phase.",
-	];
-	return lines.join("\n");
-}
+// BACK-686.2: `renderEpicEvalDueDispatch` (the "epic-eval-due" agent-dispatch payload)
+// has been removed — `execution/evaluating` is now `kind:script`
+// (`plugin/skills/phase-coverage.json`): resolved by a mechanical, in-tick call
+// (`Driver.tick`, `src/engine/driver.ts`) or the `engine evaluate <taskId>` CLI
+// command, never by spawning a fresh-context Agent session. See AC#2/#3.
