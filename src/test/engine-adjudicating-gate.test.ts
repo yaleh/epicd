@@ -12,6 +12,11 @@
  * `complete.ts`'s `completeTask`/`completeAdjudication` are unchanged (AC#9) —
  * `gateAdjudicating` sits strictly after DoD verdict resolution, as an
  * additional decision layer.
+ *
+ * BACK-686.3 AC#6: epic-vs-primitive routing here is `children.length > 0`, not
+ * `isCompound(task)`'s label fallback — see the two precedence tests below and
+ * the file header of `adjudicate-gate.ts` for why the label can't be trusted
+ * once a task actually reaches `adjudicating`.
  */
 import { describe, expect, it } from "bun:test";
 import { gateAdjudicating } from "../engine/adjudicate-gate.ts";
@@ -95,6 +100,24 @@ describe("gateAdjudicating — pure mechanical gate function (AC#4)", () => {
 		const task = makeTask();
 		const result = await gateAdjudicating(task, [], [], "/fake/repo");
 		expect(result.verdict).toBe("done");
+	});
+
+	it("BACK-686.3 AC#6: a kind:epic-labeled task the skill kept as a leaf (no children) still goes through the primitive AC/DoD gate, not computeEpicVerdict's children-only aggregation", async () => {
+		const task = makeTask({
+			labels: ["kind:epic"],
+			acceptanceCriteriaItems: [{ index: 1, text: "works", checked: false }],
+		});
+		// isCompound(task) would say "compound" here (label present, no children) —
+		// the label is a stale pre-decompose hint; the skill already decided leaf.
+		const result = await gateAdjudicating(task, [], [], "/fake/repo");
+		expect(result.verdict).toBe("dispatch-skill");
+	});
+
+	it("BACK-686.3 AC#6: a task with no kind:epic label but real children still goes through computeEpicVerdict's aggregation, not the primitive checkbox gate", async () => {
+		const task = makeTask({ labels: [] });
+		const child = makeTask({ id: "child-1", phase: "needs-human" });
+		const result = await gateAdjudicating(task, [child], [], "/fake/repo");
+		expect(result.verdict).toBe("needs-human");
 	});
 });
 

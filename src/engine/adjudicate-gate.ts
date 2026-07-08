@@ -23,10 +23,21 @@
  *    independent judgmental audit for epic aggregation, same as before this
  *    folding (`evaluateEpic`/`advanceAwaitingChildrenToAdjudicating` never spawned
  *    a session either).
+ *
+ * Epic-vs-primitive routing here uses `children.length > 0`, NOT `isCompound(task)`
+ * (BACK-686.3 AC#6 fix): `isCompound`/`roleOf` falls back to the `kind:epic` LABEL
+ * when a task has no children yet — the right heuristic pre-decompose (promote time),
+ * but WRONG at `adjudicating`, by which point `implementing`'s own decompose test has
+ * already run and either created real children or executed the task as a leaf. A
+ * `kind:epic`-labeled task the skill decided to keep as a leaf (label overridden,
+ * AC#6) must go through the primitive AC/DoD-checkbox gate, not `computeEpicVerdict`
+ * (which only aggregates children + an Integration Acceptance section — it never
+ * checks the task's OWN AC/DoD checkboxes, so a stale label would let an unfinished
+ * leaf's unchecked boxes slip straight to `done`).
  */
+
 import { computeEpicVerdict } from "../harness/evaluator.js";
 import type { Task } from "../types/index.js";
-import { isCompound } from "./adjudicate.js";
 import { readClaim } from "./claim.js";
 import { auditDepthFor } from "./retreat.js";
 
@@ -35,8 +46,8 @@ export type GateVerdict = { verdict: "done" } | { verdict: "needs-human" } | { v
 /**
  * Runs the mechanical adjudicating gate for `task`.
  *
- * `children` — the task's direct children (only meaningful when `isCompound(task)`;
- * ignored for primitives).
+ * `children` — the task's direct children; a non-empty list is what decides the
+ * epic path here (see the file header note on why this isn't `isCompound(task)`).
  * `changedPaths` — the diff's touched paths (primitives only; used by `auditDepthFor`).
  * `repoRoot` — passed through to `computeEpicVerdict`'s Integration Acceptance
  * shell-command runner (epics only).
@@ -47,7 +58,7 @@ export async function gateAdjudicating(
 	changedPaths: string[],
 	repoRoot: string,
 ): Promise<GateVerdict> {
-	if (isCompound(task)) {
+	if (children.length > 0) {
 		// AC#5: the epic path is always mechanical — IA + child aggregation,
 		// never escalates to a skill dispatch (no independent judgmental audit
 		// for epic aggregation existed before this folding either).
