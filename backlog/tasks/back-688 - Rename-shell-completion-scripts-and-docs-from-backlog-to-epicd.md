@@ -4,7 +4,7 @@ title: Rename shell completion scripts and docs from backlog to epicd
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 17:45'
+updated_date: '2026-07-08 17:57'
 labels: []
 dependencies:
   - BACK-681
@@ -31,14 +31,16 @@ BACK-681 renamed the CLI bin entry from backlog to epicd, but the completions/ d
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 grep -c 'backlog' completions/_backlog returns 0 CLI-command occurrences (script registers completion for epicd, e.g. #compdef epicd, _epicd())
-- [ ] #2 grep -c 'backlog completion install' completions/README.md returns 0
-- [ ] #3 grep -c 'backlog ' completions/EXAMPLES.md returns 0 CLI-invocation occurrences
-- [ ] #4 bun test passes
-- [ ] #5 grep -c 'backlog' completions/backlog.bash completions/backlog.fish completions/backlog.ps1 returns 0 CLI-command occurrences (or files are renamed to epicd.bash/epicd.fish/epicd.ps1 with getScriptFilename() in src/commands/completion.ts updated to match)
-- [ ] #6 grep -c 'backlog' src/commands/completion.ts returns 0 CLI-command/filename occurrences: getScriptFilename() mapping, getEmbeddedCompletionScript()'s 4 embedded script literals, and getInstallPaths()'s install-path filenames/PowerShell CommandName list all reference epicd, not backlog (directory-path prose like '/etc/bash_completion.d/' stems may remain, only the backlog-specific suffix/name changes)
-- [ ] #7 src/commands/completion.test.ts asserts (via installCompletion() with an injected homeDir, not the real $HOME) that installed completion script content for at least bash/zsh/fish registers the epicd command and contains no 'backlog' references, and that install path filenames use epicd naming; bun test src/commands/completion.test.ts passes
+- [ ] #1 grep -c 'backlog completion install' completions/README.md returns 0
+- [ ] #2 grep -c 'backlog ' completions/EXAMPLES.md returns 0 CLI-invocation occurrences
+- [ ] #3 bun test passes
+- [ ] #4 grep -c 'backlog' completions/backlog.bash completions/backlog.fish completions/backlog.ps1 returns 0 CLI-command occurrences (or files are renamed to epicd.bash/epicd.fish/epicd.ps1 with getScriptFilename() in src/commands/completion.ts updated to match)
+- [ ] #5 grep -c 'backlog' src/commands/completion.ts returns 0 CLI-command/filename occurrences: getScriptFilename() mapping, getEmbeddedCompletionScript()'s 4 embedded script literals, and getInstallPaths()'s install-path filenames/PowerShell CommandName list all reference epicd, not backlog (directory-path prose like '/etc/bash_completion.d/' stems may remain, only the backlog-specific suffix/name changes)
+- [ ] #6 src/commands/completion.test.ts asserts (via installCompletion() with an injected homeDir, not the real $HOME) that installed completion script content for at least bash/zsh/fish registers the epicd command and contains no 'backlog' references, and that install path filenames use epicd naming; bun test src/commands/completion.test.ts passes
+- [ ] #7 grep -c 'backlog' completions/_epicd returns 0 CLI-command occurrences (script registers completion for epicd, e.g. #compdef epicd, _epicd()) — file renamed from completions/_backlog per AC#5's endorsed rename option, corrected after implementation to match the actual filename
 <!-- AC:END -->
+
+
 
 ## Implementation Plan
 
