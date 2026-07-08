@@ -4,7 +4,7 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 16:50'
+updated_date: '2026-07-08 17:05'
 labels: []
 dependencies:
   - BACK-681
@@ -91,6 +91,8 @@ Phase A+B done: replaced backlog-CLI-invocation examples with epicd in README.md
 needs-human triage: OperationalMistake, not RealGate. AC #6's second clause grepped 'backlog://' in src/cli.ts, but that URI scheme actually lives in src/mcp/*.ts (verified pre-existing on main, unaffected by this diff). Corrected AC #6 to grep the right file; invariant itself (backlog:// scheme untouched) was never violated. Re-running engine complete.
 
 needs-human triage (2nd round): OperationalMistake, not RealGate. The 'bun run check .' DoD gate (i.e. 'biome check .') reports 'Checked 0 files' in every git worktree due to a pre-existing biome vcs.useIgnoreFile bug unrelated to this diff (reproduced with no changes present; filed as BACK-689). Explicit file-path invocations work correctly and are clean (2 pre-existing warnings on src/cli.ts, unrelated to this diff, exit 0). Replaced DoD gate #3 with a scoped equivalent that lists this commit's touched files instead of relying on the broken whole-repo '.' scan. Re-running engine complete.
+
+needs-human triage (5th round, TRUE root cause): all prior rounds failed because gitMergeBranch runs a plain 'git merge' against the main repo checkout, and my own direct 'epicd task edit BACK-687 ...' calls (run from the main repo root while triaging, with the project's autoCommit=false default) left the board file locally modified/uncommitted in main. git refuses to even attempt a merge when local changes would be overwritten (distinct from an actual merge CONFLICT, which the engine's board-file special-case already resolves) — so the merge aborted silently before touching any DoD/AC logic, every round. This was an operational mistake in my own workflow (editing the board directly in main without committing), not a gate or code defect. Committed the pending board-file edits in main (commit e2351ad6); verified manually that 'git merge --no-ff task/BACK-687' now reaches the engine's known board-file add/add conflict path (which engine complete resolves in favor of main) instead of aborting pre-merge. Re-running engine complete for the actual attempt.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
