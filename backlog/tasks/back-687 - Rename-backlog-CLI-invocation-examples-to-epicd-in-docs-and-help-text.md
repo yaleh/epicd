@@ -4,13 +4,13 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 17:16'
+updated_date: '2026-07-08 17:19'
 labels: []
 dependencies:
   - BACK-681
 ordinal: 100000
 pipeline_id: execution
-phase: needs-human
+phase: adjudicating
 dod:
   - text: bun test
     checked: false
