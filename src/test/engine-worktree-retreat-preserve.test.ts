@@ -52,7 +52,11 @@ const contract: RetreatContract = {
 
 describe("Driver adjudicating retreat — worktree/claim preservation (BACK-682 AC#4)", () => {
 	it("does not call worktree.spawn/merge again when a task in adjudicating retreats", async () => {
-		const task = makeTask("task-1", "adjudicating", { entry_phase: "ready" });
+		// BACK-686.2: the adjudicating gate now runs first — a task must qualify
+		// for the "full" audit depth (here: an area:engine label) to still reach
+		// the dispatch-skill path this test exercises; otherwise the light path
+		// resolves straight to done without ever calling adjudicateHandler.
+		const task = makeTask("task-1", "adjudicating", { entry_phase: "ready", labels: ["area:engine"] });
 		const { store, all } = makeStore([task]);
 
 		const spawnCalls: string[] = [];
@@ -84,7 +88,11 @@ describe("Driver adjudicating retreat — worktree/claim preservation (BACK-682 
 	});
 
 	it("appends to retreat_log/gap_history without touching any other field (worktree/claim untouched)", async () => {
-		const task = makeTask("task-1", "adjudicating", { entry_phase: "ready" });
+		// BACK-686.2: the adjudicating gate now runs first — a task must qualify
+		// for the "full" audit depth (here: an area:engine label) to still reach
+		// the dispatch-skill path this test exercises; otherwise the light path
+		// resolves straight to done without ever calling adjudicateHandler.
+		const task = makeTask("task-1", "adjudicating", { entry_phase: "ready", labels: ["area:engine"] });
 		const { store, all } = makeStore([task]);
 
 		const worktree: WorktreeOps = {

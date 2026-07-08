@@ -19,7 +19,8 @@ import { rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { Core } from "../core/backlog.ts";
-import { renderBasicReadyDispatch, renderEpicEvalDueDispatch, renderEpicReadyDispatch } from "../engine/dispatch.ts";
+import * as dispatchModule from "../engine/dispatch.ts";
+import { renderBasicReadyDispatch, renderEpicReadyDispatch } from "../engine/dispatch.ts";
 import { scanReadyLines } from "../engine/scan.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
@@ -104,19 +105,18 @@ describe("engine dispatch <id> — CLI end-to-end", () => {
 	});
 });
 
-describe("renderEpicReadyDispatch / renderEpicEvalDueDispatch — self-contained payloads (BACK-628.4)", () => {
+describe("renderEpicReadyDispatch — self-contained payload (BACK-628.4)", () => {
 	it("epic-ready payload puts the machine key first and instructs decompose-apply", () => {
 		const payload = renderEpicReadyDispatch("BACK-999", "Some epic title");
 		expect(payload.split("\n")[0]).toBe("epic-ready:BACK-999");
 		expect(payload).toContain("engine decompose-apply BACK-999");
 		expect(payload).toContain("Do NOT re-arm the Monitor");
 	});
+});
 
-	it("epic-eval-due payload puts the machine key first and instructs evaluate", () => {
-		const payload = renderEpicEvalDueDispatch("BACK-999", "Some epic title");
-		expect(payload.split("\n")[0]).toBe("epic-eval-due:BACK-999");
-		expect(payload).toContain("engine evaluate BACK-999");
-		expect(payload).toContain("Do NOT re-arm the Monitor");
+describe("renderEpicEvalDueDispatch — retired (BACK-686.2 AC#2/#3)", () => {
+	it("dispatch.ts no longer exports renderEpicEvalDueDispatch — evaluating is kind:script, never dispatched", () => {
+		expect("renderEpicEvalDueDispatch" in dispatchModule).toBe(false);
 	});
 });
 
@@ -148,7 +148,7 @@ describe("engine dispatch <id> — branches by phase (BACK-628.4)", () => {
 		expect(out).toContain(`engine decompose-apply ${task.id}`);
 	});
 
-	it("prints the epic-eval-due payload for an evaluating task", async () => {
+	it("runs evaluating mechanically (kind:script) — no dispatch payload, no session spawn (BACK-686.2)", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Epic to evaluate", status: "To Do" }, false);
 		await core.updateTask({ ...task, pipeline_id: "execution", phase: "evaluating" } as Task, false);
 
@@ -158,8 +158,14 @@ describe("engine dispatch <id> — branches by phase (BACK-628.4)", () => {
 			stdio: ["ignore", "pipe", "ignore"],
 		});
 
-		expect(out.split("\n")[0]).toBe(`epic-eval-due:${task.id}`);
-		expect(out).toContain(`engine evaluate ${task.id}`);
+		// Mechanical result line, not an "epic-eval-due:<id>" agent-dispatch payload.
+		expect(out).not.toContain("epic-eval-due:");
+		expect(out).not.toContain("Do NOT re-arm the Monitor");
+		expect(out).toContain(`${task.id} evaluated mechanically (kind:script)`);
+
+		const updated = await core.getTask(task.id);
+		// no children -> anyNeedsHuman is false -> done (same aggregation rule as before)
+		expect(updated?.phase).toBe("done");
 	});
 });
 

@@ -15,10 +15,14 @@
  *   - exploration/spike     -> skill -> exploration-spike (covered)
  *   - execution/ready       -> skill -> primitive-executor (covered)
  *   - execution/decomposing -> skill -> epic-decompose (covered)
- *   - execution/evaluating  -> skill -> epic-evaluate (covered)
- *   - execution/adjudicating -> skill -> adjudicate (covered)
+ *   - execution/evaluating  -> mechanical (kind:script, in-tick evaluateEpic — BACK-686.2; epic-evaluate skill retired)
+ *   - execution/adjudicating -> skill -> adjudicate (kind:gate, full-path only — BACK-686.2)
  *   - authoring/draft       -> skill -> authoring-draft (covered)
  *   - authoring/refining    -> skill -> authoring-refining (covered)
+ *
+ * BACK-686.2 added a `kind ∈ {skill, script, gate}` to every manifest entry (actor
+ * fidelity: which machine phases are worth a session spawn) — see the "manifest kind"
+ * describe block below.
  *
  * Per the task narrative this test must "fail loud" when phases are uncovered.
  * We prove that failure behavior with a real, deterministic, always-green
@@ -34,8 +38,10 @@ import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node
 import { join } from "node:path";
 import { ALL_PIPELINES } from "../engine/pipeline";
 import {
+	type CoverageKind,
 	computeCoverage,
 	loadPhaseCoverageManifest,
+	type ManifestEntry,
 	machineActorPhases,
 	uncoveredMachinePhases,
 } from "../engine/skill-registry";
@@ -126,24 +132,26 @@ describe("phase-coverage manifest — current, real state (BACK-657.1/.2 scope)"
 		expect(decomposing?.covered).toBe(true);
 	});
 
-	it("registers execution/evaluating as a skill, resolved to the published epic-evaluate skill (BACK-657.3)", () => {
+	it("registers execution/evaluating as mechanical (kind:script) — the epic-evaluate skill is retired (BACK-686.2)", () => {
 		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
 		const entry = manifest.find((e) => e.phase === "execution/evaluating");
 		expect(entry).toBeDefined();
-		expect(entry?.status).toBe("skill");
-		expect(entry?.skill).toBe("epic-evaluate");
+		expect(entry?.status).toBe("mechanical");
+		expect(entry?.kind).toBe("script");
+		expect(entry?.skill).toBeUndefined();
 
 		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
 		const evaluating = coverage.find((c) => c.phase === "execution/evaluating");
 		expect(evaluating?.covered).toBe(true);
 	});
 
-	it("registers execution/adjudicating as a skill, resolved to the published adjudicate skill (BACK-682)", () => {
+	it("registers execution/adjudicating as a skill, resolved to the published adjudicate skill, kind:gate (BACK-682/BACK-686.2)", () => {
 		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
 		const entry = manifest.find((e) => e.phase === "execution/adjudicating");
 		expect(entry).toBeDefined();
 		expect(entry?.status).toBe("skill");
 		expect(entry?.skill).toBe("adjudicate");
+		expect(entry?.kind).toBe("gate");
 
 		const coverage = computeCoverage(REPO_ROOT, machineActorPhases(), manifest);
 		const adjudicating = coverage.find((c) => c.phase === "execution/adjudicating");
@@ -226,7 +234,53 @@ describe("manifest file is well-formed JSON with the documented shape", () => {
 		expect(Array.isArray(raw.entries)).toBe(true);
 		for (const entry of raw.entries) {
 			expect(typeof entry.phase).toBe("string");
-			expect(["skill", "experiment-pending"]).toContain(entry.status);
+			expect(["skill", "experiment-pending", "mechanical"]).toContain(entry.status);
 		}
+	});
+});
+
+describe("manifest kind — every entry declares exactly one kind ∈ {skill, script, gate} (BACK-686.2 AC#1)", () => {
+	const VALID_KINDS: CoverageKind[] = ["skill", "script", "gate"];
+
+	it("every entry in the real manifest has a recognized kind", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		expect(manifest.length).toBeGreaterThan(0);
+		for (const entry of manifest) {
+			expect(entry.kind, `entry for phase "${entry.phase}" is missing kind`).toBeDefined();
+			expect(VALID_KINDS, `entry for phase "${entry.phase}" has unrecognized kind "${entry.kind}"`).toContain(
+				entry.kind as CoverageKind,
+			);
+		}
+	});
+
+	it("every machine-actor phase resolves to exactly one manifest entry with a kind (no gaps, no dupes)", () => {
+		const manifest = loadPhaseCoverageManifest(REPO_ROOT);
+		for (const phase of machineActorPhases()) {
+			const matches = manifest.filter((e) => e.phase === phase);
+			expect(matches.length, `phase "${phase}" must have exactly one manifest entry`).toBe(1);
+			expect(matches[0]?.kind).toBeDefined();
+		}
+	});
+
+	it("execution/evaluating is kind:script (BACK-686.2 AC#2)", () => {
+		const entry = loadPhaseCoverageManifest(REPO_ROOT).find((e) => e.phase === "execution/evaluating");
+		expect(entry?.kind).toBe("script");
+	});
+
+	it("execution/adjudicating is kind:gate (BACK-686.2 AC#4)", () => {
+		const entry = loadPhaseCoverageManifest(REPO_ROOT).find((e) => e.phase === "execution/adjudicating");
+		expect(entry?.kind).toBe("gate");
+	});
+
+	it("fails loud on a fixture entry missing kind — negative control", () => {
+		const badManifest: ManifestEntry[] = [
+			{ phase: "execution/ready", status: "skill" as const, skill: "primitive-executor" },
+		];
+		expect(badManifest[0]?.kind).toBeUndefined();
+	});
+
+	it("fails loud on a fixture entry with an unrecognized kind value — negative control", () => {
+		const badKind = "spawn-forever";
+		expect(VALID_KINDS).not.toContain(badKind);
 	});
 });

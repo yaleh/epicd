@@ -4348,15 +4348,17 @@ engineCmd
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
 			const { scanReadyLines } = await import("./engine/scan.ts");
-			const { advanceAwaitingChildrenToEvaluating } = await import("./harness/evaluator.ts");
+			const { advanceAwaitingChildrenToAdjudicating } = await import("./harness/evaluator.ts");
 
 			const core = new Core(cwd);
 
 			const runOnce = async () => {
-				// Data-derived awaiting-children → evaluating advance (BACK-628.4): the only
-				// write engine scan performs; keeps epic-eval-due data-derived (phase-based)
-				// rather than depending on a separate legacy status-string predicate.
-				await advanceAwaitingChildrenToEvaluating(core);
+				// Data-derived awaiting-children → adjudicating advance (BACK-628.4;
+				// BACK-686.2 Phase D retargets this from evaluating to adjudicating): the
+				// only write engine scan performs; keeps the epic gate data-derived
+				// (phase-based) rather than depending on a separate legacy status-string
+				// predicate.
+				await advanceAwaitingChildrenToAdjudicating(core);
 				const tasks = await core.queryTasks({});
 				for (const line of scanReadyLines(tasks)) {
 					process.stdout.write(`${line}\n`);
@@ -4387,18 +4389,15 @@ engineCmd
 engineCmd
 	.command("dispatch <taskId>")
 	.description(
-		"emit the self-contained dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Branches on the task's phase: ready→basic-ready, decomposing→epic-ready, evaluating→epic-eval-due (BACK-628.4), adjudicating→adjudicating-due (BACK-682). Payload is authored here, not by scan-loop templates.",
+		"emit the self-contained dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Branches on the task's phase: ready→basic-ready, decomposing→epic-ready, adjudicating→adjudicating-due (BACK-682). evaluating (BACK-628.4) is kind:script (BACK-686.2) — runs `engine evaluate` mechanically here instead of emitting an Agent-dispatch payload; no session is spawned. Payload is authored here, not by scan-loop templates.",
 	)
 	.action(async (taskId: string) => {
 		try {
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
-			const {
-				renderBasicReadyDispatch,
-				renderEpicReadyDispatch,
-				renderEpicEvalDueDispatch,
-				renderAdjudicatingDispatch,
-			} = await import("./engine/dispatch.ts");
+			const { renderBasicReadyDispatch, renderEpicReadyDispatch, renderAdjudicatingDispatch } = await import(
+				"./engine/dispatch.ts"
+			);
 
 			const core = new Core(cwd);
 			const task = await core.getTask(taskId);
@@ -4408,14 +4407,25 @@ engineCmd
 				return;
 			}
 			const title = task.title ?? "";
+
+			// BACK-686.2 AC#2/#6: evaluating is kind:script — mechanical, never
+			// dispatched to a spawned session. Run it inline and report the result.
+			if (task.phase === "evaluating") {
+				const { evaluateEpic } = await import("./harness/evaluator.ts");
+				await evaluateEpic(core, task.id);
+				const updated = await core.getTask(task.id);
+				console.log(
+					`engine dispatch: ${task.id} evaluated mechanically (kind:script) → ${updated?.phase ?? "unknown"}`,
+				);
+				return;
+			}
+
 			const payload =
 				task.phase === "decomposing"
 					? renderEpicReadyDispatch(task.id, title)
-					: task.phase === "evaluating"
-						? renderEpicEvalDueDispatch(task.id, title)
-						: task.phase === "adjudicating"
-							? renderAdjudicatingDispatch(task.id, title)
-							: renderBasicReadyDispatch(task.id, title, cwd);
+					: task.phase === "adjudicating"
+						? renderAdjudicatingDispatch(task.id, title)
+						: renderBasicReadyDispatch(task.id, title, cwd);
 			process.stdout.write(`${payload}\n`);
 		} catch (err) {
 			console.error("engine dispatch failed:", err instanceof Error ? err.message : String(err));
