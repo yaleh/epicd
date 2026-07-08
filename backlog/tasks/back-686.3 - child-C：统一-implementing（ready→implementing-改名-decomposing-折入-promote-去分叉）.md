@@ -1,9 +1,10 @@
 ---
 id: BACK-686.3
 title: child C：统一 implementing（ready→implementing 改名 + decomposing 折入 + promote 去分叉）
-assignee: []
+assignee:
+  - '@claude'
 created_date: '2026-07-08 04:00'
-updated_date: '2026-07-08 04:20'
+updated_date: '2026-07-08 05:05'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -16,7 +17,18 @@ parent_task_id: BACK-686
 priority: high
 ordinal: 99000
 pipeline_id: authoring
-phase: draft
+phase: backlog
+dod:
+  - text: bun test
+    checked: false
+  - text: bunx tsc --noEmit
+    checked: false
+  - text: bun run check .
+    checked: false
+  - text: bun test src/test/pipeline-coupling-discipline.test.ts
+    checked: false
+  - text: bun test src/test/harness-evaluator.test.ts
+    checked: false
 ---
 
 ## Description
