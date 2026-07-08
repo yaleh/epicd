@@ -47,7 +47,9 @@ describe("engine.complete — phase advancement", () => {
 	it("does not create any .agent-done-* sentinel file", async () => {
 		const { store } = makeStore(makeTask("ready"));
 		const fs = await import("node:fs/promises");
-		const tmpDir = await fs.mkdtemp("/tmp/engine-complete-test-");
+		const { tmpdir } = await import("node:os");
+		const { join } = await import("node:path");
+		const tmpDir = await fs.mkdtemp(join(tmpdir(), "engine-complete-test-"));
 		const before = await fs.readdir(tmpDir);
 		await complete("task-1", { success: true }, [testPipeline], store);
 		const after = await fs.readdir(tmpDir);

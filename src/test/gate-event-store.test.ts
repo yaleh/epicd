@@ -153,7 +153,10 @@ describe("negative control #3 — real concurrent writes (genuine child processe
 		try {
 			const numProcesses = 8;
 			const eventsPerProcess = 15;
-			const moduleUrl = new URL("../core/gate-event-store.ts", import.meta.url).pathname;
+			// Use the file:// URL string (not .pathname) as the import specifier — on
+			// Windows, .pathname yields "/C:/..." (leading slash before the drive
+			// letter), which is not a valid module path.
+			const moduleUrl = new URL("../core/gate-event-store.ts", import.meta.url).href;
 
 			const script = `
 				import { appendGateEvent } from ${JSON.stringify(moduleUrl)};

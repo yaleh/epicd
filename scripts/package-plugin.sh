@@ -12,6 +12,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${REPO_ROOT}/dist/epicd-plugin.tar.gz"
 
 mkdir -p "${REPO_ROOT}/dist"
-tar -czf "$OUT" -C "$REPO_ROOT" .claude-plugin plugin
+# --force-local: without it, an archive path containing a drive letter (e.g.
+# "D:\a\epicd\epicd\dist\...") is misparsed by tar as a remote "host:path"
+# spec on Windows runners (both bsdtar and GNU tar support this flag; it is a
+# no-op on Linux/macOS).
+tar --force-local -czf "$OUT" -C "$REPO_ROOT" .claude-plugin plugin
 
 echo "Packaged epicd plugin: $OUT"

@@ -56,6 +56,14 @@ import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 const HANDLE_BASIC_READY_SH = join(process.cwd(), "plugin", "scripts", "handle-basic-ready.sh");
 
+/**
+ * Normalize path separators for cross-platform comparison. handle-basic-ready.sh
+ * runs under bash (Git Bash on Windows CI) and returns POSIX-style forward-slash
+ * paths, while Node's join() produces native backslash separators on Windows —
+ * same path, different separator style.
+ */
+const toPosixPath = (path: string): string => path.replace(/\\/g, "/");
+
 /** Create a primitive execution/implementing task on the real board with one structured DoD gate. */
 async function createReadyTaskWithDoD(core: Core, title: string, dodCmd: string) {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do", dodGates: [dodCmd] }, false);
@@ -162,7 +170,7 @@ describe("epicd-run integration (handle-basic-ready -> simulated agent -> engine
 
 		const { worktreeDir, signalFile } = await runHandleBasicReady(projectRoot, task.id);
 		expect(existsSync(worktreeDir)).toBe(true);
-		expect(signalFile).toBe(join(projectRoot, "backlog", `.agent-done-${task.id}`));
+		expect(toPosixPath(signalFile)).toBe(toPosixPath(join(projectRoot, "backlog", `.agent-done-${task.id}`)));
 
 		await simulateAgentDone(worktreeDir, signalFile, task.id);
 		expect(existsSync(signalFile)).toBe(true);
