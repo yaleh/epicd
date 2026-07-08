@@ -20,7 +20,7 @@ import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
 async function createBoardTask(core: Core, title: string, overrides: Partial<Task> = {}): Promise<Task> {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do" }, false);
-	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "ready", ...overrides };
+	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "implementing", ...overrides };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }
@@ -39,7 +39,7 @@ describe("scanReadyLines", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("emits a single 'basic-ready:<id>' machine line for an actionable execution/ready task", async () => {
+	it("emits a single 'basic-ready:<id>' machine line for an actionable execution/implementing task", async () => {
 		const task = await createBoardTask(core, "Actionable task");
 		const tasks = await core.queryTasks({});
 
@@ -54,7 +54,7 @@ describe("scanReadyLines", () => {
 		}
 	});
 
-	it("does not emit a task in a non-ready phase", async () => {
+	it("does not emit a task in a non-implementing phase", async () => {
 		const task = await createBoardTask(core, "Awaiting task", { phase: "awaiting-children" });
 		const tasks = await core.queryTasks({});
 
@@ -104,7 +104,7 @@ describe("scanReadyLines", () => {
 	});
 });
 
-describe("scanReadyLines — epic-ready/epic-eval-due (BACK-628.4)", () => {
+describe("scanReadyLines — epic-labeled task uses the same basic-ready channel (BACK-686.3, was BACK-628.4's epic-ready/epic-eval-due)", () => {
 	let projectRoot: string;
 	let core: Core;
 
@@ -118,26 +118,18 @@ describe("scanReadyLines — epic-ready/epic-eval-due (BACK-628.4)", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("emits 'epic-ready:<id>' for an execution task in the decomposing phase", async () => {
-		const task = await createBoardTask(core, "Epic to decompose", { phase: "decomposing" });
+	it("emits 'basic-ready:<id>' for an epic-labeled execution task in implementing — decompose is a runtime branch, not a separate dispatch channel", async () => {
+		const task = await createBoardTask(core, "Epic to decompose", { phase: "implementing", labels: ["kind:epic"] });
 		const tasks = await core.queryTasks({});
 
-		expect(scanReadyLines(tasks)).toContain(`epic-ready:${task.id}`);
+		expect(scanReadyLines(tasks)).toContain(`basic-ready:${task.id}`);
 	});
 
-	it("emits 'epic-eval-due:<id>' for an execution task in the evaluating phase", async () => {
-		const task = await createBoardTask(core, "Epic to evaluate", { phase: "evaluating" });
-		const tasks = await core.queryTasks({});
-
-		expect(scanReadyLines(tasks)).toContain(`epic-eval-due:${task.id}`);
-	});
-
-	it("does not emit an epic-eval-due line while still awaiting-children (actor: none)", async () => {
+	it("does not emit any line while still awaiting-children (actor: none)", async () => {
 		const task = await createBoardTask(core, "Epic awaiting children", { phase: "awaiting-children" });
 		const tasks = await core.queryTasks({});
 
 		const lines = scanReadyLines(tasks);
-		expect(lines).not.toContain(`epic-eval-due:${task.id}`);
 		expect(lines.some((l) => l.endsWith(`:${task.id}`))).toBe(false);
 	});
 });

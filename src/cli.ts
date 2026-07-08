@@ -41,7 +41,6 @@ import {
 	type DocumentSearchResult,
 	isLocalEditableTask,
 	type Milestone,
-	roleOf,
 	type SearchPriorityFilter,
 	type SearchResult,
 	type SearchResultType,
@@ -1661,7 +1660,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 			: !hasExplicitLifecycleInput
 				? "authoring"
 				: undefined;
-		const phaseValue = explicitPhase ? String(options.phase) : !hasExplicitLifecycleInput ? "draft" : undefined;
+		const phaseValue = explicitPhase ? String(options.phase) : !hasExplicitLifecycleInput ? "drafting" : undefined;
 
 		if (options.ordinal !== undefined) {
 			const parsed = Number(options.ordinal);
@@ -4336,6 +4335,14 @@ program
 // `engine complete` to adjudicate + merge.
 const engineCmd = program.command("engine").description("execution engine commands");
 
+/**
+ * Lease duration for an `adjudicating`-phase claim acquired at `engine dispatch`
+ * time (BACK-686.1 A2 AC#4). An independent audit is expected to complete well
+ * within this window; a crashed/hung audit's claim is freed by the staleness
+ * reaper once the lease expires (AC#5).
+ */
+const ADJUDICATING_CLAIM_LEASE_MS = 4 * 60 * 60 * 1000;
+
 engineCmd
 	.command("scan")
 	.description(
@@ -4348,15 +4355,17 @@ engineCmd
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
 			const { scanReadyLines } = await import("./engine/scan.ts");
-			const { advanceAwaitingChildrenToEvaluating } = await import("./harness/evaluator.ts");
+			const { advanceAwaitingChildrenToAdjudicating } = await import("./harness/evaluator.ts");
 
 			const core = new Core(cwd);
 
 			const runOnce = async () => {
-				// Data-derived awaiting-children → evaluating advance (BACK-628.4): the only
-				// write engine scan performs; keeps epic-eval-due data-derived (phase-based)
-				// rather than depending on a separate legacy status-string predicate.
-				await advanceAwaitingChildrenToEvaluating(core);
+				// Data-derived awaiting-children → adjudicating advance (BACK-628.4;
+				// BACK-686.2 Phase D retargets this from evaluating to adjudicating): the
+				// only write engine scan performs; keeps the epic gate data-derived
+				// (phase-based) rather than depending on a separate legacy status-string
+				// predicate.
+				await advanceAwaitingChildrenToAdjudicating(core);
 				const tasks = await core.queryTasks({});
 				for (const line of scanReadyLines(tasks)) {
 					process.stdout.write(`${line}\n`);
@@ -4387,15 +4396,13 @@ engineCmd
 engineCmd
 	.command("dispatch <taskId>")
 	.description(
-		"emit the self-contained dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Branches on the task's phase: ready→basic-ready, decomposing→epic-ready, evaluating→epic-eval-due (BACK-628.4). Payload is authored here, not by scan-loop templates.",
+		"emit the self-contained dispatch payload (machine key + instruction) for one task — the exact block a Monitor seat or `claude -p` executes (ADR-015 swap-litmus). Branches on the task's phase: implementing→basic-ready (BACK-686.3: the decompose-vs-leaf decision is a runtime branch inside the dispatched skill itself, not a separate phase), adjudicating→adjudicating-due (BACK-682). Payload is authored here, not by scan-loop templates.",
 	)
 	.action(async (taskId: string) => {
 		try {
 			const cwd = await requireProjectRoot();
 			const { Core } = await import("./core/backlog.ts");
-			const { renderBasicReadyDispatch, renderEpicReadyDispatch, renderEpicEvalDueDispatch } = await import(
-				"./engine/dispatch.ts"
-			);
+			const { renderBasicReadyDispatch, renderAdjudicatingDispatch } = await import("./engine/dispatch.ts");
 
 			const core = new Core(cwd);
 			const task = await core.getTask(taskId);
@@ -4405,12 +4412,41 @@ engineCmd
 				return;
 			}
 			const title = task.title ?? "";
+
+			const { acquireClaim, worktreeMarkerPath } = await import("./engine/claim.ts");
+
+			// BACK-686.1 A2 AC#4: `adjudicating` had no claim protection at all
+			// before this — a second concurrent dispatch of the same adjudicating
+			// task could spawn two independent audits. Acquire an engine-native
+			// claim here (the entry point for this phase) the same way
+			// handle-basic-ready.sh's exec-lock protects the `implementing` phase.
+			if (task.phase === "adjudicating") {
+				const { existsSync, readFileSync } = await import("node:fs");
+				const backlogDir = core.filesystem.backlogDir;
+				const wtMarker = worktreeMarkerPath(backlogDir, task.id);
+				const worktree = existsSync(wtMarker) ? readFileSync(wtMarker, "utf8").trim() : "";
+				try {
+					await acquireClaim(backlogDir, {
+						taskId: task.id,
+						worktree,
+						branch: `task/${task.id}`,
+						entryPhase: task.entry_phase ?? "",
+						leaseExpiresAt: new Date(Date.now() + ADJUDICATING_CLAIM_LEASE_MS).toISOString(),
+						puller: `pid:${process.pid}`,
+					});
+				} catch (err) {
+					console.error(
+						`engine dispatch: ${taskId} is already claimed (adjudicating in progress elsewhere): ${err instanceof Error ? err.message : String(err)}`,
+					);
+					process.exitCode = 1;
+					return;
+				}
+			}
+
 			const payload =
-				task.phase === "decomposing"
-					? renderEpicReadyDispatch(task.id, title)
-					: task.phase === "evaluating"
-						? renderEpicEvalDueDispatch(task.id, title)
-						: renderBasicReadyDispatch(task.id, title, cwd);
+				task.phase === "adjudicating"
+					? renderAdjudicatingDispatch(task.id, title)
+					: renderBasicReadyDispatch(task.id, title, cwd, worktreeMarkerPath(core.filesystem.backlogDir, task.id));
 			process.stdout.write(`${payload}\n`);
 		} catch (err) {
 			console.error("engine dispatch failed:", err instanceof Error ? err.message : String(err));
@@ -4421,7 +4457,7 @@ engineCmd
 engineCmd
 	.command("decompose-apply <taskId>")
 	.description(
-		"apply a JSON array of proposed children (read from stdin) to a decomposing epic: creates each child with engine fields and advances the epic's phase to awaiting-children (or needs-human if the array is empty). Companion to the epic-ready dispatch payload (BACK-628.4).",
+		"apply a JSON array of proposed children (read from stdin) to a compound (epic) task at `implementing`: creates each child with engine fields and advances the epic's phase to awaiting-children (or needs-human if the array is empty). Invoked by the primitive-executor skill's own compound branch once it judges the task compound (BACK-686.3: decompose is folded into `implementing`, no separate dispatched phase).",
 	)
 	.action(async (taskId: string) => {
 		try {
@@ -4515,7 +4551,7 @@ engineCmd
 engineCmd
 	.command("promote")
 	.description(
-		"human promote gate: writes pipeline_id/phase/status to move a task from authoring's Backlog boundary to execution/ready or execution/decomposing (workitem-lifecycle-state.puml authoring.done → execution edge). Only accepts tasks at 'Basic: Backlog' or 'Epic: Backlog'.",
+		"human promote gate: writes pipeline_id/phase/status to move a task from authoring's Backlog boundary to execution/implementing (workitem-lifecycle-state.puml authoring.done → execution edge). Every promoted task lands on the same phase — the compound-vs-leaf (decompose) decision is now a runtime branch inside `implementing` (BACK-686.3), not a promote-time fork; `kind:epic` is an overridable hint consumed there, not a gate read here. Only accepts tasks at 'Basic: Backlog' or 'Epic: Backlog'.",
 	)
 	.argument("<id>", "task id to promote")
 	.action(async (id: string) => {
@@ -4549,16 +4585,23 @@ engineCmd
 				return;
 			}
 
-			// roleOf() derives "compound" for a pre-decompose epic (no children yet) from
-			// the kind:epic label directly (BACK-643) — role is never a stored field
-			// (BACK-664.2), so the "Epic: Backlog" status check remains as a legacy
-			// fallback for tasks predating the kind:epic label convention.
-			const isEpic = roleOf(task) === "compound" || task.status === "Epic: Backlog";
-			const phase = isEpic ? "decomposing" : "ready";
+			// BACK-686.3 AC#2/#5: promote no longer forks on `roleOf()`/`kind:epic` — every
+			// promoted task lands on the same `implementing` phase. The compound-vs-leaf
+			// (decompose) decision moves entirely into `implementing`'s own runtime branch
+			// (driver.ts's `isCompound` check / the primitive-executor skill's own decompose
+			// test), where `kind:epic` is consulted only as an overridable hint, not read
+			// here as a promote-time gate.
+			const phase = "implementing";
+			// BACK-686.1 A1: record the cross-pipeline entry edge — the exact
+			// pipeline_id/phase this task held immediately before promote overwrites
+			// them — so BACK-682's single-step retreat guard has a real anchor to
+			// target. Written once: never overwrite an already-recorded entry_phase.
+			const priorPhaseKey = `${task.pipeline_id ?? ""}/${task.phase ?? ""}`;
 			await store.updateTask({
 				...task,
 				pipeline_id: "execution",
 				phase,
+				entry_phase: task.entry_phase ?? priorPhaseKey,
 			});
 
 			console.log(`engine promote: ${id} → execution/${phase}`);

@@ -109,11 +109,11 @@ describe("Driver detect→spawn→merge→advance loop", () => {
 		expect(all().find((t) => t.id === "task-1")?.phase).toBe("done");
 	});
 
-	it("adjudicates to done for a primitive task with success result", async () => {
-		// Primitive task (no subtasks) in "ready" → spawn (success) → adjudicate → done
+	it("adjudicates to adjudicating for a primitive task with success result (BACK-682 AC#1)", async () => {
+		// Primitive task (no subtasks) in "implementing" → spawn (success) → adjudicate → adjudicating
 		const { executionPipeline } = await import("../engine/pipeline.ts");
 		const task: Task = {
-			...makeTask("task-1", "ready"),
+			...makeTask("task-1", "implementing"),
 			pipeline_id: "execution",
 		};
 		const { store, all } = makeStore([task]);
@@ -126,7 +126,7 @@ describe("Driver detect→spawn→merge→advance loop", () => {
 		const driver = new Driver([executionPipeline], store, worktree);
 		await driver.tick(all());
 
-		// primitive + success → adjudicate → done (role-based routing, not linear complete)
-		expect(all().find((t) => t.id === "task-1")?.phase).toBe("done");
+		// primitive + success → adjudicate → adjudicating (role-based routing, not linear complete)
+		expect(all().find((t) => t.id === "task-1")?.phase).toBe("adjudicating");
 	});
 });

@@ -1,6 +1,6 @@
 import { normalizeDate } from "../markdown/date.ts";
 import type { JsonSchema } from "../mcp/validation/validators.ts";
-import type { CapMarker, DoDItem, Task } from "../types/index.ts";
+import type { CapMarker, DoDItem, RetreatEntry, Task } from "../types/index.ts";
 import { roleOf } from "../types/index.ts";
 
 /**
@@ -338,6 +338,32 @@ export const FIELD_DESCRIPTORS: readonly FieldDescriptor<any>[] = [
 		parse: (fm) => (Array.isArray(fm.refine_log) ? fm.refine_log.map(String) : undefined),
 		serialize: (v) => v,
 		present: (task) => Boolean(task.refine_log && task.refine_log.length > 0),
+	} as FieldDescriptor<string[] | undefined>,
+	// Net-new fields (BACK-682 schema #1): the retreat edge. Same presence-gated,
+	// round-trip-straight-through style as the other engine fields above.
+	{
+		yamlKey: "entry_phase",
+		tsName: "entry_phase",
+		type: "string",
+		parse: (fm) => (fm.entry_phase ? String(fm.entry_phase) : undefined),
+		serialize: (v) => v,
+		present: (task) => Boolean(task.entry_phase),
+	} as FieldDescriptor<string | undefined>,
+	{
+		yamlKey: "retreat_log",
+		tsName: "retreat_log",
+		type: "log",
+		parse: (fm) => (Array.isArray(fm.retreat_log) ? (fm.retreat_log as RetreatEntry[]) : undefined),
+		serialize: (v) => v,
+		present: (task) => Boolean(task.retreat_log && task.retreat_log.length > 0),
+	} as FieldDescriptor<RetreatEntry[] | undefined>,
+	{
+		yamlKey: "gap_history",
+		tsName: "gap_history",
+		type: "log",
+		parse: (fm) => (Array.isArray(fm.gap_history) ? fm.gap_history.map(String) : undefined),
+		serialize: (v) => v,
+		present: (task) => Boolean(task.gap_history && task.gap_history.length > 0),
 	} as FieldDescriptor<string[] | undefined>,
 ];
 

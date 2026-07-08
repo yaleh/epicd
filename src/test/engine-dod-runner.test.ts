@@ -20,9 +20,9 @@ function makeTask(items: { text: string; checked?: boolean }[] = []): Task {
 	return {
 		id: "task-dod-test",
 		title: "DoD Runner Test",
-		status: "Basic: Ready",
+		status: "Basic: Implementing",
 		pipeline_id: "execution",
-		phase: "ready",
+		phase: "implementing",
 		body: "",
 		dod: items.map((item) => ({
 			text: item.text,

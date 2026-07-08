@@ -261,7 +261,7 @@ describe("groupTasksByPhase", () => {
 
 describe("phaseKeyOf", () => {
 	it("returns the task's phase when set", () => {
-		expect(phaseKeyOf(makeTask({ phase: "evaluating" }))).toBe("evaluating");
+		expect(phaseKeyOf(makeTask({ phase: "adjudicating" }))).toBe("adjudicating");
 	});
 
 	it("falls back to NO_PHASE_KEY when phase is missing or blank", () => {
@@ -285,7 +285,7 @@ describe("phaseColumnLabel", () => {
 describe("buildPhaseColumns", () => {
 	it("returns the execution pipeline's phases in pipeline order (AC#4), not hardcoded status names", () => {
 		const columns = buildPhaseColumns([]);
-		expect(columns).toEqual(["ready", "decomposing", "awaiting-children", "evaluating", "needs-human", "done"]);
+		expect(columns).toEqual(["implementing", "awaiting-children", "adjudicating", "needs-human", "done"]);
 	});
 
 	it("ends in the pipeline's terminal phase", () => {
@@ -295,17 +295,10 @@ describe("buildPhaseColumns", () => {
 	});
 
 	it("appends other pipelines' phases (e.g. authoring/exploration) sorted after the execution pipeline", () => {
-		const tasks = [makeTask({ id: "task-1", phase: "refining" }), makeTask({ id: "task-2", phase: "spike" })];
+		const tasks = [makeTask({ id: "task-1", phase: "refining" }), makeTask({ id: "task-2", phase: "spiking" })];
 		const columns = buildPhaseColumns(tasks);
-		expect(columns.slice(0, 6)).toEqual([
-			"ready",
-			"decomposing",
-			"awaiting-children",
-			"evaluating",
-			"needs-human",
-			"done",
-		]);
-		expect(columns.slice(6)).toEqual(["refining", "spike"]);
+		expect(columns.slice(0, 5)).toEqual(["implementing", "awaiting-children", "adjudicating", "needs-human", "done"]);
+		expect(columns.slice(5)).toEqual(["refining", "spiking"]);
 	});
 
 	it("appends a trailing No phase column only when at least one task has no phase", () => {
@@ -320,8 +313,8 @@ describe("buildPhaseColumns", () => {
 describe("groupTasksByLaneAndStatus with a custom keyOf extractor", () => {
 	it("buckets tasks by phase instead of status when phaseKeyOf is passed", () => {
 		const tasks = [
-			makeTask({ id: "task-1", status: "To Do", phase: "ready" }),
-			makeTask({ id: "task-2", status: "In Progress", phase: "evaluating" }),
+			makeTask({ id: "task-1", status: "To Do", phase: "implementing" }),
+			makeTask({ id: "task-2", status: "In Progress", phase: "adjudicating" }),
 			makeTask({ id: "task-3", status: "Done" }),
 		];
 		const lanes = buildLanes("none", tasks, []);
@@ -331,13 +324,13 @@ describe("groupTasksByLaneAndStatus with a custom keyOf extractor", () => {
 		expect(
 			grouped
 				.get(DEFAULT_LANE_KEY)
-				?.get("ready")
+				?.get("implementing")
 				?.map((t) => t.id),
 		).toEqual(["task-1"]);
 		expect(
 			grouped
 				.get(DEFAULT_LANE_KEY)
-				?.get("evaluating")
+				?.get("adjudicating")
 				?.map((t) => t.id),
 		).toEqual(["task-2"]);
 		expect(

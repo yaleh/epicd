@@ -31,9 +31,9 @@ function makeTask(id: string, dod: Array<{ text: string; checked: boolean }> = [
 	return {
 		id,
 		title: `Task ${id}`,
-		status: "Basic: Ready",
+		status: "Basic: Implementing",
 		pipeline_id: "execution",
-		phase: "ready",
+		phase: "implementing",
 		filePath: `/fake/${id}.md`,
 		body: "",
 		definitionOfDoneItems: dod,
@@ -77,7 +77,7 @@ describe("completeTask — conflict routing → needs-human", () => {
 });
 
 describe("completeTask — successful merge → adjudication proceeds", () => {
-	it("sets phase to done when merge succeeds and result.success is true with no unchecked DoD", async () => {
+	it("sets phase to adjudicating (not done directly) when merge succeeds and result.success is true with no unchecked DoD (BACK-682 AC#1)", async () => {
 		const task = makeTask("TASK-W3", [{ text: "step", checked: true }]);
 		const { store, savedPhase } = makeStore(task);
 
@@ -85,7 +85,7 @@ describe("completeTask — successful merge → adjudication proceeds", () => {
 			merge: async () => ({ merged: true }),
 		});
 
-		expect(savedPhase()).toBe("done");
+		expect(savedPhase()).toBe("adjudicating");
 	});
 
 	it("sets phase to needs-human when merge succeeds but result.success is false", async () => {
@@ -146,7 +146,7 @@ describe("completeTask — merge runs under withMergeLock (ENG-3)", () => {
 			merge: async () => ({ merged: true }),
 			safety: { backlogDir, lockFs: realFs },
 		});
-		expect(savedPhase2()).toBe("done");
+		expect(savedPhase2()).toBe("adjudicating");
 	});
 });
 
@@ -163,8 +163,8 @@ describe("completeTask — commit hook (BACK-616)", () => {
 			},
 		});
 
-		expect(savedPhase()).toBe("done");
-		expect(calls).toEqual([["TASK-C1", "done"]]);
+		expect(savedPhase()).toBe("adjudicating");
+		expect(calls).toEqual([["TASK-C1", "adjudicating"]]);
 	});
 
 	it("calls options.commit(taskId, 'needs-human') on merge conflict (before adjudication)", async () => {
@@ -207,7 +207,7 @@ describe("completeTask — commit hook (BACK-616)", () => {
 			merge: async () => ({ merged: true }),
 		});
 
-		expect(savedPhase()).toBe("done");
+		expect(savedPhase()).toBe("adjudicating");
 	});
 
 	it("commit runs while the .merge-lock is still held (single lock scope covers merge+commit)", async () => {
@@ -239,7 +239,7 @@ describe("completeTask — displayed status stays in sync with phase (BACK-617, 
 	// derivation is centralized in Core.updateTask. Against a bare TaskStore double
 	// (not Core-backed), the phase alone is authoritative; displayStatus(task) is the
 	// single read that projects it, which is what these assertions now verify.
-	it("phase: 'done' displays as 'Done' on adjudicated success", async () => {
+	it("phase: 'adjudicating' displays as 'Adjudicating' on adjudicated success (BACK-682 AC#1)", async () => {
 		const task = makeTask("TASK-S1", [{ text: "step", checked: true }]);
 		const { store, savedPhase } = makeStore(task);
 
@@ -247,8 +247,8 @@ describe("completeTask — displayed status stays in sync with phase (BACK-617, 
 			merge: async () => ({ merged: true }),
 		});
 
-		expect(savedPhase()).toBe("done");
-		expect(displayStatus((await store.getTask("TASK-S1")) as Task)).toBe("Done");
+		expect(savedPhase()).toBe("adjudicating");
+		expect(displayStatus((await store.getTask("TASK-S1")) as Task)).toBe("Adjudicating");
 	});
 
 	it("phase: 'needs-human' displays as 'Needs Human' on dodResults failure", async () => {
@@ -275,7 +275,7 @@ describe("completeTask — displayed status stays in sync with phase (BACK-617, 
 		expect(displayStatus((await store.getTask("TASK-S3")) as Task)).toBe("Needs Human");
 	});
 
-	it("phase: 'done' displays as 'Done' for a compound task (has children) — role never affects the status text", async () => {
+	it("phase: 'adjudicating' displays as 'Adjudicating' for a compound task (has children) — role never affects the status text", async () => {
 		const task = { ...makeTask("TASK-S4", [{ text: "step", checked: true }]), subtasks: ["TASK-S4.1"] };
 		const { store, savedPhase } = makeStore(task);
 
@@ -283,7 +283,7 @@ describe("completeTask — displayed status stays in sync with phase (BACK-617, 
 			merge: async () => ({ merged: true }),
 		});
 
-		expect(savedPhase()).toBe("done");
-		expect(displayStatus((await store.getTask("TASK-S4")) as Task)).toBe("Done");
+		expect(savedPhase()).toBe("adjudicating");
+		expect(displayStatus((await store.getTask("TASK-S4")) as Task)).toBe("Adjudicating");
 	});
 });

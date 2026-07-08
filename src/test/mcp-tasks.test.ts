@@ -92,7 +92,7 @@ describe("MCP task tools (MVP)", () => {
 				arguments: {
 					title: "Engine field round-trip",
 					pipeline_id: "execution",
-					phase: "ready",
+					phase: "implementing",
 					parent_id: "task-0",
 					dodGates: ["echo one", "echo two"],
 				},
@@ -102,7 +102,7 @@ describe("MCP task tools (MVP)", () => {
 
 		const created = await mcpServer.getTask("task-1");
 		expect(created?.pipeline_id).toBe("execution");
-		expect(created?.phase).toBe("ready");
+		expect(created?.phase).toBe("implementing");
 		expect(created?.parent_id).toBe("task-0");
 		expect(created?.dod).toEqual([
 			{ text: "echo one", checked: false },

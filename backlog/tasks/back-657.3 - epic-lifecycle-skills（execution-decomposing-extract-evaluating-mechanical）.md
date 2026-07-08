@@ -1,10 +1,11 @@
 ---
 id: BACK-657.3
 title: epic-lifecycle skills（execution/decomposing extract + evaluating mechanical）
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 15:50'
-updated_date: '2026-07-06 16:30'
+updated_date: '2026-07-07 12:58'
 labels: []
 dependencies: []
 references:
@@ -17,8 +18,6 @@ references:
   - BACK-657.2
 parent_task_id: BACK-657
 ordinal: 88000
-pipeline_id: execution
-phase: done
 ---
 
 ## Description

@@ -18,7 +18,7 @@ import { $ } from "bun";
 import { Core } from "../core/backlog.ts";
 import { addCapMarker, hasCapMarker, type WorktreeRunner, withCapGuard, withWorktree } from "../engine/safety.ts";
 import { supervisorTick } from "../engine/supervisor.ts";
-import { advanceAwaitingChildrenToEvaluating } from "../harness/evaluator.ts";
+import { advanceAwaitingChildrenToAdjudicating } from "../harness/evaluator.ts";
 import type { Task } from "../types/index.ts";
 import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 
@@ -145,7 +145,7 @@ describe("ADR-010 ENG-4: event consumption idempotency — re-processing the sam
 
 	it("does not re-dispatch a task already carrying the dispatch cap marker across a simulated restart (adapted from engine-supervisor.test.ts:57)", async () => {
 		const { task } = await core.createTaskFromInput({ title: "Ready task", status: "To Do" }, false);
-		await core.updateTask({ ...task, pipeline_id: "execution", phase: "ready" } as Task, false);
+		await core.updateTask({ ...task, pipeline_id: "execution", phase: "implementing" } as Task, false);
 
 		const firstSpawns: string[] = [];
 		await supervisorTick(core, projectRoot, async (taskId) => {
@@ -182,7 +182,7 @@ describe("ADR-010 ENG-5: parent reconciliation gate — never re-fires once the 
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("ENG-5: a done epic is never re-advanced by advanceAwaitingChildrenToEvaluating", async () => {
+	it("ENG-5: a done epic is never re-advanced by advanceAwaitingChildrenToAdjudicating", async () => {
 		const { task: epicTask } = await core.createTaskFromInput({ title: "Epic", status: "To Do" }, false);
 		const epic = {
 			...epicTask,
@@ -198,7 +198,7 @@ describe("ADR-010 ENG-5: parent reconciliation gate — never re-fires once the 
 		// Parent already terminal (done) — the reconciliation gate must be a no-op:
 		// ENG-5 requires the gate to only fire while the parent sits in the
 		// non-terminal "awaiting-children" phase, never after it has settled.
-		const advanced = await advanceAwaitingChildrenToEvaluating(core);
+		const advanced = await advanceAwaitingChildrenToAdjudicating(core);
 		expect(advanced).not.toContain(epic.id);
 
 		const reloaded = await core.getTask(epic.id);

@@ -41,21 +41,21 @@ describe("task edit --pipeline-id/--phase/--parent-id (BACK-628.3)", () => {
 		await $`bun ${CLI_PATH} task create "Parent epic"`.cwd(TEST_DIR).quiet();
 		await $`bun ${CLI_PATH} task create "Child task"`.cwd(TEST_DIR).quiet();
 
-		await $`bun ${CLI_PATH} task edit task-2 --pipeline-id execution --phase ready --parent-id task-1`
+		await $`bun ${CLI_PATH} task edit task-2 --pipeline-id execution --phase implementing --parent-id task-1`
 			.cwd(TEST_DIR)
 			.quiet();
 
 		const core = new Core(TEST_DIR);
 		const task = await core.filesystem.loadTask("task-2");
 		expect(task?.pipeline_id).toBe("execution");
-		expect(task?.phase).toBe("ready");
+		expect(task?.phase).toBe("implementing");
 		expect(task?.parent_id).toBe("task-1");
-		expect(task?.status).toBe("Ready");
+		expect(task?.status).toBe("Implementing");
 	});
 
 	it("re-setting --phase alone keeps status in sync without a separate --status flag", async () => {
 		const core = new Core(TEST_DIR);
-		await core.createTaskFromInput({ title: "Solo task", pipeline_id: "execution", phase: "ready" }, false);
+		await core.createTaskFromInput({ title: "Solo task", pipeline_id: "execution", phase: "implementing" }, false);
 		await $`bun ${CLI_PATH} task edit task-1 --phase done`.cwd(TEST_DIR).quiet();
 
 		const task = await core.filesystem.loadTask("task-1");
@@ -65,7 +65,7 @@ describe("task edit --pipeline-id/--phase/--parent-id (BACK-628.3)", () => {
 
 	it("rejects an illegal --phase for the task's pipeline_id", async () => {
 		const core = new Core(TEST_DIR);
-		await core.createTaskFromInput({ title: "Solo task", pipeline_id: "execution", phase: "ready" }, false);
+		await core.createTaskFromInput({ title: "Solo task", pipeline_id: "execution", phase: "implementing" }, false);
 
 		const result = await $`bun ${CLI_PATH} task edit task-1 --pipeline-id execution --phase proposal`
 			.cwd(TEST_DIR)
@@ -79,11 +79,11 @@ describe("task edit --pipeline-id/--phase/--parent-id (BACK-628.3)", () => {
 
 	it("still accepts a legal --phase (regression on BACK-617 phase→status sync)", async () => {
 		const core = new Core(TEST_DIR);
-		await core.createTaskFromInput({ title: "Solo task", pipeline_id: "execution", phase: "decomposing" }, false);
-		await $`bun ${CLI_PATH} task edit task-1 --pipeline-id execution --phase ready`.cwd(TEST_DIR).quiet();
+		await core.createTaskFromInput({ title: "Solo task", pipeline_id: "execution", phase: "adjudicating" }, false);
+		await $`bun ${CLI_PATH} task edit task-1 --pipeline-id execution --phase implementing`.cwd(TEST_DIR).quiet();
 
 		const task = await core.filesystem.loadTask("task-1");
-		expect(task?.phase).toBe("ready");
-		expect(task?.status).toBe("Ready");
+		expect(task?.phase).toBe("implementing");
+		expect(task?.status).toBe("Implementing");
 	});
 });

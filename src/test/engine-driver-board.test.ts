@@ -52,7 +52,7 @@ function makeStubRunner(): { runner: WorktreeRunner; added: string[]; removed: s
  */
 async function createBoardTask(core: Core, title: string): Promise<Task> {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do" }, false);
-	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "ready" };
+	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "implementing" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }
@@ -71,7 +71,7 @@ describe("Phase A – board-backed store + safety wiring", () => {
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("driver tick over real board advances task phase from ready to done", async () => {
+	it("driver tick over real board advances task phase from implementing to adjudicating (BACK-682 AC#1)", async () => {
 		const task = await createBoardTask(core, "Board task 1");
 
 		const store = makeBoardStore(core);
@@ -85,7 +85,7 @@ describe("Phase A – board-backed store + safety wiring", () => {
 
 		// Re-read from board (not memory) to verify persistence
 		const updated = await core.getTask(task.id);
-		expect(updated?.phase).toBe("done");
+		expect(updated?.phase).toBe("adjudicating");
 	});
 
 	it("concurrent merges are serialised — no interleaving under withMergeLock", async () => {
@@ -163,7 +163,7 @@ describe("Phase A – board-backed store + safety wiring", () => {
 		await driver.tick([task]);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.phase).toBe("done");
+		expect(updated?.phase).toBe("adjudicating");
 	});
 
 	it("withCapGuard makes repeated tick idempotent (cap marker prevents double-execution)", async () => {
@@ -197,9 +197,9 @@ describe("Phase A – board-backed store + safety wiring", () => {
 
 		// Second tick with same task — cap marker guards, spawn skipped
 		// (task is now in "done" phase so not picked up by machine actor,
-		//  but even if forced with "ready", cap guard prevents re-execution)
+		//  but even if forced with "implementing", cap guard prevents re-execution)
 		const taskAfter = await core.getTask(task.id);
-		const readyTasks = taskAfter?.phase === "ready" ? [taskAfter] : [];
+		const readyTasks = taskAfter?.phase === "implementing" ? [taskAfter] : [];
 		await driver.tick(readyTasks);
 		expect(spawnCount).toBe(1); // not incremented
 	});

@@ -45,12 +45,26 @@ const SAMPLES: Record<string, Partial<Task>> = {
 	ordinal: { ordinal: 2000 },
 	onStatusChange: { onStatusChange: "echo hi" },
 	pipeline_id: { pipeline_id: "execution" },
-	phase: { phase: "ready" },
+	phase: { phase: "implementing" },
 	parent_id: { parent_id: "task-0" },
 	provenance: { provenance: { spawned_from: "task-9" } },
 	dod: { dod: [{ text: "tests pass", checked: false }] },
 	cap: { cap: [{ kind: "safety", value: "L2" }] },
 	refine_log: { refine_log: ["drafted", "reviewed"] },
+	entry_phase: { entry_phase: "authoring/refining" },
+	retreat_log: {
+		retreat_log: [
+			{
+				ts: "2026-07-05T00:00:00.000Z",
+				from: "execution/adjudicating",
+				toPhase: "authoring/refining",
+				gapFingerprint: "abc123",
+				classification: "spec",
+				contract: { keep: ["AC#1"], missing: [], wrong: [] },
+			},
+		],
+	},
+	gap_history: { gap_history: ["abc123"] },
 };
 
 describe("FieldDescriptor registry", () => {
@@ -82,6 +96,9 @@ describe("FieldDescriptor registry", () => {
 			"dod",
 			"cap",
 			"refine_log",
+			"entry_phase",
+			"retreat_log",
+			"gap_history",
 		]);
 	});
 

@@ -6,7 +6,7 @@
  *
  *   1. Set up a temp git repo + epicd board (same pattern as
  *      engine-complete-cli.test.ts / engine-safety-worktree.test.ts).
- *   2. Create a primitive task in the execution/ready phase.
+ *   2. Create a primitive task in the execution/implementing phase.
  *   3. Run the REAL `plugin/scripts/handle-basic-ready.sh <id>` against the
  *      temp board — this claims the task and creates a real git worktree +
  *      `task/<id>` branch, exactly as the epicd-run skill would.
@@ -47,7 +47,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { $ } from "bun";
 import { Core } from "../core/backlog.ts";
@@ -56,10 +56,18 @@ import { createUniqueTestDir, initializeTestProject } from "./test-utils.ts";
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 const HANDLE_BASIC_READY_SH = join(process.cwd(), "plugin", "scripts", "handle-basic-ready.sh");
 
-/** Create a primitive execution/ready task on the real board with one structured DoD gate. */
+/**
+ * Normalize path separators for cross-platform comparison. handle-basic-ready.sh
+ * runs under bash (Git Bash on Windows CI) and returns POSIX-style forward-slash
+ * paths, while Node's join() produces native backslash separators on Windows —
+ * same path, different separator style.
+ */
+const toPosixPath = (path: string): string => path.replace(/\\/g, "/");
+
+/** Create a primitive execution/implementing task on the real board with one structured DoD gate. */
 async function createReadyTaskWithDoD(core: Core, title: string, dodCmd: string) {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do", dodGates: [dodCmd] }, false);
-	const withPipeline = { ...task, pipeline_id: "execution", phase: "ready" };
+	const withPipeline = { ...task, pipeline_id: "execution", phase: "implementing" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }
@@ -127,6 +135,10 @@ describe("epicd-run integration (handle-basic-ready -> simulated agent -> engine
 		createdTaskIds = [];
 		projectRoot = createUniqueTestDir("epicd-run-integration");
 		await mkdir(projectRoot, { recursive: true });
+		// Canonicalize now (e.g. macOS /var -> /private/var) so every path built
+		// from projectRoot downstream matches what shell scripts/subprocesses
+		// naturally resolve to (they run under the real, non-symlinked path).
+		projectRoot = await realpath(projectRoot);
 		await $`git init -b main`.cwd(projectRoot).quiet();
 		await $`git config user.email "test@test.com"`.cwd(projectRoot).quiet();
 		await $`git config user.name "Test"`.cwd(projectRoot).quiet();
@@ -152,13 +164,13 @@ describe("epicd-run integration (handle-basic-ready -> simulated agent -> engine
 		await rm(projectRoot, { recursive: true, force: true });
 	});
 
-	it("happy path: DoD passes -> worktree branch is merged into main and phase becomes done", async () => {
+	it("happy path: DoD passes -> worktree branch is merged into main and phase becomes adjudicating (BACK-682 AC#1)", async () => {
 		const task = await createReadyTaskWithDoD(core, "Integration happy path", "true");
 		createdTaskIds.push(task.id);
 
 		const { worktreeDir, signalFile } = await runHandleBasicReady(projectRoot, task.id);
 		expect(existsSync(worktreeDir)).toBe(true);
-		expect(signalFile).toBe(join(projectRoot, "backlog", `.agent-done-${task.id}`));
+		expect(toPosixPath(signalFile)).toBe(toPosixPath(join(projectRoot, "backlog", `.agent-done-${task.id}`)));
 
 		await simulateAgentDone(worktreeDir, signalFile, task.id);
 		expect(existsSync(signalFile)).toBe(true);
@@ -167,7 +179,7 @@ describe("epicd-run integration (handle-basic-ready -> simulated agent -> engine
 		expect(result.exitCode).toBe(0);
 
 		const updated = await core.getTask(task.id);
-		expect(updated?.phase).toBe("done");
+		expect(updated?.phase).toBe("adjudicating");
 
 		const log = await $`git -C ${projectRoot} log --oneline -n 5`.text();
 		expect(log).toContain(`work for ${task.id}`);

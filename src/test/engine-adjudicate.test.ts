@@ -22,7 +22,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 		title: "Test Task",
 		status: "Basic: Ready",
 		pipeline_id: "execution",
-		phase: "ready",
+		phase: "implementing",
 		assignee: [],
 		labels: [],
 		dependencies: [],
@@ -106,7 +106,7 @@ describe("adjudicate", () => {
 // ── Driver role branching ────────────────────────────────────────────────────
 
 describe("Driver – role branching + DoD adjudication", () => {
-	it("routes primitive task with success result to done", async () => {
+	it("routes primitive task with success result to adjudicating (BACK-682 AC#1)", async () => {
 		const task = makeTask({ id: "prim-1" }); // no subtasks → primitive
 		const { store, all } = makeStore([task]);
 
@@ -118,7 +118,7 @@ describe("Driver – role branching + DoD adjudication", () => {
 		const driver = new Driver([executionPipeline], store, worktree);
 		await driver.tick(all());
 
-		expect(all().find((t) => t.id === "prim-1")?.phase).toBe("done");
+		expect(all().find((t) => t.id === "prim-1")?.phase).toBe("adjudicating");
 	});
 
 	it("routes primitive task with failure result to needs-human", async () => {
@@ -201,7 +201,8 @@ describe("Driver – role branching + DoD adjudication", () => {
 	});
 
 	it("complete() is NOT called — driver updates phase directly (no linear advance)", async () => {
-		// Verify: primitive success goes straight to done, skipping decomposing/evaluating
+		// Verify: primitive success goes straight to adjudicating (BACK-682 AC#1),
+		// skipping decomposing/evaluating (still no linear advance through those).
 		const task = makeTask({ id: "prim-direct" });
 		const { store, all } = makeStore([task]);
 
@@ -214,8 +215,8 @@ describe("Driver – role branching + DoD adjudication", () => {
 		await driver.tick(all());
 
 		const result = all().find((t) => t.id === "prim-direct");
-		// Must jump to done, NOT to the linearly-next phase (decomposing)
-		expect(result?.phase).toBe("done");
+		// Must jump to adjudicating, NOT to the linearly-next phase (decomposing)
+		expect(result?.phase).toBe("adjudicating");
 		expect(result?.phase).not.toBe("decomposing");
 		expect(result?.phase).not.toBe("evaluating");
 	});

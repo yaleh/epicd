@@ -21,6 +21,10 @@ async function initRepo(dir: string): Promise<void> {
 	await $`git init -b main`.cwd(dir).quiet();
 	await $`git config user.email "test@test.com"`.cwd(dir).quiet();
 	await $`git config user.name "Test"`.cwd(dir).quiet();
+	// Force LF line endings regardless of the runner's git defaults (Windows
+	// runners default core.autocrlf=true, which would rewrite file contents
+	// on checkout and break exact-text comparisons in these tests).
+	await $`git config core.autocrlf false`.cwd(dir).quiet();
 	await writeFile(join(dir, "README.md"), "init");
 	await $`git add README.md`.cwd(dir).quiet();
 	await $`git commit -m "init"`.cwd(dir).quiet();

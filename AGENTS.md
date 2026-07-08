@@ -28,6 +28,16 @@ If you can simplify the code, do it.
   - If you can't yet name a second deliverable, start as Basic. Only convert to an Epic mid-implementation if the actual scope demonstrably overruns Basic size — don't pre-split on a hunch.
 - This applies to both human authoring and the engine's future dogfood decompose.
 
+## Acceptance Criteria conventions when authoring a task
+
+Acceptance Criteria are the single place that states what must be true when a task is done. **Do not add a separate "不动点" / "fixpoint" or "严格不改" section** — that framing repeatedly caused errors (it read as "a list of files to freeze" and the freeze-list ended up enshrining the very thing that was blocking the goal). Fold both of the things those sections used to capture into Acceptance Criteria, and keep un-checkable scope prose in a plain "改动范围 / 非目标" (scope / non-goals) note.
+
+- **Convergence targets → machine-checkable ACs.** When a task's deliverable *is* a convergence mechanism, write the end-state as ACs a script/test verifies: what monotonically shrinks, the termination condition, and the exact command that goes green — not a prose claim that it terminates. This is ADR-019 integration-acceptance: the meter is *runnable*, not asserted.
+- **Invariants ("X must not change") → negative ACs, each with its own check.** State the invariant as an AC whose verification names the concrete check (e.g. "MCP server name stays `backlog`; verify: `grep MCP_SERVER_NAME src/cli.ts`"). Every such AC must be literally true for this task's actual diff. If the task's own plan changes something you were tempted to freeze, it is **not** an invariant — describe it honestly under "改动范围" instead.
+- **Do not use ACs to argue a change is safe.** State checkable facts, not rationalizations ("this is an extension, not a rewrite" is not an AC).
+- If a sibling/parent task declares an invariant your task must break, reconcile that text (or split the work) — don't silently contradict it.
+
+Note: "fixpoint" is still the correct name for the **engine's** Stage 2 self-host gate (a genuine fixed point: the driver rebuilds and reproduces itself). That mechanism keeps its name; only the task-authoring descriptor is retired.
 
 ## Commands
 

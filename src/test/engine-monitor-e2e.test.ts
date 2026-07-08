@@ -50,10 +50,10 @@ function makeFakeWorktreeRunner(): { runner: WorktreeRunner; added: string[]; re
 	};
 }
 
-/** Create a primitive task on the real board in phase "ready". */
+/** Create a primitive task on the real board in phase "implementing". */
 async function createReadyTask(core: Core, title: string): Promise<Task> {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do" }, false);
-	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "ready" };
+	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "implementing" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }
@@ -178,7 +178,7 @@ describe("Monitor-hosted engine e2e — makeWorkerRunner + fake SpawnPrimitive",
 		const worktree = makeMonitorOps(fakeSpawn, projectRoot, worktreeRunner);
 
 		const before = await core.getTask(task.id);
-		expect(before?.phase).toBe("ready");
+		expect(before?.phase).toBe("implementing");
 
 		await runEngine(core, worktree);
 

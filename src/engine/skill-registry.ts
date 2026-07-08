@@ -17,7 +17,20 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ALL_PIPELINES } from "./pipeline";
 
-export type CoverageStatus = "skill" | "experiment-pending";
+/**
+ * `mechanical` (BACK-686.2): the phase is resolved by an in-tick script call
+ * (`kind: "script"`), never a dispatched skill — there is no `plugin/skills/<name>`
+ * to resolve against, so it is trivially covered.
+ */
+export type CoverageStatus = "skill" | "experiment-pending" | "mechanical";
+
+/**
+ * Actor-fidelity subdivision of a machine-actor phase (BACK-686.2 proposal §11.3
+ * child B): `skill` — dispatch spawns a fresh session; `script` — a mechanical
+ * in-tick function call, never dispatched (no spawn cost); `gate` — a mechanical
+ * check runs first, only escalating to a `skill` dispatch on the non-trivial path.
+ */
+export type CoverageKind = "skill" | "script" | "gate";
 
 export interface ManifestEntry {
 	phase: string; // "<pipeline_id>/<phase_name>"
@@ -26,6 +39,8 @@ export interface ManifestEntry {
 	pointer?: string;
 	/** Present when status === "skill": the skill directory name under plugin/skills/. */
 	skill?: string;
+	/** BACK-686.2: every entry declares exactly one kind. */
+	kind?: CoverageKind;
 }
 
 interface RawManifest {
@@ -108,6 +123,11 @@ export function computeCoverage(repoRoot: string, phases: string[], manifest: Ma
 					: `experiment-pending pointer "${entry.pointer ?? ""}" does not resolve to a real task file`,
 			};
 		}
+		if (entry.status === "mechanical") {
+			// kind: "script" — resolved by an in-tick function call, never a dispatched
+			// skill (BACK-686.2 AC#2) — nothing to resolve on disk, trivially covered.
+			return { phase, covered: true, status: "mechanical", detail: "mechanical -> in-tick script (no skill dispatch)" };
+		}
 		// status === "skill"
 		const resolved = !!entry.skill && skillRegisteredForPhase(repoRoot, entry.skill, phase);
 		return {
@@ -119,6 +139,11 @@ export function computeCoverage(repoRoot: string, phases: string[], manifest: Ma
 				: `manifest names skill "${entry.skill ?? ""}" but its contract.json is missing or declares a different phase`,
 		};
 	});
+}
+
+/** BACK-686.2 AC#6: the declared `kind` for a `<pipeline_id>/<phase_name>` phase, or `undefined` if unregistered. */
+export function kindForPhase(repoRoot: string, phase: string): CoverageKind | undefined {
+	return loadPhaseCoverageManifest(repoRoot).find((e) => e.phase === phase)?.kind;
 }
 
 /** Convenience: the list of currently-uncovered machine-actor phases in the real repo at `repoRoot`. */

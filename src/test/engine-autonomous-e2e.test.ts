@@ -42,10 +42,10 @@ function makeFakeWorktreeRunner(): { runner: WorktreeRunner; added: string[]; re
 	};
 }
 
-/** Create a primitive task on the real board in phase "ready". */
+/** Create a primitive task on the real board in phase "implementing". */
 async function createReadyTask(core: Core, title: string): Promise<Task> {
 	const { task } = await core.createTaskFromInput({ title, status: "To Do" }, false);
-	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "ready" };
+	const withPipeline: Task = { ...task, pipeline_id: "execution", phase: "implementing" };
 	await core.updateTask(withPipeline, false);
 	return withPipeline;
 }
@@ -150,9 +150,9 @@ describe("M1 autonomous e2e — realSpawn seam + completeTask handshake", () => 
 			merge: async () => {},
 		};
 
-		// Before runEngine, task is in "ready"
+		// Before runEngine, task is in "implementing"
 		const before = await core.getTask(task.id);
-		expect(before?.phase).toBe("ready");
+		expect(before?.phase).toBe("implementing");
 
 		await runEngine(core, worktreeOps);
 

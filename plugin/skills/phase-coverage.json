@@ -1,35 +1,35 @@
 {
-	"$comment": "Single source of truth for the (pipeline_id/phase) -> skill registry. Consumed today by src/test/phase-skill-coverage.test.ts; consumed later by the monitor runtime (BACK-660) for dispatch-time skill injection. Do NOT create a second manifest/registry file — edit this one. Entries are additive: BACK-657.2/.3/.4 each append their own phase's entry.",
+	"$comment": "Single source of truth for the (pipeline_id/phase) -> skill registry. Consumed today by src/test/phase-skill-coverage.test.ts; consumed later by the monitor runtime (BACK-660) for dispatch-time skill injection. Do NOT create a second manifest/registry file — edit this one. Entries are additive: BACK-657.2/.3/.4 each append their own phase's entry. BACK-686.2 added `kind` to every entry: `skill` (dispatch spawns a fresh session), `script` (a mechanical in-tick function call, never dispatched), `gate` (a mechanical check runs first; only escalates to a skill dispatch on the non-trivial path). BACK-686.3: `execution/ready` and `execution/decomposing` unify into `execution/implementing` (decompose-vs-leaf is now a runtime branch inside the `primitive-executor` skill, which folds in `epic-decompose`'s method as a sub-capability — `epic-decompose` is retired as a standalone dispatched-phase skill); `execution/evaluating` is retired (folded into the `execution/adjudicating` gate, BACK-686.2). `authoring/draft` renamed to `authoring/drafting`, `exploration/spike` renamed to `exploration/spiking`.",
 	"entries": [
 		{
-			"phase": "execution/ready",
+			"phase": "execution/implementing",
 			"status": "skill",
-			"skill": "primitive-executor"
+			"skill": "primitive-executor",
+			"kind": "skill"
 		},
 		{
-			"phase": "execution/decomposing",
+			"phase": "execution/adjudicating",
 			"status": "skill",
-			"skill": "epic-decompose"
+			"skill": "adjudicate",
+			"kind": "gate"
 		},
 		{
-			"phase": "execution/evaluating",
+			"phase": "exploration/spiking",
 			"status": "skill",
-			"skill": "epic-evaluate"
+			"skill": "exploration-spike",
+			"kind": "skill"
 		},
 		{
-			"phase": "exploration/spike",
+			"phase": "authoring/drafting",
 			"status": "skill",
-			"skill": "exploration-spike"
-		},
-		{
-			"phase": "authoring/draft",
-			"status": "skill",
-			"skill": "authoring-draft"
+			"skill": "authoring-draft",
+			"kind": "skill"
 		},
 		{
 			"phase": "authoring/refining",
 			"status": "skill",
-			"skill": "authoring-refining"
+			"skill": "authoring-refining",
+			"kind": "skill"
 		}
 	]
 }

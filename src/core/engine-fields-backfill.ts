@@ -35,20 +35,40 @@ export function deriveBarePhase(status: string): string | undefined {
  * `execution/ready` — it is a claim/runtime concept, never a persisted phase.
  */
 const LEGACY_PHASE_TABLE: Record<string, { pipeline_id: string; phase: string }> = {
-	proposal: { pipeline_id: "authoring", phase: "draft" },
+	proposal: { pipeline_id: "authoring", phase: "drafting" },
 	plan: { pipeline_id: "authoring", phase: "refining" },
-	"to-do": { pipeline_id: "authoring", phase: "draft" },
+	"to-do": { pipeline_id: "authoring", phase: "drafting" },
 	backlog: { pipeline_id: "authoring", phase: "backlog" },
-	draft: { pipeline_id: "authoring", phase: "draft" },
+	draft: { pipeline_id: "authoring", phase: "drafting" },
 	refining: { pipeline_id: "authoring", phase: "refining" },
-	"in-progress": { pipeline_id: "execution", phase: "ready" },
-	ready: { pipeline_id: "execution", phase: "ready" },
-	decomposing: { pipeline_id: "execution", phase: "decomposing" },
+	"in-progress": { pipeline_id: "execution", phase: "implementing" },
+	ready: { pipeline_id: "execution", phase: "implementing" },
+	decomposing: { pipeline_id: "execution", phase: "implementing" },
 	"awaiting-children": { pipeline_id: "execution", phase: "awaiting-children" },
-	evaluating: { pipeline_id: "execution", phase: "evaluating" },
+	evaluating: { pipeline_id: "execution", phase: "adjudicating" },
 	"needs-human": { pipeline_id: "execution", phase: "needs-human" },
 	done: { pipeline_id: "execution", phase: "done" },
-	spike: { pipeline_id: "exploration", phase: "spike" },
+	spike: { pipeline_id: "exploration", phase: "spiking" },
+};
+
+/**
+ * BACK-686.3: direct `(pipeline_id, phase)` rename table for tasks that already carry a
+ * *structurally legal* (pre-rename) phase persisted directly — not merely a legacy
+ * `status` string. `computeBackfillFields`'s normal path only re-derives `(pipeline_id,
+ * phase)` from `status` when the current combo is already illegal; a task whose `status`
+ * doesn't happen to resolve via `LEGACY_PHASE_TABLE` (e.g. blank/custom status, phase set
+ * directly by a prior engine write) would otherwise never get repositioned off a retired
+ * phase name. This table is consulted unconditionally, before the `!legal` fallback, so
+ * every renamed phase (`ready`/`decomposing` → `implementing`, `evaluating` →
+ * `adjudicating`, `draft` → `drafting`, `spike` → `spiking`) is backfilled regardless of
+ * `status`. Idempotent: once a task's phase is the new name, it's no longer a key here.
+ */
+const RENAMED_PHASE_TABLE: Record<string, string> = {
+	"execution/ready": "implementing",
+	"execution/decomposing": "implementing",
+	"execution/evaluating": "adjudicating",
+	"authoring/draft": "drafting",
+	"exploration/spike": "spiking",
 };
 
 /**
@@ -89,6 +109,19 @@ function isStatusTerminal(status: string): boolean {
  */
 export function computeBackfillFields(task: Task): Partial<Pick<Task, "pipeline_id" | "phase" | "parent_id">> {
 	const patch: Partial<Pick<Task, "pipeline_id" | "phase" | "parent_id">> = {};
+
+	// BACK-686.3: a directly-persisted retired phase name (`ready`/`decomposing`/
+	// `evaluating`/`draft`/`spike`) is renamed unconditionally, regardless of `status`.
+	const renamedPhase =
+		task.pipeline_id && task.phase ? RENAMED_PHASE_TABLE[`${task.pipeline_id}/${task.phase}`] : undefined;
+	if (renamedPhase) {
+		patch.pipeline_id = task.pipeline_id;
+		patch.phase = renamedPhase;
+		if (!task.parent_id && task.parentTaskId) {
+			patch.parent_id = task.parentTaskId;
+		}
+		return patch;
+	}
 
 	const legal = Boolean(task.pipeline_id && task.phase && isLegalPhase(task.pipeline_id, task.phase));
 	const resolved = resolvePipelinePhase(task.status);

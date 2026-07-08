@@ -445,7 +445,7 @@ describe("task edit command", () => {
 			"task-9",
 			{
 				pipeline_id: "execution",
-				phase: "ready",
+				phase: "implementing",
 				parent_id: "task-1",
 				dodGates: ["echo ok"],
 			},
@@ -454,7 +454,7 @@ describe("task edit command", () => {
 
 		const updatedTask = await core.filesystem.loadTask("task-9");
 		expect(updatedTask?.pipeline_id).toBe("execution");
-		expect(updatedTask?.phase).toBe("ready");
+		expect(updatedTask?.phase).toBe("implementing");
 		expect(updatedTask?.parent_id).toBe("task-1");
 		expect(updatedTask?.dod).toEqual([{ text: "echo ok", checked: false }]);
 

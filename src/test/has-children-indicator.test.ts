@@ -95,7 +95,7 @@ describe("CLI `task list --plain` has-children marker", () => {
 	});
 
 	it("marks a task with children and leaves a leaf task unmarked, independent of status", async () => {
-		await $`bun ${CLI_PATH} task create "Parent task" --pipeline execution --phase ready`.cwd(TEST_DIR).quiet();
+		await $`bun ${CLI_PATH} task create "Parent task" --pipeline execution --phase implementing`.cwd(TEST_DIR).quiet();
 		await $`bun ${CLI_PATH} task create "Child task" -p 1`.cwd(TEST_DIR).quiet();
 		await $`bun ${CLI_PATH} task create "Leaf task"`.cwd(TEST_DIR).quiet();
 
@@ -109,7 +109,7 @@ describe("CLI `task list --plain` has-children marker", () => {
 		expect(parentLine).toBeDefined();
 		expect(leafLine).toBeDefined();
 		// The has-children marker must be present on the parent row (independent
-		// of its "Ready" status/phase) and absent on the leaf task's row.
+		// of its "Implementing" status/phase) and absent on the leaf task's row.
 		expect(parentLine?.trim().startsWith("▸")).toBe(true);
 		expect(leafLine?.trim().startsWith("▸")).toBe(false);
 	}, 15000);

@@ -1,7 +1,7 @@
 {
 	"name": "epicd",
 	"version": "1.0.0",
-	"description": "epicd skill set: operation skills (propose, promote, inbox, run, init), lifecycle skills (primitive-executor, epic-decompose, epic-evaluate, exploration-spike, authoring-draft, authoring-refining), and methodology skills (fixpoint-convergence, context-hunter, epicd-run, backlog-technical-project-manager).",
+	"description": "epicd skill set: operation skills (propose, promote, inbox, run, init), lifecycle skills (primitive-executor, adjudicate, exploration-spike, authoring-draft, authoring-refining), and methodology skills (fixpoint-convergence, epicd-run). execution/implementing folds decompose in as an internal branch (epic-decompose retired as a standalone skill — BACK-686.3); execution/evaluating is retired, folded into the execution/adjudicating gate (BACK-686.2/.3).",
 	"author": {
 		"name": "Yale Huang",
 		"url": "https://github.com/yaleh"
@@ -16,14 +16,10 @@
 		"./skills/run/SKILL.md",
 		"./skills/init/SKILL.md",
 		"./skills/primitive-executor/SKILL.md",
-		"./skills/epic-decompose/SKILL.md",
-		"./skills/epic-evaluate/SKILL.md",
 		"./skills/exploration-spike/SKILL.md",
 		"./skills/authoring-draft/SKILL.md",
 		"./skills/authoring-refining/SKILL.md",
 		"./skills/fixpoint-convergence/SKILL.md",
-		"./skills/context-hunter/SKILL.md",
-		"./skills/epicd-run/SKILL.md",
-		"./skills/backlog-technical-project-manager/SKILL.md"
+		"./skills/epicd-run/SKILL.md"
 	]
 }
