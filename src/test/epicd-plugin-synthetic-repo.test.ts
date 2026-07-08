@@ -45,7 +45,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dir, "..", "..");
-const BIN_PATH = join(repoRoot, "dist", "epicd");
+// bun build --compile appends .exe on Windows.
+const BIN_PATH = join(repoRoot, "dist", process.platform === "win32" ? "epicd.exe" : "epicd");
 
 function collectFiles(dir: string): string[] {
 	if (!existsSync(dir)) return [];
