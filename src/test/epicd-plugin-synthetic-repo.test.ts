@@ -88,10 +88,10 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 			} catch {
 				/* best-effort */
 			}
-			rmSync(siblingWorktreeDir, { recursive: true, force: true });
+			rmSync(siblingWorktreeDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 			siblingWorktreeDir = undefined;
 		}
-		if (scratchDir) rmSync(scratchDir, { recursive: true, force: true });
+		if (scratchDir) rmSync(scratchDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 	});
 
 	it("propose -> promote -> run(handle-basic-ready + engine complete) -> Done, plus inbox, with no baime reference and no epicd-repo hardcoded path", () => {
@@ -215,6 +215,9 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 			expect(contents).not.toContain(repoRoot);
 		}
 
-		rmSync(binDir, { recursive: true, force: true });
+		// Windows transiently locks a just-executed .exe (AV/indexer holding a
+		// handle); maxRetries/retryDelay is Node's built-in remedy for this exact
+		// class of race, harmless on POSIX where the first attempt just succeeds.
+		rmSync(binDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 	}, 60_000);
 });
