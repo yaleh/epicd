@@ -4,13 +4,13 @@ title: Rename shell completion scripts and docs from backlog to epicd
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 17:57'
+updated_date: '2026-07-08 18:04'
 labels: []
 dependencies:
   - BACK-681
 ordinal: 101000
 pipeline_id: execution
-phase: implementing
+phase: adjudicating
 dod:
   - text: bun test
     checked: false
