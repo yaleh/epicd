@@ -4336,6 +4336,14 @@ program
 // `engine complete` to adjudicate + merge.
 const engineCmd = program.command("engine").description("execution engine commands");
 
+/**
+ * Lease duration for an `adjudicating`-phase claim acquired at `engine dispatch`
+ * time (BACK-686.1 A2 AC#4). An independent audit is expected to complete well
+ * within this window; a crashed/hung audit's claim is freed by the staleness
+ * reaper once the lease expires (AC#5).
+ */
+const ADJUDICATING_CLAIM_LEASE_MS = 4 * 60 * 60 * 1000;
+
 engineCmd
 	.command("scan")
 	.description(
@@ -4408,6 +4416,37 @@ engineCmd
 				return;
 			}
 			const title = task.title ?? "";
+
+			const { acquireClaim, worktreeMarkerPath } = await import("./engine/claim.ts");
+
+			// BACK-686.1 A2 AC#4: `adjudicating` had no claim protection at all
+			// before this — a second concurrent dispatch of the same adjudicating
+			// task could spawn two independent audits. Acquire an engine-native
+			// claim here (the entry point for this phase) the same way
+			// handle-basic-ready.sh's exec-lock protects the `ready` phase.
+			if (task.phase === "adjudicating") {
+				const { existsSync, readFileSync } = await import("node:fs");
+				const backlogDir = core.filesystem.backlogDir;
+				const wtMarker = worktreeMarkerPath(backlogDir, task.id);
+				const worktree = existsSync(wtMarker) ? readFileSync(wtMarker, "utf8").trim() : "";
+				try {
+					await acquireClaim(backlogDir, {
+						taskId: task.id,
+						worktree,
+						branch: `task/${task.id}`,
+						entryPhase: task.entry_phase ?? "",
+						leaseExpiresAt: new Date(Date.now() + ADJUDICATING_CLAIM_LEASE_MS).toISOString(),
+						puller: `pid:${process.pid}`,
+					});
+				} catch (err) {
+					console.error(
+						`engine dispatch: ${taskId} is already claimed (adjudicating in progress elsewhere): ${err instanceof Error ? err.message : String(err)}`,
+					);
+					process.exitCode = 1;
+					return;
+				}
+			}
+
 			const payload =
 				task.phase === "decomposing"
 					? renderEpicReadyDispatch(task.id, title)
@@ -4415,7 +4454,7 @@ engineCmd
 						? renderEpicEvalDueDispatch(task.id, title)
 						: task.phase === "adjudicating"
 							? renderAdjudicatingDispatch(task.id, title)
-							: renderBasicReadyDispatch(task.id, title, cwd);
+							: renderBasicReadyDispatch(task.id, title, cwd, worktreeMarkerPath(core.filesystem.backlogDir, task.id));
 			process.stdout.write(`${payload}\n`);
 		} catch (err) {
 			console.error("engine dispatch failed:", err instanceof Error ? err.message : String(err));
@@ -4560,10 +4599,16 @@ engineCmd
 			// fallback for tasks predating the kind:epic label convention.
 			const isEpic = roleOf(task) === "compound" || task.status === "Epic: Backlog";
 			const phase = isEpic ? "decomposing" : "ready";
+			// BACK-686.1 A1: record the cross-pipeline entry edge — the exact
+			// pipeline_id/phase this task held immediately before promote overwrites
+			// them — so BACK-682's single-step retreat guard has a real anchor to
+			// target. Written once: never overwrite an already-recorded entry_phase.
+			const priorPhaseKey = `${task.pipeline_id ?? ""}/${task.phase ?? ""}`;
 			await store.updateTask({
 				...task,
 				pipeline_id: "execution",
 				phase,
+				entry_phase: task.entry_phase ?? priorPhaseKey,
 			});
 
 			console.log(`engine promote: ${id} → execution/${phase}`);

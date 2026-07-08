@@ -26,8 +26,20 @@
  * is not itself the acquisition-dedup handle. Everything after it is the self-contained
  * instruction. `repoRoot` must be an absolute path: the reader runs each block in a fresh
  * Bash shell with no inherited cwd or env, so every path in the payload is absolute.
+ *
+ * `wtMarkerPath` (BACK-686.1 A2 AC#3): the absolute path to the worktree-path capability
+ * token `handle-basic-ready.sh` writes for this task, computed by the CALLER from the single
+ * centralization point for caps/claim paths (`src/engine/claim.ts`'s `worktreeMarkerPath`).
+ * This module stays a pure, zero-import string builder (`engine-spawn-seam.test.ts`'s
+ * absence-of-spawn-capability guard) — it never imports `claim.ts` itself, so the doc text
+ * and the runtime path still can't diverge, without dispatch.ts gaining a dependency.
  */
-export function renderBasicReadyDispatch(taskId: string, title: string, repoRoot: string): string {
+export function renderBasicReadyDispatch(
+	taskId: string,
+	title: string,
+	repoRoot: string,
+	wtMarkerPath: string,
+): string {
 	const heading = title ? `${taskId} — ${title}` : taskId;
 	const lines: string[] = [
 		`basic-ready:${taskId}`,
@@ -40,12 +52,11 @@ export function renderBasicReadyDispatch(taskId: string, title: string, repoRoot
 		"",
 		"```bash",
 		`bash ${repoRoot}/plugin/scripts/handle-basic-ready.sh ${taskId}`,
-		`WT_PATH=$(cat "${repoRoot}/backlog/.caps/${taskId}.wt")`,
+		`WT_PATH=$(cat "${wtMarkerPath}")`,
 		"```",
 		"",
-		"`handle-basic-ready.sh` atomically acquires the exec-lock, claims the task (`Basic: In Progress`), creates the git worktree, and writes `.caps/" +
-			taskId +
-			".wt` (the worktree path anchor). Concurrent execution is blocked at the kernel flock level.",
+		"`handle-basic-ready.sh` atomically acquires the exec-lock, claims the task (`Basic: In Progress`), creates the git worktree, and writes the worktree-path" +
+			" capability token (the worktree path anchor). Concurrent execution is blocked at the kernel flock level.",
 		"",
 		"## Step 6: Spawn ONE background implementation Agent",
 		"",

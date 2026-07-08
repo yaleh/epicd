@@ -846,9 +846,10 @@ export class BacklogServer {
 	/**
 	 * Read-only Coordinator claim state for the per-row driver indicator
 	 * (BACK-604 §AC#2 / BACK-645). Thin forwarder onto the baime soak-period
-	 * `.active-agents`/`.caps` adapter — returns a map of taskId -> "claimed" |
-	 * "stale" for every id currently present in `.active-agents`; ids absent
-	 * from the map are implicitly "unclaimed".
+	 * active-agents/caps adapter (`src/web/lib/coordinator-claims.ts`) — returns
+	 * a map of taskId -> "claimed" | "stale" for every id currently present in
+	 * the active-ids flag file; ids absent from the map are implicitly
+	 * "unclaimed".
 	 */
 	private async handleGetCoordinatorClaims(): Promise<Response> {
 		try {

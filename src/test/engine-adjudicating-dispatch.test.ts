@@ -69,4 +69,34 @@ describe("engine dispatch <id> — adjudicating phase branch (BACK-682)", () => 
 			await rm(projectRoot, { recursive: true, force: true });
 		}
 	});
+
+	it("rejects a concurrent second dispatch of the same adjudicating task (BACK-686.1 A2 AC#4 mutex)", async () => {
+		const projectRoot = createUniqueTestDir("engine-dispatch-adjudicating-mutex");
+		const core = new Core(projectRoot);
+		await initializeTestProject(core, "engine-dispatch-adjudicating-mutex-test");
+		try {
+			const { task } = await core.createTaskFromInput({ title: "Adjudicate me twice", status: "To Do" }, false);
+			await core.updateTask(
+				{ ...task, pipeline_id: "execution", phase: "adjudicating", entry_phase: "authoring/refining" } as Task,
+				false,
+			);
+
+			const first = execFileSync("bun", [CLI_PATH, "engine", "dispatch", task.id], {
+				cwd: projectRoot,
+				encoding: "utf8",
+				stdio: ["ignore", "pipe", "ignore"],
+			});
+			expect(first.split("\n")[0]).toBe(`adjudicating-due:${task.id}`);
+
+			expect(() =>
+				execFileSync("bun", [CLI_PATH, "engine", "dispatch", task.id], {
+					cwd: projectRoot,
+					encoding: "utf8",
+					stdio: ["ignore", "pipe", "pipe"],
+				}),
+			).toThrow();
+		} finally {
+			await rm(projectRoot, { recursive: true, force: true });
+		}
+	});
 });
