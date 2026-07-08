@@ -4,7 +4,7 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 17:24'
+updated_date: '2026-07-08 17:33'
 labels: []
 dependencies:
   - BACK-681
@@ -17,8 +17,8 @@ dod:
   - text: bunx tsc --noEmit
     checked: false
   - text: >-
-      git diff --name-only -z HEAD~1 HEAD | xargs -0 npx biome check
-      --files-ignore-unknown=true
+      git diff --name-only -z $(git merge-base HEAD main) HEAD -- .
+      ':!backlog/tasks' | xargs -0 npx biome check --files-ignore-unknown=true
     checked: false
 entry_phase: authoring/backlog
 ---
