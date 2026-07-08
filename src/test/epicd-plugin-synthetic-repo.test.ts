@@ -109,7 +109,8 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		// The CLI binary is kept OUTSIDE the scratch repo (its own directory would
 		// otherwise collide with `epicd init`'s "backlog/" board directory).
 		const binDir = mkdtempSync(join(tmpdir(), "epicd-plugin-bin-"));
-		const scratchBin = join(binDir, "epicd-cli");
+		// Windows requires the .exe extension to execute a binary directly.
+		const scratchBin = join(binDir, process.platform === "win32" ? "epicd-cli.exe" : "epicd-cli");
 		cpSync(BIN_PATH, scratchBin);
 		chmodSync(scratchBin, 0o755);
 
