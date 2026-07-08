@@ -12,10 +12,12 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${REPO_ROOT}/dist/epicd-plugin.tar.gz"
 
 mkdir -p "${REPO_ROOT}/dist"
-# --force-local: without it, an archive path containing a drive letter (e.g.
+# Give tar a relative -f path (by cd-ing into REPO_ROOT first) rather than an
+# absolute one: an absolute path containing a drive letter (e.g.
 # "D:\a\epicd\epicd\dist\...") is misparsed by tar as a remote "host:path"
-# spec on Windows runners (both bsdtar and GNU tar support this flag; it is a
-# no-op on Linux/macOS).
-tar --force-local -czf "$OUT" -C "$REPO_ROOT" .claude-plugin plugin
+# spec on Windows runners. --force-local also fixes this but isn't supported
+# by every tar (e.g. macOS's stock tar rejects the unknown flag outright), so
+# avoiding the drive-letter argument entirely is the portable fix.
+(cd "$REPO_ROOT" && tar -czf "dist/epicd-plugin.tar.gz" .claude-plugin plugin)
 
 echo "Packaged epicd plugin: $OUT"
