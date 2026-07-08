@@ -39,11 +39,23 @@ SIGNAL_FILE="${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
 
 mkdir -p "$CAPS_DIR"
 
-# Step 1: atomic exec-lock (flock -n: non-blocking)
-exec 9>"$LOCK_FILE"
-flock -n 9 || { echo "[handle-basic-ready] lock held for $TASK_ID — another worker claimed it"; exit 0; }
-
-release_lock() { flock -u 9 2>/dev/null || true; rm -f "$LOCK_FILE"; }
+# Step 1: atomic exec-lock (non-blocking). Prefer flock(1) where available
+# (Linux: releases automatically if this process is killed -9). macOS does not
+# ship GNU flock by default, so fall back to an mkdir-based lock there: mkdir
+# is atomic on every POSIX filesystem, giving the same non-blocking mutual-
+# exclusion guarantee without depending on a util-linux-only binary. Without
+# this fallback, `flock: command not found` makes the `flock -n 9 || ...`
+# branch fire unconditionally, so the script exits 0 having never reached
+# Step 4 — silently skipping worktree creation and the `.wt` token write.
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$LOCK_FILE"
+  flock -n 9 || { echo "[handle-basic-ready] lock held for $TASK_ID — another worker claimed it"; exit 0; }
+  release_lock() { flock -u 9 2>/dev/null || true; rm -f "$LOCK_FILE"; }
+else
+  LOCK_DIR="${LOCK_FILE}.d"
+  mkdir "$LOCK_DIR" 2>/dev/null || { echo "[handle-basic-ready] lock held for $TASK_ID — another worker claimed it"; exit 0; }
+  release_lock() { rmdir "$LOCK_DIR" 2>/dev/null || true; }
+fi
 trap 'release_lock; git -C "$REPO_ROOT" worktree remove "$WT_PATH" --force 2>/dev/null || true' EXIT
 
 # Step 2: claim marker + cap marker. Clear any stale completion signal FIRST
