@@ -1,16 +1,16 @@
-# PowerShell completion script for backlog CLI
+# PowerShell completion script for epicd CLI
 #
-# NOTE: This script is embedded in the backlog binary and installed automatically
-# via 'backlog completion install --shell pwsh'. This file serves as reference documentation.
+# NOTE: This script is embedded in the epicd binary and installed automatically
+# via 'epicd completion install --shell pwsh'. This file serves as reference documentation.
 #
 # Installation:
-#   - Recommended: backlog completion install --shell pwsh
+#   - Recommended: epicd completion install --shell pwsh
 #   - Manual: Save this script and source it from your $PROFILE.CurrentUserAllHosts
 #
 # Requirements:
 #   - PowerShell 7+ recommended
 
-$__backlogCompletionScriptBlock = {
+$__epicdCompletionScriptBlock = {
 	param($wordToComplete, $commandAst, $cursorPosition)
 
 	$line = $commandAst.ToString()
@@ -23,7 +23,7 @@ $__backlogCompletionScriptBlock = {
 	$point = [Math]::Min([Math]::Max($cursorPosition, 0), $line.Length)
 
 	try {
-		$completions = @(backlog completion __complete "$line" "$point" 2>$null)
+		$completions = @(epicd completion __complete "$line" "$point" 2>$null)
 		foreach ($completion in $completions) {
 			if ($completion) {
 				$completionText = "$completion "
@@ -40,4 +40,4 @@ $__backlogCompletionScriptBlock = {
 	}
 }
 
-Register-ArgumentCompleter -Native -CommandName @("backlog", "backlog.exe") -ScriptBlock $__backlogCompletionScriptBlock
+Register-ArgumentCompleter -Native -CommandName @("epicd", "epicd.exe") -ScriptBlock $__epicdCompletionScriptBlock
