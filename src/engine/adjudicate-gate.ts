@@ -73,13 +73,12 @@ export async function gateAdjudicating(
  * `implementing` puller identity recorded on `taskId`'s claim — i.e. adjudication
  * never runs in the same context that produced the diff it is auditing.
  *
- * STUB DEPENDENCY (see `src/engine/claim.ts`'s file header): this consumes child
- * A's (BACK-686.1) expected `readClaim`/`puller` interface, currently backed by a
- * stub in this worktree. An unclaimed task (no recorded puller) has nothing to
- * compare against and is treated as fresh.
+ * Consumes child A's (BACK-686.1) `readClaim`/`puller` interface (`src/engine/
+ * claim.ts`). An unclaimed task (no recorded puller) has nothing to compare
+ * against and is treated as fresh.
  */
-export function isFreshAdjudicatingContext(taskId: string, dispatchIdentity: string): boolean {
-	const claim = readClaim(taskId);
+export function isFreshAdjudicatingContext(backlogDir: string, taskId: string, dispatchIdentity: string): boolean {
+	const claim = readClaim(backlogDir, taskId);
 	if (!claim) return true;
 	return claim.puller !== dispatchIdentity;
 }

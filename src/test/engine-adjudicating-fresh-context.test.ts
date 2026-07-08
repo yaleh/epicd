@@ -3,34 +3,50 @@
  * identity that adjudicating's full-path dispatch spawns must be distinct from
  * the `implementing` puller identity recorded on the task's claim.
  *
- * DEPENDS ON CHILD A (BACK-686.1, `src/engine/claim.ts`): at authoring time that
- * module does not exist yet, so this test exercises a STUB claim module
- * (`src/engine/claim.ts` in THIS worktree — see its file header) exposing
- * exactly the interface child A is expected to expose: a `puller` field on a
- * claim record, and a `readClaim(taskId)` accessor. When BACK-686.1 merges its
- * real implementation, this stub (and this test, if the real shape differs)
- * will need reconciling — flagged explicitly, not silently skipped.
+ * Consumes child A's (BACK-686.1) real `src/engine/claim.ts` module —
+ * `acquireClaim`/`readClaim` against a real (temp-dir) backlogDir.
  */
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { isFreshAdjudicatingContext } from "../engine/adjudicate-gate.ts";
-import { __stubClearClaims, __stubSetClaim } from "../engine/claim.ts";
+import { acquireClaim, type ClaimRecord } from "../engine/claim.ts";
 
-describe("isFreshAdjudicatingContext — dispatch identity != implementing puller identity (AC#7, stubbed)", () => {
+function makeRecord(overrides: Partial<ClaimRecord> = {}): ClaimRecord {
+	return {
+		taskId: "BACK-999",
+		worktree: "/tmp/wt/BACK-999",
+		branch: "task/BACK-999",
+		entryPhase: "execution/implementing",
+		leaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+		puller: "agent-session-A",
+		...overrides,
+	};
+}
+
+describe("isFreshAdjudicatingContext — dispatch identity != implementing puller identity (AC#7)", () => {
+	let backlogDir: string;
+
 	beforeEach(() => {
-		__stubClearClaims();
+		backlogDir = mkdtempSync(join(tmpdir(), "back-686-2-fresh-context-"));
 	});
 
-	it("is NOT fresh when the dispatch identity equals the recorded implementing puller", () => {
-		__stubSetClaim({ taskId: "BACK-999", puller: "agent-session-A" });
-		expect(isFreshAdjudicatingContext("BACK-999", "agent-session-A")).toBe(false);
+	afterEach(() => {
+		rmSync(backlogDir, { recursive: true, force: true });
 	});
 
-	it("IS fresh when the dispatch identity differs from the recorded implementing puller", () => {
-		__stubSetClaim({ taskId: "BACK-999", puller: "agent-session-A" });
-		expect(isFreshAdjudicatingContext("BACK-999", "agent-session-B")).toBe(true);
+	it("is NOT fresh when the dispatch identity equals the recorded implementing puller", async () => {
+		await acquireClaim(backlogDir, makeRecord());
+		expect(isFreshAdjudicatingContext(backlogDir, "BACK-999", "agent-session-A")).toBe(false);
+	});
+
+	it("IS fresh when the dispatch identity differs from the recorded implementing puller", async () => {
+		await acquireClaim(backlogDir, makeRecord());
+		expect(isFreshAdjudicatingContext(backlogDir, "BACK-999", "agent-session-B")).toBe(true);
 	});
 
 	it("treats an unclaimed task as fresh (nothing to compare against)", () => {
-		expect(isFreshAdjudicatingContext("BACK-000-unclaimed", "any-session")).toBe(true);
+		expect(isFreshAdjudicatingContext(backlogDir, "BACK-000-unclaimed", "any-session")).toBe(true);
 	});
 });

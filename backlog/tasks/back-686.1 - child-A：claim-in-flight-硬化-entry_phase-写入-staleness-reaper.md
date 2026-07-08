@@ -1,9 +1,10 @@
 ---
 id: BACK-686.1
 title: child A：claim/in-flight 硬化 + entry_phase 写入 + staleness reaper
-assignee: []
+assignee:
+  - '@claude'
 created_date: '2026-07-08 03:59'
-updated_date: '2026-07-08 04:16'
+updated_date: '2026-07-08 05:06'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -14,8 +15,23 @@ references:
 parent_task_id: BACK-686
 priority: high
 ordinal: 97000
-pipeline_id: authoring
-phase: draft
+pipeline_id: execution
+phase: adjudicating
+dod:
+  - text: bun test
+    checked: false
+  - text: bunx tsc --noEmit
+    checked: false
+  - text: bun run check .
+    checked: false
+  - text: >-
+      bun test src/test/pipeline.test.ts
+      src/test/pipeline-coupling-discipline.test.ts
+    checked: false
+  - text: >-
+      bun test src/test/engine-adjudicate.test.ts
+      src/test/engine-adjudicate-eng8.test.ts
+    checked: false
 ---
 
 ## Description
@@ -121,6 +137,8 @@ phase: draft
 
 <!-- SECTION:NOTES:BEGIN -->
 authoring/refining review: APPROVED after 1 iteration(s)
+
+claimed: 2026-07-08T04:31:57Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

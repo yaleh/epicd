@@ -33,7 +33,12 @@ const scanLoop = require("../../plugin/scripts/scan-loop.cjs") as {
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 
 describe("renderBasicReadyDispatch — self-contained payload (AC #1/#8)", () => {
-	const payload = renderBasicReadyDispatch("BACK-999", "Some task title", "/abs/repo");
+	const payload = renderBasicReadyDispatch(
+		"BACK-999",
+		"Some task title",
+		"/abs/repo",
+		"/abs/repo/backlog/.caps/BACK-999.wt",
+	);
 
 	it("puts the stable machine key on the first line", () => {
 		expect(payload.split("\n")[0]).toBe("basic-ready:BACK-999");

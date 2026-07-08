@@ -3,9 +3,10 @@ id: BACK-686.2
 title: >-
   child B：actor 细化 machine-agent/machine-mechanical + kind 绑定 + adjudicating 变
   gate
-assignee: []
+assignee:
+  - '@claude'
 created_date: '2026-07-08 04:00'
-updated_date: '2026-07-08 04:18'
+updated_date: '2026-07-08 05:14'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -16,8 +17,19 @@ references:
 parent_task_id: BACK-686
 priority: high
 ordinal: 98000
-pipeline_id: authoring
-phase: draft
+pipeline_id: execution
+phase: needs-human
+dod:
+  - text: bun test
+    checked: false
+  - text: bunx tsc --noEmit
+    checked: false
+  - text: bun run check .
+    checked: false
+  - text: bun test src/test/pipeline-coupling-discipline.test.ts
+    checked: false
+  - text: bun test src/test/harness-evaluator.test.ts
+    checked: false
 ---
 
 ## Description
@@ -140,6 +152,8 @@ registry 条目的 kind 携带 actor 细分，`scan`/`dispatch`/`hasPendingWork`
 
 <!-- SECTION:NOTES:BEGIN -->
 authoring/refining review: APPROVED after 1 iteration(s)
+
+claimed: 2026-07-08T04:32:05Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done

@@ -1,22 +1,24 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import type { Core } from "../core/backlog.js";
+import { ACTIVE_AGENTS_FILE_NAME, activeAgentsPath, isActiveAgentsPresent, reapStaleClaims } from "./claim.js";
 import { type DecomposeHandler, Driver, type SafetyConfig, type WorktreeOps } from "./driver.js";
 import { executionPipeline, type Pipeline } from "./pipeline.js";
 import { makeBoardStore } from "./store.js";
 
 /**
  * Name of the flag file written by the old loop-backlog to signal an active
- * agent session.  Presence of this file triggers the single-active-driver guard.
+ * agent session, re-exported from the single centralization point
+ * (`src/engine/claim.ts`, BACK-686.1 A2 AC#3) so existing callers of this
+ * constant keep working unchanged.
  */
-export const ACTIVE_AGENTS_FILE = ".active-agents";
+export const ACTIVE_AGENTS_FILE = ACTIVE_AGENTS_FILE_NAME;
 
 /**
  * Guard: return true when another driver or the legacy loop-backlog is already
- * running.  Checks for the shared `.active-agents` file in `backlogDir`.
+ * running. Checks for the shared active-agents flag file in `backlogDir`
+ * (path sourced from `src/engine/claim.ts`, BACK-686.1 A2 AC#3).
  */
 export function isDriverActive(backlogDir: string): boolean {
-	return existsSync(join(backlogDir, ACTIVE_AGENTS_FILE));
+	return isActiveAgentsPresent(backlogDir);
 }
 
 /**
@@ -66,7 +68,7 @@ export interface RunEngineOptions {
  * Run the given pipelines (default: execution only) against the real board until
  * fixpoint.
  *
- * Single-active-driver guard: if the `.active-agents` file exists in
+ * Single-active-driver guard: if the active-agents flag file exists in
  * `backlogDir`, throws immediately so the caller knows to back off.
  */
 export async function runEngine(
@@ -78,7 +80,7 @@ export async function runEngine(
 
 	if (isDriverActive(backlogDir)) {
 		throw new Error(
-			`Single-active-driver guard: another driver or loop-backlog is active (${join(backlogDir, ACTIVE_AGENTS_FILE)} exists). Refusing to start.`,
+			`Single-active-driver guard: another driver or loop-backlog is active (${activeAgentsPath(backlogDir)} exists). Refusing to start.`,
 		);
 	}
 
@@ -90,6 +92,11 @@ export async function runEngine(
 
 	let ticks = 0;
 	while (ticks < maxTicks) {
+		// BACK-686.1 A2 AC#5: reap stale claims every tick, before dispatching more
+		// work — a crashed agent's lease-expired claim is freed (claim gone, phase
+		// untouched) so the task becomes reachable again on this same tick.
+		reapStaleClaims(backlogDir);
+
 		const tasks = await core.queryTasks({});
 		if (!hasPendingWork(tasks, pipelines)) break;
 
