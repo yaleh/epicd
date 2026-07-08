@@ -6,7 +6,7 @@ title: >-
 assignee:
   - '@claude'
 created_date: '2026-07-08 04:00'
-updated_date: '2026-07-08 05:14'
+updated_date: '2026-07-08 05:26'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -18,7 +18,7 @@ parent_task_id: BACK-686
 priority: high
 ordinal: 98000
 pipeline_id: execution
-phase: needs-human
+phase: adjudicating
 dod:
   - text: bun test
     checked: false
