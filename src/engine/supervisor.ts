@@ -27,8 +27,10 @@
  * fails fast instead of double-driving the same lane.
  */
 
+import { join } from "node:path";
 import lockfile from "proper-lockfile";
 import type { Core } from "../core/backlog.js";
+import { worktreeMarkerPath } from "./claim.js";
 import { renderBasicReadyDispatch } from "./dispatch.js";
 import { addCapMarker, hasCapMarker } from "./safety.js";
 import { scanReadyLines } from "./scan.js";
@@ -56,7 +58,12 @@ export async function supervisorTick(core: Core, repoRoot: string, emit: Supervi
 	for (const task of tasks) {
 		if (!readyIds.has(task.id) || hasCapMarker(task, DISPATCH_CAP_PHASE)) continue;
 
-		const payload = renderBasicReadyDispatch(task.id, task.title, repoRoot);
+		const payload = renderBasicReadyDispatch(
+			task.id,
+			task.title,
+			repoRoot,
+			worktreeMarkerPath(join(repoRoot, "backlog"), task.id),
+		);
 		await core.updateTask(addCapMarker(task, DISPATCH_CAP_PHASE), false);
 		await emit(task.id, payload);
 		dispatched.push(task.id);
