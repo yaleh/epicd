@@ -6,13 +6,13 @@ title: >-
 assignee:
   - '@claude'
 created_date: '2026-07-09 02:51'
-updated_date: '2026-07-09 03:25'
+updated_date: '2026-07-09 03:30'
 labels: []
 dependencies:
   - BACK-688
 ordinal: 104000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bun test
     checked: false
@@ -55,11 +55,11 @@ Mechanical rename of the product's display name from "Backlog.md" to "epicd" acr
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 grep -c "MCP_SERVER_NAME" src/cli.ts src/mcp/server.ts still resolves to the literal value "backlog" (unchanged) and grep -rc "backlog://" src/mcp/*.ts sums > 0 (unchanged)
-- [ ] #2 grep -rn "backlog/" src/core/init.ts | grep -i "task-storage\|rootConfigPath\|backlogDir" shows the storage directory name is still "backlog" (unchanged)
-- [ ] #3 bun test passes
-- [ ] #4 bunx tsc --noEmit passes
-- [ ] #5 grep -rn 'Backlog\.md' src --include='*.ts' | grep -v 'github.com/MrLesk/Backlog.md' returns 0 lines (github.com/MrLesk/Backlog.md upstream attribution URL in src/cli.ts and src/core/init.ts is the sole allowed exception)
+- [x] #1 bun test passes
+- [x] #2 bunx tsc --noEmit passes
+- [x] #3 grep -rn 'Backlog\.md' src --include='*.ts' | grep -v 'github.com/MrLesk/Backlog.md' returns 0 lines (github.com/MrLesk/Backlog.md upstream attribution URL in src/cli.ts and src/core/init.ts is the sole allowed exception)
+- [x] #4 grep -c "MCP_SERVER_NAME" src/core/init.ts src/cli.ts each resolve to the literal value "backlog" (unchanged) and grep -rc "backlog://" src/mcp/*.ts sums > 0 (unchanged) — corrected AC target after adjudication found the original clause referenced src/mcp/server.ts, which does not define MCP_SERVER_NAME
+- [x] #5 grep -n '"backlog"' src/core/init.ts shows the task-storage directory literal is still "backlog" (unchanged) — corrected AC target after adjudication found the original clause referenced non-existent identifiers (rootConfigPath, backlogDir) in this file
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -141,6 +141,12 @@ authoring/draft self-review: APPROVED after 1 round (background states the manda
 
 authoring/refining review: APPROVED after 1 iteration (5 phases, each grouping a test file with its corresponding src file for genuine red-green since string-literal changes flip existing test assertions; Acceptance Gate leads with full bun test; all goals covered; no forward phase dependencies)
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Renamed ~63 non-test 'Backlog.md' branding occurrences to epicd across CLI prompts/errors, UI banner, MCP tool descriptions, generated CLAUDE.md scaffolding (src/agent-instructions.ts + src/guidelines/*.md), instructions-overview text, board export headers, and browser server banner — plus 11 test files updated in lockstep, string-literal only, no logic changes. Non-goal invariants (MCP_SERVER_NAME=backlog, backlog:// URI, backlog/ storage dir, upstream attribution URL) verified intact. Adjudication (light depth) found 3 of the task's own ACs referenced wrong/non-existent file identifiers from refining-time authoring mistakes — corrected in place, re-verified against the merged trunk, and checked off; underlying invariants held throughout. One DoD gate (#4, the AC5 grep) had an exit-code bug (grep -v exits 1 on zero matches, the success case) that routed the first engine complete to needs-human — fixed to a test -z wrapper and re-run clean.
+<!-- SECTION:FINAL_SUMMARY:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
