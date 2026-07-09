@@ -16,7 +16,7 @@ export function registerTaskTools(server: McpServer, config: BacklogConfig): voi
 	const createTaskTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "task_create",
-			description: "Create a new task using Backlog.md",
+			description: "Create a new task using epicd",
 			inputSchema: taskCreateSchema,
 			annotations: { title: "Create Task", destructiveHint: false },
 		},
@@ -27,7 +27,7 @@ export function registerTaskTools(server: McpServer, config: BacklogConfig): voi
 	const listTaskTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "task_list",
-			description: "List Backlog.md tasks from with optional filtering",
+			description: "List epicd tasks from with optional filtering",
 			inputSchema: taskListSchema,
 			annotations: { title: "List Tasks", readOnlyHint: true, destructiveHint: false },
 		},
@@ -38,7 +38,7 @@ export function registerTaskTools(server: McpServer, config: BacklogConfig): voi
 	const searchTaskTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "task_search",
-			description: "Search Backlog.md tasks by title, description, and modified file path filters",
+			description: "Search epicd tasks by title, description, and modified file path filters",
 			inputSchema: taskSearchSchema,
 			annotations: { title: "Search Tasks", readOnlyHint: true, destructiveHint: false },
 		},
@@ -50,7 +50,7 @@ export function registerTaskTools(server: McpServer, config: BacklogConfig): voi
 		{
 			name: "task_edit",
 			description:
-				"Edit a Backlog.md task, including metadata, implementation plan/notes, dependencies, acceptance criteria, and task-specific Definition of Done items",
+				"Edit an epicd task, including metadata, implementation plan/notes, dependencies, acceptance criteria, and task-specific Definition of Done items",
 			inputSchema: taskEditSchema,
 			annotations: { title: "Edit Task", destructiveHint: false },
 		},
@@ -61,7 +61,7 @@ export function registerTaskTools(server: McpServer, config: BacklogConfig): voi
 	const viewTaskTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "task_view",
-			description: "View a Backlog.md task details",
+			description: "View an epicd task details",
 			inputSchema: taskViewSchema,
 			annotations: { title: "View Task", readOnlyHint: true, destructiveHint: false },
 		},
@@ -72,7 +72,7 @@ export function registerTaskTools(server: McpServer, config: BacklogConfig): voi
 	const archiveTaskTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "task_archive",
-			description: "Archive a Backlog.md task",
+			description: "Archive an epicd task",
 			inputSchema: taskArchiveSchema,
 			annotations: { title: "Archive Task", destructiveHint: true },
 		},
@@ -83,7 +83,7 @@ export function registerTaskTools(server: McpServer, config: BacklogConfig): voi
 	const completeTaskTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "task_complete",
-			description: "Complete a Backlog.md task (move it to the completed folder)",
+			description: "Complete an epicd task (move it to the completed folder)",
 			inputSchema: taskCompleteSchema,
 			annotations: { title: "Complete Task", destructiveHint: true },
 		},

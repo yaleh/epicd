@@ -1,6 +1,6 @@
-## Backlog.md Overview (CLI)
+## epicd Overview (CLI)
 
-This project uses Backlog.md to track features, bugs, and structured work as tasks.
+This project uses epicd to track features, bugs, and structured work as tasks.
 
 ### When to Use Backlog
 
@@ -36,10 +36,10 @@ Always read the relevant guide before that part of the workflow. Do not rely on 
 - `epicd instructions task-finalization`
   -> Read before finishing tasks: how to verify, summarize, and finish tasks
 
-Use `backlog <command> --help` before unfamiliar operations. Command help includes input fields, read/write behavior, output shape, and examples.
+Use `epicd <command> --help` before unfamiliar operations. Command help includes input fields, read/write behavior, output shape, and examples.
 
 ### Core Principle
 
 Backlog tracks committed work: what will be built, fixed, or changed. Use the CLI for Backlog changes so metadata, file names, relationships, and history stay consistent.
 
-Important: Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use Backlog commands so automatic metadata stays complete.
+Important: Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use epicd commands so automatic metadata stays complete.

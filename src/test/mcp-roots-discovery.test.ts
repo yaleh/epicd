@@ -98,7 +98,7 @@ describe("MCP roots discovery", () => {
 
 		const resources = await server.testInterface.listResources();
 		expect(resources.resources.map((resource) => resource.uri)).toEqual(["backlog://init-required"]);
-		expect(resources.resources[0]?.name).toBe(`Backlog.md Not Initialized [${uninitializedDir}]`);
+		expect(resources.resources[0]?.name).toBe(`epicd Not Initialized [${uninitializedDir}]`);
 
 		const tools = await server.testInterface.listTools();
 		expect(tools.tools).toEqual([]);

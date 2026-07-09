@@ -472,7 +472,7 @@ describe("board view command", () => {
 		expect(content).toContain("To Do");
 		expect(content).toContain("TASK-1");
 		expect(content).toContain("Export Test Task");
-		expect(content).toContain("# Kanban Board Export (powered by Backlog.md)");
+		expect(content).toContain("# Kanban Board Export (powered by epicd)");
 		expect(content).toContain("Project: TestProject");
 
 		// Test overwrite behavior

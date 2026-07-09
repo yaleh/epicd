@@ -37,12 +37,12 @@ function sectionTitle(value: string, color: boolean): string {
 
 export function formatRootEntry({ version, initialized, color = false }: RootEntryOptions): string {
 	const logoLines = LOGO_LINES.map((line) => colorize(line, ANSI.logo, color));
-	const lines: string[] = [...logoLines, "", `${colorize("Backlog.md", ANSI.title, color)} v${version}`, ""];
+	const lines: string[] = [...logoLines, "", `${colorize("epicd", ANSI.title, color)} v${version}`, ""];
 
 	if (!initialized) {
-		lines.push("This directory is not initialized for Backlog.md.", "");
+		lines.push("This directory is not initialized for epicd.", "");
 		lines.push(sectionTitle("Project setup:", color));
-		lines.push(commandLine("epicd init", "Initialize Backlog.md interactively"));
+		lines.push(commandLine("epicd init", "Initialize epicd interactively"));
 		lines.push(commandLine("epicd init --defaults", "Initialize with default settings"));
 		lines.push(commandLine("epicd init --no-git", "Initialize without Git integration"));
 		lines.push("");

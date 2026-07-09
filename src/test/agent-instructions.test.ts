@@ -39,7 +39,7 @@ describe("addAgentInstructions", () => {
 		expect(agents).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
 		expect(agents).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
 		expect(agents).toContain(CLI_AGENT_NUDGE);
-		expect(agents).not.toContain("# Instructions for the usage of Backlog.md CLI Tool");
+		expect(agents).not.toContain("# Instructions for the usage of epicd CLI Tool");
 
 		expect(claude).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
 		expect(claude).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
@@ -131,7 +131,7 @@ describe("addAgentInstructions", () => {
 	it("loads guideline content from file paths", async () => {
 		const pathGuideline = join(__dirname, "../guidelines/agent-guidelines.md");
 		const content = await _loadAgentGuideline(pathGuideline);
-		expect(content).toContain("# Instructions for the usage of Backlog.md CLI Tool");
+		expect(content).toContain("# Instructions for the usage of epicd CLI Tool");
 	});
 
 	it("does not duplicate content when run multiple times (idempotent)", async () => {
@@ -146,7 +146,7 @@ describe("addAgentInstructions", () => {
 		expect(firstRun).toBe(secondRun);
 	});
 
-	it("preserves existing content and adds Backlog.md content only once", async () => {
+	it("preserves existing content and adds epicd content only once", async () => {
 		const existingContent = "# My Existing Claude Instructions\n\nThis is my custom content.\n";
 		await Bun.write(join(TEST_DIR, "CLAUDE.md"), existingContent);
 
@@ -154,7 +154,7 @@ describe("addAgentInstructions", () => {
 		await addAgentInstructions(TEST_DIR, undefined, ["CLAUDE.md"]);
 		const firstRun = await Bun.file(join(TEST_DIR, "CLAUDE.md")).text();
 
-		// Second run - should not duplicate Backlog.md content
+		// Second run - should not duplicate epicd content
 		await addAgentInstructions(TEST_DIR, undefined, ["CLAUDE.md"]);
 		const secondRun = await Bun.file(join(TEST_DIR, "CLAUDE.md")).text();
 

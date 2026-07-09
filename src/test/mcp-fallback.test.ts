@@ -39,7 +39,7 @@ describe("MCP Server Fallback Mode", () => {
 
 		expect(resources.resources).toHaveLength(1);
 		expect(resources.resources[0]?.uri).toBe("backlog://init-required");
-		expect(resources.resources[0]?.name).toBe(`Backlog.md Not Initialized [${tempDir}]`);
+		expect(resources.resources[0]?.name).toBe(`epicd Not Initialized [${tempDir}]`);
 	});
 
 	test("should be able to read backlog://init-required resource", async () => {

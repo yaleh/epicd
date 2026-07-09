@@ -1,6 +1,6 @@
-# Backlog.md Not Initialized
+# epicd Not Initialized
 
-This directory does not have Backlog.md initialized.
+This directory does not have epicd initialized.
 
 **To set up task management for this project, run:**
 
@@ -10,9 +10,9 @@ epicd init
 
 This will create the necessary `backlog/` directory structure and configuration file.
 
-## What is Backlog.md?
+## What is epicd?
 
-Backlog.md is a task management system that uses markdown files to track features, bugs, and structured work. It integrates with AI coding agents to help you manage your project tasks effectively.
+epicd is a task management system that uses markdown files to track features, bugs, and structured work. It integrates with AI coding agents to help you manage your project tasks effectively.
 
 ## Next Steps
 

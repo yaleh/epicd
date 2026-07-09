@@ -30,11 +30,11 @@ function commandLine(command: string, description: string): string {
 
 export function formatInstructionGuideIndex(): string {
 	const lines: string[] = [
-		"Backlog.md instructions",
+		"epicd instructions",
 		"",
 		"Start here:",
 		commandLine("epicd instructions overview", "Required first read before answering any user request"),
-		commandLine("backlog <command> --help", "Show options, fields, and examples"),
+		commandLine("epicd <command> --help", "Show options, fields, and examples"),
 		"",
 		"Guides:",
 	];
@@ -55,7 +55,7 @@ export function formatInstructionGuideMarkdown(markdown: string): string {
 
 export function registerInstructionsCommand(program: Command): void {
 	addHelpSchema(program.command("instructions [guide]"), {
-		reads: "Backlog.md workflow guides",
+		reads: "epicd workflow guides",
 		required: [],
 		optional: [
 			{ name: "guide", type: choiceType(INSTRUCTION_GUIDE_KEYS), description: "Workflow guide to print" },
@@ -64,7 +64,7 @@ export function registerInstructionsCommand(program: Command): void {
 		output: "Guide index, or markdown guide text when a guide is selected",
 		examples: ["epicd instructions", "epicd instructions overview", "epicd instructions task-execution"],
 	})
-		.description("show Backlog.md workflow instructions")
+		.description("show epicd workflow instructions")
 		.option("--list", "list available instruction guides")
 		.action((guide: string | undefined, options: InstructionsOptions) => {
 			if (options.list || guide === undefined) {

@@ -24,7 +24,7 @@ export function registerDocumentTools(server: McpServer, _config: BacklogConfig)
 	const listDocumentsTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "document_list",
-			description: "List Backlog.md documents with optional substring filtering",
+			description: "List epicd documents with optional substring filtering",
 			inputSchema: documentListSchema,
 			annotations: { title: "List Documents", readOnlyHint: true, destructiveHint: false },
 		},
@@ -35,7 +35,7 @@ export function registerDocumentTools(server: McpServer, _config: BacklogConfig)
 	const viewDocumentTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "document_view",
-			description: "View a Backlog.md document including metadata and markdown content",
+			description: "View an epicd document including metadata and markdown content",
 			inputSchema: documentViewSchema,
 			annotations: { title: "View Document", readOnlyHint: true, destructiveHint: false },
 		},
@@ -47,7 +47,7 @@ export function registerDocumentTools(server: McpServer, _config: BacklogConfig)
 		{
 			name: "document_create",
 			description:
-				"Create a Backlog.md document using the shared core document pipeline, with optional docs subdirectory path",
+				"Create an epicd document using the shared core document pipeline, with optional docs subdirectory path",
 			inputSchema: documentCreateSchema,
 			annotations: { title: "Create Document", destructiveHint: false },
 		},
@@ -59,7 +59,7 @@ export function registerDocumentTools(server: McpServer, _config: BacklogConfig)
 		{
 			name: "document_update",
 			description:
-				"Update an existing Backlog.md document's content, optional title, metadata, and optional docs subdirectory path",
+				"Update an existing epicd document's content, optional title, metadata, and optional docs subdirectory path",
 			inputSchema: documentUpdateSchema,
 			annotations: { title: "Update Document", destructiveHint: false },
 		},
@@ -70,7 +70,7 @@ export function registerDocumentTools(server: McpServer, _config: BacklogConfig)
 	const searchDocumentTool: McpToolHandler = createSimpleValidatedTool(
 		{
 			name: "document_search",
-			description: "Search Backlog.md documents using the shared fuzzy index",
+			description: "Search epicd documents using the shared fuzzy index",
 			inputSchema: documentSearchSchema,
 			annotations: { title: "Search Documents", readOnlyHint: true, destructiveHint: false },
 		},

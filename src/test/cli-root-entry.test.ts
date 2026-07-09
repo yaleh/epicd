@@ -23,7 +23,7 @@ describe("CLI root entry (bare run)", () => {
 		const out = formatRootEntry({ version: "1.2.3", initialized: true, color: true });
 
 		expect(out).toContain("\u001B[1;36m██████╗");
-		expect(out).toContain("\u001B[1mBacklog.md\u001B[0m v1.2.3");
+		expect(out).toContain("\u001B[1mepicd\u001B[0m v1.2.3");
 		expect(out).toContain("\u001B[1;33mCommon workflow:\u001B[0m");
 		expect(out).toContain("\u001B[0m");
 	});
@@ -32,7 +32,7 @@ describe("CLI root entry (bare run)", () => {
 		const out = formatRootEntry({ version: "1.2.3", initialized: true, color: false });
 
 		expect(out).toContain("██████╗");
-		expect(out).toContain("Backlog.md v1.2.3");
+		expect(out).toContain("epicd v1.2.3");
 		expect(out).toContain("Common workflow:");
 		expect(out).not.toContain("\u001B[");
 		expect(out).not.toContain("\u001B]");
@@ -56,7 +56,7 @@ describe("CLI root entry (bare run)", () => {
 			Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: originalIsTTY });
 		}
 
-		expect(output).toContain("Backlog.md v1.2.3");
+		expect(output).toContain("epicd v1.2.3");
 		expect(output).not.toContain("\u001B[");
 		expect(output).not.toContain("\u001B]");
 	});
@@ -67,8 +67,8 @@ describe("CLI root entry (bare run)", () => {
 		const out = result.stdout.toString();
 		expect(result.exitCode).toBe(0);
 		expect(out).toContain("██████╗");
-		expect(out).toContain("Backlog.md v");
-		expect(out).toContain("This directory is not initialized for Backlog.md.");
+		expect(out).toContain("epicd v");
+		expect(out).toContain("This directory is not initialized for epicd.");
 		expect(out).toContain("Project setup:");
 		expect(out).toContain("epicd init");
 		expect(out).toContain("Local instructions:");

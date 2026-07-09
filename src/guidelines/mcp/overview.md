@@ -1,6 +1,6 @@
-## Backlog.md Overview (MCP)
+## epicd Overview (MCP)
 
-This project uses Backlog.md to track features, bugs, and structured work as tasks.
+This project uses epicd to track features, bugs, and structured work as tasks.
 
 ### When to Use Backlog
 

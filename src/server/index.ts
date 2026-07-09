@@ -467,7 +467,7 @@ export class BacklogServer {
 			this.server = Bun.serve(serveOptions as unknown as Parameters<typeof Bun.serve>[0]);
 
 			const url = `http://localhost:${finalPort}`;
-			console.log(`🚀 Backlog.md browser interface running at ${url}`);
+			console.log(`🚀 epicd browser interface running at ${url}`);
 			console.log(`📊 Project: ${this.projectName}`);
 			const stopKey = process.platform === "darwin" ? "Cmd+C" : "Ctrl+C";
 			console.log(`⏹️  Press ${stopKey} to stop the server`);

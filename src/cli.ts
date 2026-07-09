@@ -389,9 +389,9 @@ function getDefaultAdvancedConfig(existingConfig?: BacklogConfig | null): Partia
 }
 
 /**
- * Resolves the Backlog.md project root from the current working directory.
+ * Resolves the epicd project root from the current working directory.
  * Walks up the directory tree to find backlog/ or backlog.json, with git root fallback.
- * Exits with error message if no Backlog.md project is found.
+ * Exits with error message if no epicd project is found.
  */
 async function requireProjectRoot(): Promise<string> {
 	let runtimeCwd: RuntimeCwdResolution;
@@ -405,7 +405,7 @@ async function requireProjectRoot(): Promise<string> {
 
 	const root = await findBacklogRoot(runtimeCwd.cwd);
 	if (!root) {
-		console.error("No Backlog.md project found. Run `epicd init` to initialize.");
+		console.error("No epicd project found. Run `epicd init` to initialize.");
 		process.exit(1);
 	}
 	return root;
@@ -623,7 +623,7 @@ addHelpSchema(program.command("init [projectName]"), {
 
 				if (!isRepo && !filesystemOnly) {
 					const repositoryMode = await clack.select({
-						message: "No git repository found. How should Backlog.md initialize this project?",
+						message: "No git repository found. How should epicd initialize this project?",
 						initialValue: "git",
 						options: [
 							{
@@ -794,7 +794,7 @@ addHelpSchema(program.command("init [projectName]"), {
 						}
 					} else {
 						const locationPrompt = await clack.select({
-							message: "Where should Backlog.md store project files?",
+							message: "Where should epicd store project files?",
 							initialValue: defaultBacklogSource,
 							options: [
 								{
@@ -810,7 +810,7 @@ addHelpSchema(program.command("init [projectName]"), {
 								{
 									label: "Custom project-relative path",
 									value: "custom",
-									hint: `Backlog.md will store project config in ${backlogResolution.rootConfigPath}`,
+									hint: `epicd will store project config in ${backlogResolution.rootConfigPath}`,
 								},
 							],
 						});
@@ -842,7 +842,7 @@ addHelpSchema(program.command("init [projectName]"), {
 						} else {
 							backlogDirectory = backlogDirectorySource;
 							const configPrompt = await clack.select({
-								message: "Where should Backlog.md store project configuration?",
+								message: "Where should epicd store project configuration?",
 								initialValue: defaultConfigLocation,
 								options: [
 									{
@@ -964,7 +964,7 @@ addHelpSchema(program.command("init [projectName]"), {
 							integrationTipShown = true;
 						}
 						const integrationPrompt = await clack.select({
-							message: "How would you like your AI tools to connect to Backlog.md?",
+							message: "How would you like your AI tools to connect to epicd?",
 							initialValue: "cli",
 							options: [
 								{
@@ -976,7 +976,7 @@ addHelpSchema(program.command("init [projectName]"), {
 									value: "mcp",
 								},
 								{
-									label: "Skip for now (I am not using Backlog.md with AI tools)",
+									label: "Skip for now (I am not using epicd with AI tools)",
 									value: "none",
 								},
 							],
@@ -1370,7 +1370,7 @@ addHelpSchema(program.command("init [projectName]"), {
 
 				// Log Claude agent result from shared init
 				if (integrationMode === "cli" && initResult.mcpResults?.claudeAgent) {
-					clack.log.info(`Claude Code Backlog.md agent ${initResult.mcpResults.claudeAgent}`);
+					clack.log.info(`Claude Code epicd agent ${initResult.mcpResults.claudeAgent}`);
 				}
 
 				// Final warning if remote operations were enabled but no git remotes are configured
@@ -1547,7 +1547,7 @@ addHelpSchema(taskCmd.command("create [title]"), {
 		{ name: "ordinal", type: "Integer", description: "Non-negative manual ordering value" },
 		{ name: "parent", type: "Task ID", description: "Parent task for subtasks" },
 	],
-	writes: "Creates a task markdown file through Backlog.md",
+	writes: "Creates a task markdown file through epicd",
 	output: "Created task details; use --plain for text output",
 	examples: ['epicd task create "Add OAuth" --ac "Login succeeds"', 'epicd task create -p {{TASK_ID:1}} "Add tests"'],
 })
@@ -2369,7 +2369,7 @@ addHelpSchema(taskCmd.command("edit [taskId]"), {
 		{ name: "final-summary", type: "Markdown", description: "Completion summary" },
 		{ name: "check-ac", type: "Integer", description: "1-based acceptance criterion index" },
 	],
-	writes: "Updates task metadata and structured task sections through Backlog.md",
+	writes: "Updates task metadata and structured task sections through epicd",
 	output: "Updated task details; use --plain for text output",
 	examples: ["epicd task edit {{TASK_ID:1}} -a @sara", "epicd task edit {{TASK_ID:1}} --check-ac 1"],
 })
@@ -3301,8 +3301,8 @@ boardCmd
 				await updateReadmeWithBoard(finalTasks, statuses, projectName, exportVersion);
 				console.log("Updated README.md with Kanban board.");
 			} else {
-				// Use filename argument or default to Backlog.md
-				const outputFile = filename || "Backlog.md";
+				// Use filename argument or default to epicd.md
+				const outputFile = filename || "epicd.md";
 				const outputPath = join(cwd, outputFile as string);
 
 				// Check if file exists and handle overwrite confirmation
@@ -3558,20 +3558,20 @@ const agentsCmd = addHelpSchema(program.command("agents"), {
 		{
 			name: "--update-instructions",
 			type: "Boolean",
-			description: "Interactively select instruction files and refresh the short Backlog.md CLI nudge",
+			description: "Interactively select instruction files and refresh the short epicd CLI nudge",
 		},
 	],
 	writes:
-		"Creates or updates the managed Backlog.md CLI nudge in selected instruction files; preserves existing content outside the managed block",
+		"Creates or updates the managed epicd CLI nudge in selected instruction files; preserves existing content outside the managed block",
 	output: "Interactive file selection followed by created, updated, or unchanged file summary",
 	examples: ["epicd agents --update-instructions"],
 });
 
 agentsCmd
-	.description("manage the short Backlog.md CLI nudge in agent instruction files")
+	.description("manage the short epicd CLI nudge in agent instruction files")
 	.option(
 		"--update-instructions",
-		"update the Backlog.md CLI nudge in agent instruction files while preserving existing content",
+		"update the epicd CLI nudge in agent instruction files while preserving existing content",
 	)
 	.action(async (options) => {
 		if (!options.updateInstructions) {
@@ -3625,7 +3625,7 @@ agentsCmd
 
 // Config command group
 const configCmd = addHelpSchema(program.command("config"), {
-	reads: "Project Backlog.md configuration",
+	reads: "Project epicd configuration",
 	required: [],
 	optional: [],
 	writes: "Interactive configuration updates when run without a subcommand",
@@ -3685,7 +3685,7 @@ const configCmd = addHelpSchema(program.command("config"), {
 			}
 			if (shouldInstallClaude) {
 				await installClaudeAgent(cwd);
-				console.log("✓ Claude Code Backlog.md agent installed to .claude/agents/");
+				console.log("✓ Claude Code epicd agent installed to .claude/agents/");
 			}
 			if (completionResult) {
 				const instructions = completionResult.instructions.trim();
@@ -3755,7 +3755,7 @@ sequenceCmd
 	});
 
 addHelpSchema(configCmd.command("get <key>"), {
-	reads: "Project Backlog.md configuration",
+	reads: "Project epicd configuration",
 	required: [{ name: "key", type: choiceType(CONFIG_GET_KEYS), description: "Configuration value to print" }],
 	optional: [],
 	output: "The selected configuration value",
@@ -3863,7 +3863,7 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 		{ name: "value", type: "String", description: "New value; parsed based on key type" },
 	],
 	optional: [],
-	writes: "Updates the project Backlog.md configuration file",
+	writes: "Updates the project epicd configuration file",
 	output: "Confirmation of the updated config value",
 	examples: ['epicd config set defaultEditor "code --wait"', "epicd config set autoCommit true"],
 })
@@ -4067,7 +4067,7 @@ addHelpSchema(configCmd.command("set <key> <value>"), {
 	});
 
 addHelpSchema(configCmd.command("list"), {
-	reads: "Project Backlog.md configuration",
+	reads: "Project epicd configuration",
 	required: [],
 	optional: [],
 	output: "All public configuration values",
