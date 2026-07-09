@@ -194,7 +194,7 @@ describe("McpServer bootstrap", () => {
 			"backlog://workflow/task-execution",
 			"backlog://workflow/task-finalization",
 		]);
-		expect(MCP_WORKFLOW_OVERVIEW).toContain("## Backlog.md Overview (MCP)");
+		expect(MCP_WORKFLOW_OVERVIEW).toContain("## epicd Overview (MCP)");
 
 		const resourceTemplates = await server.testInterface.listResourceTemplates();
 		expect(resourceTemplates.resourceTemplates).toEqual([]);
@@ -246,7 +246,7 @@ describe("McpServer bootstrap", () => {
 			"backlog://workflow/task-execution",
 			"backlog://workflow/task-finalization",
 		]);
-		expect(MCP_WORKFLOW_OVERVIEW).toContain("## Backlog.md Overview (MCP)");
+		expect(MCP_WORKFLOW_OVERVIEW).toContain("## epicd Overview (MCP)");
 
 		const resourceTemplates = await server.testInterface.listResourceTemplates();
 		expect(resourceTemplates.resourceTemplates).toEqual([]);

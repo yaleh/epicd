@@ -5,8 +5,8 @@ import type { McpResourceHandler } from "../../types.ts";
 function createInitRequiredResource(server: McpServer, projectRoot: string): McpResourceHandler {
 	return {
 		uri: "backlog://init-required",
-		name: `Backlog.md Not Initialized [${projectRoot}]`,
-		description: "Instructions for initializing Backlog.md in this project",
+		name: `epicd Not Initialized [${projectRoot}]`,
+		description: "Instructions for initializing epicd in this project",
 		mimeType: "text/markdown",
 		handler: async () => {
 			let text = MCP_INIT_REQUIRED_GUIDE;

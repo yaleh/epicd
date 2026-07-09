@@ -44,7 +44,7 @@ function createWorkflowTool(): McpToolHandler {
 		{
 			name: "get_backlog_instructions",
 			description:
-				"Retrieve Backlog.md workflow guidance in markdown format. Defaults to the overview when no instruction is selected.",
+				"Retrieve epicd workflow guidance in markdown format. Defaults to the overview when no instruction is selected.",
 			inputSchema: workflowInstructionsSchema,
 			annotations: { title: "Backlog Instructions", readOnlyHint: true, destructiveHint: false },
 		},

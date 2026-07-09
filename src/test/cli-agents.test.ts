@@ -46,7 +46,7 @@ describe("CLI agents command", () => {
 		const output = result.stdout.toString();
 
 		expect(result.exitCode).toBe(0);
-		expect(output).toContain("manage the short Backlog.md CLI nudge in agent instruction files");
+		expect(output).toContain("manage the short epicd CLI nudge in agent instruction files");
 		expect(output).toContain("--update-instructions");
 		expect(output).toContain("preserving existing content");
 		expect(output).toContain("Input schema:");
@@ -74,7 +74,7 @@ describe("CLI agents command", () => {
 		const agents = Bun.file(join(TEST_DIR, "AGENTS.md"));
 		expect(await agents.exists()).toBe(true);
 		const content = await agents.text();
-		expect(content).toContain("Backlog.md");
+		expect(content).toContain("epicd");
 	});
 
 	it("should handle user cancellation gracefully", async () => {
@@ -137,8 +137,8 @@ describe("CLI agents command", () => {
 		const agentsContent = await agents2.text();
 		const claudeContent = await claudeMd.text();
 
-		expect(agentsContent).toContain("Backlog.md");
-		expect(claudeContent).toContain("Backlog.md");
+		expect(agentsContent).toContain("epicd");
+		expect(claudeContent).toContain("epicd");
 	});
 
 	it("should update existing files correctly", async () => {
@@ -159,7 +159,7 @@ describe("CLI agents command", () => {
 		// File should still exist and have consistent content
 		expect(await agents3.exists()).toBe(true);
 		const updatedContent = await agents3.text();
-		expect(updatedContent).toContain("Backlog.md");
+		expect(updatedContent).toContain("epicd");
 		// Should be idempotent - content should be similar (may have minor differences)
 		expect(updatedContent.length).toBeGreaterThan(0);
 	});

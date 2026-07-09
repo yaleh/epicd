@@ -3,7 +3,7 @@
 
 ## BACKLOG WORKFLOW INSTRUCTIONS
 
-This project uses Backlog.md MCP for all task and project management activities.
+This project uses epicd MCP for all task and project management activities.
 
 **CRITICAL GUIDANCE**
 
@@ -11,7 +11,7 @@ This project uses Backlog.md MCP for all task and project management activities.
 - If your client only supports tools or the above request fails, call `backlog.get_backlog_instructions()` to load the tool-oriented overview. Use the `instruction` selector when you need `task-creation`, `task-execution`, or `task-finalization`.
 
 - **First time working here?** Read the overview resource IMMEDIATELY to learn the workflow
-- **Already familiar?** You should have the overview cached ("## Backlog.md Overview (MCP)")
+- **Already familiar?** You should have the overview cached ("## epicd Overview (MCP)")
 - **When to read it**: BEFORE creating tasks, or when you're unsure whether to track work
 
 These guides cover:

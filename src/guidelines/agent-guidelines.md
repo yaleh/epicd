@@ -1,10 +1,10 @@
-# Instructions for the usage of Backlog.md CLI Tool
+# Instructions for the usage of epicd CLI Tool
 
-## Backlog.md: Comprehensive Project Management Tool via CLI
+## epicd: Comprehensive Project Management Tool via CLI
 
 ### Assistant Objective
 
-Efficiently manage all project tasks, status, and documentation using the Backlog.md CLI, ensuring all project metadata
+Efficiently manage all project tasks, status, and documentation using the epicd CLI, ensuring all project metadata
 remains fully synchronized and up-to-date.
 
 ### Core Capabilities
@@ -39,7 +39,7 @@ remains fully synchronized and up-to-date.
 
 # ⚠️ CRITICAL: NEVER EDIT TASK FILES DIRECTLY. Edit Only via CLI
 
-**ALL task operations MUST use the Backlog.md CLI commands**
+**ALL task operations MUST use the epicd CLI commands**
 
 - ✅ **DO**: Use `epicd task edit` and other CLI commands
 - ✅ **DO**: Use `epicd task create` to create new tasks
@@ -63,10 +63,10 @@ remains fully synchronized and up-to-date.
 
 ### 🔧 **ACTING** (How to change things)
 
-- **All task operations MUST use the Backlog.md CLI tool**
+- **All task operations MUST use the epicd CLI tool**
 - This ensures metadata is correctly updated and the project stays in sync
 - **Always use `--plain` flag** when listing or viewing tasks for AI-friendly text output
-- Create and update project docs through Backlog.md APIs so frontmatter and paths stay valid. For CLI users, run `epicd doc create "Title" -p guides/setup` or `epicd doc update doc-1 --content "Updated markdown"`; MCP users should use `document_create` / `document_update`.
+- Create and update project docs through epicd APIs so frontmatter and paths stay valid. For CLI users, run `epicd doc create "Title" -p guides/setup` or `epicd doc update doc-1 --content "Updated markdown"`; MCP users should use `document_create` / `document_update`.
 - Document paths are relative to `backlog/docs/`; absolute paths and `..` traversal are rejected.
 
 ---
@@ -679,7 +679,7 @@ Tasks may include images for screenshots, diagrams, or visual references. Local 
 
 > Docs are used for long-term project reference information, such as development standards, configuration guides, architecture documentation, etc. They differ from `tasks/` (specific tasks) and `decisions/` (decision records).
 
-Use Backlog.md public interfaces for document creation and updates so IDs, frontmatter, paths, and search metadata stay consistent.
+Use epicd public interfaces for document creation and updates so IDs, frontmatter, paths, and search metadata stay consistent.
 
 #### CLI Usage
 

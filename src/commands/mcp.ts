@@ -2,7 +2,7 @@
  * MCP Command Group - Model Context Protocol CLI commands.
  *
  * This simplified command set focuses on the stdio transport, which is the
- * only supported transport for Backlog.md's local MCP integration.
+ * only supported transport for epicd's local MCP integration.
  */
 
 import type { Command } from "commander";
@@ -50,7 +50,7 @@ function registerStartCommand(mcpCmd: Command): void {
 					if (runtimeCwd.source !== "process") {
 						console.error(`Using MCP start directory from ${runtimeCwd.sourceLabel}: ${runtimeCwd.cwd}`);
 					}
-					console.error("Backlog.md MCP server started (stdio transport)");
+					console.error("epicd MCP server started (stdio transport)");
 				}
 
 				let shutdownTriggered = false;

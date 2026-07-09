@@ -46,14 +46,14 @@ import type {
 /**
  * Minimal MCP server implementation for stdio transport.
  *
- * The Backlog.md MCP server is intentionally local-only and exposes tools,
+ * The epicd MCP server is intentionally local-only and exposes tools,
  * resources, and prompts through the stdio transport so that desktop editors
  * (e.g. Claude Code) can interact with a project without network exposure.
  */
 const APP_NAME = getPackageName();
 const APP_VERSION = getVersionSync();
 const INSTRUCTIONS =
-	"At the beginning of each session, list the available resources and read the first one to understand how to use Backlog.md for task management. Additional detailed guides are available as resources when needed.";
+	"At the beginning of each session, list the available resources and read the first one to understand how to use epicd for task management. Additional detailed guides are available as resources when needed.";
 
 type ServerInitOptions = {
 	debug?: boolean;

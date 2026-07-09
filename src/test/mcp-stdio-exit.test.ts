@@ -9,7 +9,7 @@ import { initializeProject } from "../core/init.ts";
 import { createUniqueTestDir, getPlatformTimeout, isWindows, safeCleanup, sleep } from "./test-utils.ts";
 
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
-const START_MESSAGE = "Backlog.md MCP server started (stdio transport)";
+const START_MESSAGE = "epicd MCP server started (stdio transport)";
 
 let TEST_DIR: string;
 

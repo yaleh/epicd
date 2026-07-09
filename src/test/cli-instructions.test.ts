@@ -31,7 +31,7 @@ describe("root command", () => {
 		const output = result.stdout.toString() + result.stderr.toString();
 
 		expect(result.exitCode).toBe(0);
-		expect(output).toContain("Backlog.md v");
+		expect(output).toContain("epicd v");
 		expect(output).toContain("Local instructions:");
 		expect(output).toContain("epicd instructions overview");
 		expect(output).not.toContain("unknown option '--plain'");
@@ -45,7 +45,7 @@ describe("epicd instructions command", () => {
 		// CLI-CONTRACT: verifies 'epicd instructions' default output format, guide list, and absence of MCP-specific content
 		const output = await $`bun ${CLI_PATH} instructions`.cwd(TEST_DIR).text();
 
-		expect(output).toContain("Backlog.md instructions");
+		expect(output).toContain("epicd instructions");
 		expect(output).toContain("Start here:");
 		expect(output).toMatch(/'epicd instructions overview'\s+Required first read before answering any user request/);
 		expect(output).not.toMatch(/^\s+'epicd instructions'\s+List workflow guides/m);
@@ -89,7 +89,7 @@ describe("epicd instructions command", () => {
 		);
 		const initRequired = normalizeCliOutput(await $`bun ${CLI_PATH} instructions init-required`.cwd(TEST_DIR).text());
 
-		expect(overview).toContain("## Backlog.md Overview (CLI)");
+		expect(overview).toContain("## epicd Overview (CLI)");
 		expect(overview).toContain("### Start Every Request Here");
 		expect(overview).toContain(
 			"Use this overview to decide what to read or run next. The detailed guides contain the procedure for creating, executing, and finalizing tasks.",
@@ -114,7 +114,7 @@ describe("epicd instructions command", () => {
 		expect(overview).not.toContain("epicd task edit TASK-123 --check-ac 1");
 		expect(overview).not.toContain("epicd task edit TASK-123 -s Done");
 		expect(overview).toContain(
-			"Important: Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use Backlog commands so automatic metadata stays complete.",
+			"Important: Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use epicd commands so automatic metadata stays complete.",
 		);
 		expect(overview).not.toContain("MCP Tools Quick Reference");
 		expect(overview).not.toContain("backlog://workflow/");
@@ -134,7 +134,7 @@ describe("epicd instructions command", () => {
 		expect(taskFinalization).not.toContain("epicd task edit TASK-123 -s Done");
 		expect(taskCreation).not.toContain("task_create");
 		expect(taskCreation).not.toContain("task_search");
-		expect(initRequired).toContain("This directory does not have Backlog.md initialized.");
+		expect(initRequired).toContain("This directory does not have epicd initialized.");
 		expect(initRequired).toContain("epicd init --defaults");
 	}, 15_000);
 

@@ -83,7 +83,7 @@ export const INSTRUCTION_GUIDES: WorkflowGuideDefinition[] = [
 		key: "init-required",
 		uri: "backlog://init-required",
 		name: "Backlog Init Required Guide",
-		description: "How to initialize Backlog.md in this directory",
+		description: "How to initialize epicd in this directory",
 		mimeType: "text/markdown",
 		resourceText: CLI_INIT_REQUIRED_GUIDE,
 	},

@@ -225,7 +225,7 @@ describe("epicd init command", () => {
 			"For every user request in this project, run `epicd instructions overview` before answering or taking action.",
 		);
 		expect(agents).not.toContain("`epicd instructions` to list available guides");
-		expect(agents).not.toContain("# Instructions for the usage of Backlog.md CLI Tool");
+		expect(agents).not.toContain("# Instructions for the usage of epicd CLI Tool");
 	});
 
 	it("should label created and updated agent instruction files separately", async () => {

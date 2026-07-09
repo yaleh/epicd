@@ -54,7 +54,7 @@ function getMarkers(fileName: string, kind: GuidelineMarkerKind = "default"): { 
 }
 
 /**
- * Checks if the Backlog.md guidelines are already present in the content
+ * Checks if the epicd guidelines are already present in the content
  */
 function hasBacklogGuidelines(content: string, fileName: string): boolean {
 	const { start } = getMarkers(fileName);
@@ -62,7 +62,7 @@ function hasBacklogGuidelines(content: string, fileName: string): boolean {
 }
 
 /**
- * Wraps the Backlog.md guidelines with appropriate markers
+ * Wraps the epicd guidelines with appropriate markers
  */
 function wrapWithMarkers(content: string, fileName: string, kind: GuidelineMarkerKind = "default"): string {
 	const { start, end } = getMarkers(fileName, kind);
@@ -173,7 +173,7 @@ export async function addAgentInstructions(
 					results.push({ action: "unchanged", fileName: name, filePath });
 					continue;
 				} else {
-					// Append Backlog.md guidelines with markers
+					// Append epicd guidelines with markers
 					if (!existing.endsWith("\n")) existing += "\n";
 					finalContent = existing + wrapWithMarkers(content, name);
 				}

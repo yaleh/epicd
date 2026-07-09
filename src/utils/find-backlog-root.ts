@@ -16,15 +16,15 @@ async function fileExists(path: string): Promise<boolean> {
 }
 
 /**
- * Finds the Backlog.md project root by walking up the directory tree.
+ * Finds the epicd project root by walking up the directory tree.
  *
  * Search order:
  * 1. Walk up from startDir looking for a supported backlog directory or `backlog.json` file
  * 2. If not found, fall back to git repository root (via `git rev-parse --show-toplevel`)
- * 3. Return null if no Backlog.md project found
+ * 3. Return null if no epicd project found
  *
  * @param startDir - The directory to start searching from (typically process.cwd())
- * @returns The project root path, or null if no Backlog.md project found
+ * @returns The project root path, or null if no epicd project found
  */
 export async function findBacklogRoot(startDir: string): Promise<string | null> {
 	let current = startDir;
@@ -70,7 +70,7 @@ export async function findBacklogRoot(startDir: string): Promise<string | null> 
 let cachedProjectRoot: string | null | undefined;
 
 /**
- * Gets the Backlog.md project root, with caching for performance.
+ * Gets the epicd project root, with caching for performance.
  * Call clearProjectRootCache() to reset the cache if needed.
  */
 export async function getProjectRoot(startDir: string): Promise<string | null> {

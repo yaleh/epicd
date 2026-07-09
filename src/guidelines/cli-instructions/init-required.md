@@ -1,6 +1,6 @@
-## Backlog.md Initialization Required
+## epicd Initialization Required
 
-This directory does not have Backlog.md initialized.
+This directory does not have epicd initialized.
 
 To initialize the current project, run:
 

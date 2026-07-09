@@ -1,6 +1,6 @@
-## Backlog.md Overview (Tools)
+## epicd Overview (Tools)
 
-Your client is using Backlog.md via tools. Use the following MCP tools to retrieve guidance and manage tasks.
+Your client is using epicd via tools. Use the following MCP tools to retrieve guidance and manage tasks.
 
 ### When to Use Backlog
 
@@ -23,7 +23,7 @@ Your client is using Backlog.md via tools. Use the following MCP tools to retrie
 
 ### Core Workflow Tools
 
-Use this tool to retrieve the required Backlog.md guidance in markdown form:
+Use this tool to retrieve the required epicd guidance in markdown form:
 
 - `get_backlog_instructions` — Returns workflow guidance. Leave `instruction` empty for the overview, or select `task-creation`, `task-execution`, or `task-finalization`.
 
