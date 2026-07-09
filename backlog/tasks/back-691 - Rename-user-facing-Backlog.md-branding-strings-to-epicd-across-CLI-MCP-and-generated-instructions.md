@@ -6,13 +6,13 @@ title: >-
 assignee:
   - '@claude'
 created_date: '2026-07-09 02:51'
-updated_date: '2026-07-09 03:21'
+updated_date: '2026-07-09 03:25'
 labels: []
 dependencies:
   - BACK-688
 ordinal: 104000
 pipeline_id: execution
-phase: needs-human
+phase: adjudicating
 dod:
   - text: bun test
     checked: false
@@ -23,8 +23,8 @@ dod:
       ':!backlog/tasks' | xargs -0 npx biome check --files-ignore-unknown=true
     checked: false
   - text: >-
-      grep -rn 'Backlog\.md' src --include='*.ts' | grep -v
-      'github.com/MrLesk/Backlog.md'
+      test -z "$(grep -rn 'Backlog\.md' src --include='*.ts' | grep -v
+      'github.com/MrLesk/Backlog.md')"
     checked: false
 entry_phase: authoring/backlog
 ---
