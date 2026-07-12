@@ -5,7 +5,7 @@ describe("web UI branding", () => {
 		const files = ["../web/components/Navigation.tsx", "../web/components/SideNavigation.tsx", "../web/App.tsx"];
 
 		for (const relativePath of files) {
-			const path = new URL(relativePath, import.meta.url).pathname;
+			const path = new URL(relativePath, import.meta.url);
 			const content = await Bun.file(path).text();
 			expect(content).not.toMatch(/Backlog\.md/);
 		}
