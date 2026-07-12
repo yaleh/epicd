@@ -32,7 +32,17 @@ Work in short loops:
 5. Add comments for discussion or review questions:
    - `epicd task edit {{TASK_ID:123}} --comment "Question for review" --comment-author @your-name`
 
-Use `epicd task edit {{TASK_ID:123}} --help` before changing unfamiliar fields.
+Common flags (no `--help` needed for these):
+
+```bash
+epicd task edit {{TASK_ID:123}} --phase <phase>          # advance/retreat phase (e.g. needs-human)
+epicd task edit {{TASK_ID:123}} --ac "Criterion text"    # add acceptance criterion
+epicd task edit {{TASK_ID:123}} --dod "DoD item"         # add Definition of Done item
+epicd task edit {{TASK_ID:123}} --check-dod 1            # check DoD item by index
+epicd task edit {{TASK_ID:123}} --priority high          # set priority (high, medium, low)
+```
+
+Use `epicd task edit {{TASK_ID:123}} --help` for the full flag list.
 
 ### Scope Changes
 

@@ -129,6 +129,10 @@ describe("epicd instructions command", () => {
 		);
 		expect(taskExecution).toContain("epicd task edit TASK-123 -a @your-name");
 		expect(taskExecution).not.toContain('epicd task edit TASK-123 -s "In Progress" -a @your-name');
+		expect(taskExecution).toContain("epicd task edit TASK-123 --phase");
+		expect(taskExecution).toContain("epicd task edit TASK-123 --check-dod");
+		expect(taskExecution).toContain("epicd task edit TASK-123 --ac");
+		expect(taskExecution).toContain("epicd task edit TASK-123 --dod");
 		expect(taskFinalization).toContain("status reflects phase automatically");
 		expect(taskFinalization).toContain("epicd task edit TASK-123 --phase done");
 		expect(taskFinalization).not.toContain("epicd task edit TASK-123 -s Done");

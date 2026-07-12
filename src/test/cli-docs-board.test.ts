@@ -185,6 +185,21 @@ describe("doc and decision commands", () => {
 		expect(decisions).toHaveLength(1);
 		expect(decisions[0]?.title).toBe("Choose Stack");
 	});
+
+	it("decision create --context/--outcome/--consequences sets structured fields", async () => {
+		// CLI-CONTRACT: verifies decision create accepts structured body flags
+		await $`bun ${CLI_PATH} decision create "Use SQLite" --context "Need embedded DB" --outcome "Chose SQLite for simplicity" --consequences "No multi-writer support"`.cwd(
+			TEST_DIR,
+		);
+		const core = new Core(TEST_DIR);
+		const decisions = await core.filesystem.listDecisions();
+		expect(decisions).toHaveLength(1);
+		const d = decisions[0]!;
+		expect(d.title).toBe("Use SQLite");
+		expect(d.context).toBe("Need embedded DB");
+		expect(d.decision).toBe("Chose SQLite for simplicity");
+		expect(d.consequences).toBe("No multi-writer support");
+	});
 });
 
 describe("board view command", () => {

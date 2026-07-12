@@ -3532,6 +3532,9 @@ const decisionCmd = program.command("decision");
 decisionCmd
 	.command("create <title>")
 	.option("--status <status>", "decision status (proposed, accepted, rejected, superseded)")
+	.option("--context <text>", "context section: the situation and problem being addressed")
+	.option("--outcome <text>", "decision/outcome section: what was decided")
+	.option("--consequences <text>", "consequences section: trade-offs and follow-on effects")
 	.action(async (title: string, options) => {
 		const cwd = await requireProjectRoot();
 		const core = new Core(cwd);
@@ -3541,9 +3544,9 @@ decisionCmd
 			title: title as string,
 			date: new Date().toISOString().slice(0, 16).replace("T", " "),
 			status: (options.status || "proposed") as Decision["status"],
-			context: "",
-			decision: "",
-			consequences: "",
+			context: options.context || "",
+			decision: options.outcome || "",
+			consequences: options.consequences || "",
 			rawContent: "",
 		};
 		await core.createDecision(decision);
