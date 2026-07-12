@@ -282,6 +282,20 @@ The Spec above is transferable to any project. `epicd task create --parent`,
 `createChildren`/`dispatchChild`/`mergeAndVerify`/`evaluate` — substitute your
 own project's equivalents. Don't treat the specific command names as required.
 
+### epicd command map
+
+When running in an epicd project, use these concrete commands — no exploration needed:
+
+| Spec step                         | epicd command                                        |
+|-----------------------------------|------------------------------------------------------|
+| Create child (createChildren)     | `epicd task create --parent <id> ...`                |
+| Promote to ready (pre-dispatch)   | `epicd engine promote <id>`                          |
+| Claim + worktree (dispatchChild)  | `bash handle-basic-ready.sh <id>`                    |
+| Leaf impl done (mergeAndVerify)   | `epicd engine complete <id> --worktree <path>`       |
+| Epic evaluate (evaluate)          | `epicd engine evaluate <id>`                         |
+| Manual phase override             | `epicd task edit <id> --phase <phase>`               |
+| Check what dispatch would send    | `epicd engine dispatch <id>`                         |
+
 ## Further reading
 
 - `plugin/skills/primitive-executor/SKILL.md` — the Stage 2 `dispatchChild`

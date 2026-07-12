@@ -90,9 +90,9 @@ describe("epicd instructions command", () => {
 		const initRequired = normalizeCliOutput(await $`bun ${CLI_PATH} instructions init-required`.cwd(TEST_DIR).text());
 
 		expect(overview).toContain("## epicd Overview (CLI)");
-		expect(overview).toContain("### Start Every Request Here");
+		expect(overview).toContain("### Quick Reference");
 		expect(overview).toContain(
-			"Use this overview to decide what to read or run next. The detailed guides contain the procedure for creating, executing, and finalizing tasks.",
+			"Use this overview to orient when the task type is unclear. The detailed guides contain the procedure for creating, executing, and finalizing tasks.",
 		);
 		expect(overview).toContain('epicd search "query" --plain');
 		expect(overview).toContain('epicd task list --search "login" --labels frontend,bug --limit 20 --plain');

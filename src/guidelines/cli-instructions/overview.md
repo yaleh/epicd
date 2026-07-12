@@ -13,9 +13,9 @@ Ask: "Do I need to think about HOW to do this?"
 
 Create tasks for work like bug fixes that need investigation, feature work, API changes, refactors, or anything that should be reviewed as a commitment. Skip task creation for questions, explanations, quick lookups, and obvious mechanical edits.
 
-### Start Every Request Here
+### Quick Reference
 
-Use this overview to decide what to read or run next. The detailed guides contain the procedure for creating, executing, and finalizing tasks.
+Use this overview to orient when the task type is unclear. The detailed guides contain the procedure for creating, executing, and finalizing tasks.
 
 Search and read before changing anything:
 
