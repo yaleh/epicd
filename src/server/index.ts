@@ -313,6 +313,9 @@ export class BacklogServer {
 			const serveOptions = {
 				port: finalPort,
 				development: process.env.NODE_ENV === "development",
+				// Bun defect: passing the literal `development: false` (vs omitting the key or `true`)
+				// silently allows a second process to bind the same port with no EADDRINUSE.
+				reusePort: false,
 				routes: {
 					"/": spaIndexHtml,
 					"/tasks": spaIndexHtml,

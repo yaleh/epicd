@@ -18,7 +18,7 @@ const Navigation: React.FC<NavigationProps> = ({projectName}) => {
                         rel="noopener noreferrer"
                         className="text-sm text-stone-600 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-300 hover:underline transition-colors duration-200"
                     >
-                        Backlog.md
+                        epicd
                     </a>
                 </div>
                 <ThemeToggle />
