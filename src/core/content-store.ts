@@ -37,6 +37,20 @@ export class ContentStore {
 	private readonly documents = new Map<string, Document>();
 	private readonly decisions = new Map<string, Decision>();
 
+	// Per-task write generation counters. `saveTask` (patched below) is the
+	// authoritative, synchronously-awaited write path: it bumps a task's
+	// generation immediately after writing and reflects the just-written
+	// content into the store. The filesystem watcher observes the *same*
+	// write asynchronously (OS-delivered fs events can be delayed/coalesced,
+	// especially on macOS), so by the time its queued handler re-reads the
+	// file, a newer write may already have landed and been applied. Without
+	// a generation guard, that stale watcher-driven read can clobber the
+	// already-correct in-memory state (e.g. a milestone-clear immediately
+	// followed by a watcher event for the *previous* milestone-set write).
+	// Watcher handlers snapshot the generation at enqueue time and discard
+	// their result if the generation has since advanced.
+	private readonly taskWriteGeneration = new Map<string, number>();
+
 	private cachedTasks: Task[] = [];
 	private cachedDocuments: Document[] = [];
 	private cachedDecisions: Decision[] = [];
@@ -319,13 +333,30 @@ export class ContentStore {
 				return;
 			}
 
+			// Snapshot the write generation for this task's normalized id *now*,
+			// synchronously in the fs event callback, before the async handler
+			// below is enqueued and eventually runs. If the authoritative
+			// `saveTask` write path (see patchFilesystem/updateTaskFromDisk)
+			// advances the generation for this task before this handler's read
+			// resolves, this watcher event is for a write we already know about
+			// (or an even-older one) and must not clobber newer state with a
+			// stale disk read.
+			const [taskIdForGeneration] = file.split(" ");
+			const generationAtEnqueue = taskIdForGeneration
+				? (this.taskWriteGeneration.get(normalizeTaskId(taskIdForGeneration)) ?? 0)
+				: 0;
+
 			this.enqueue(async () => {
 				const [taskId] = file.split(" ");
 				if (!taskId) return;
 				const normalizedTaskId = normalizeTaskId(taskId);
 
+				const isStale = () => (this.taskWriteGeneration.get(normalizedTaskId) ?? 0) > generationAtEnqueue;
+
 				const fullPath = join(tasksDir, file);
 				const exists = await Bun.file(fullPath).exists();
+
+				if (isStale()) return;
 
 				if (!exists) {
 					if (this.tasks.delete(normalizedTaskId)) {
@@ -363,6 +394,7 @@ export class ContentStore {
 						return this.hasTaskChanged(previous, result);
 					},
 				);
+				if (isStale()) return;
 				if (!task) {
 					await this.refreshTasksFromDisk(normalizedTaskId, previous);
 					return;
@@ -748,12 +780,23 @@ export class ContentStore {
 			async () => this.filesystem.loadTask(taskId),
 			(result) => result !== null && (!previous || this.hasTaskChanged(previous, result)),
 		);
+		// Bump the write generation even when the read didn't observe a change:
+		// this is still the authoritative write path for this task, so any
+		// watcher-driven event queued for the same underlying write must not
+		// be allowed to apply a stale read after this point.
+		this.bumpTaskWriteGeneration(normalizedTaskId);
 		if (!task) {
 			return;
 		}
 		this.tasks.set(task.id, task);
 		this.cachedTasks = sortByTaskId(Array.from(this.tasks.values()));
 		this.notify("tasks");
+	}
+
+	private bumpTaskWriteGeneration(normalizedTaskId: string): number {
+		const next = (this.taskWriteGeneration.get(normalizedTaskId) ?? 0) + 1;
+		this.taskWriteGeneration.set(normalizedTaskId, next);
+		return next;
 	}
 
 	private async updateDecisionFromDisk(decisionId: string): Promise<void> {
