@@ -4,7 +4,7 @@ title: Migrate epicd's own project directory from backlog/ to .epicd/
 assignee:
   - '@claude'
 created_date: '2026-07-13 11:54'
-updated_date: '2026-07-13 12:54'
+updated_date: '2026-07-13 12:58'
 labels:
   - config
   - migration
@@ -13,7 +13,7 @@ dependencies:
 priority: medium
 ordinal: 113000
 pipeline_id: execution
-phase: implementing
+phase: needs-human
 dod:
   - text: bun test && bunx tsc --noEmit && bun run check .
     checked: false
