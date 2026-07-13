@@ -841,16 +841,22 @@ const SideNavigation = memo(function SideNavigation({
 
 				{isDrawerOpen && (
 					<>
-						{/* Scrim */}
+						{/* Scrim: sits behind the drawer panel (lower z-index) so it only
+						    intercepts clicks in the area the panel doesn't cover. It is not
+						    the drawer's dedicated close control (see the explicit close
+						    button below) — it exists purely for click-outside-to-close. */}
 						<button
 							type="button"
-							aria-label="Close navigation menu"
+							aria-hidden="true"
+							tabIndex={-1}
 							onClick={() => setIsDrawerOpen(false)}
 							className="fixed inset-0 z-20 bg-black/40"
 						/>
-						{/* Overlay drawer */}
+						{/* Overlay drawer. Rendered above the scrim (z-30) so its own
+						    content/links are always the actual click target within the
+						    drawer's width — never swallowed by/mistaken for the scrim. */}
 						<div
-							className="fixed inset-y-0 left-0 z-20 max-w-[85vw] overflow-y-auto"
+							className="fixed inset-y-0 left-0 z-30 max-w-[85vw] overflow-y-auto relative"
 							onClick={(event) => {
 								// Close the drawer once a nav link inside it is clicked.
 								if ((event.target as HTMLElement).closest('a')) {
@@ -859,6 +865,19 @@ const SideNavigation = memo(function SideNavigation({
 							}}
 						>
 							{sidebarPanel}
+							{/* Dedicated, always-on-top close button (distinct from the
+							    scrim) so tapping "close" inside the drawer's own bounds
+							    reliably closes it instead of hitting a nav link behind it. */}
+							<button
+								type="button"
+								aria-label="Close navigation menu"
+								onClick={() => setIsDrawerOpen(false)}
+								className="absolute top-3 right-3 z-40 flex items-center justify-center w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm text-gray-600 dark:text-gray-300"
+							>
+								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
 						</div>
 					</>
 				)}
