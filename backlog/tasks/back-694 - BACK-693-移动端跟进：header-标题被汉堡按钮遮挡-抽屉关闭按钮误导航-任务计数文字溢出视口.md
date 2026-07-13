@@ -4,7 +4,7 @@ title: BACK-693 移动端跟进：header 标题被汉堡按钮遮挡 + 抽屉关
 assignee:
   - '@claude'
 created_date: '2026-07-13 02:45'
-updated_date: '2026-07-13 03:13'
+updated_date: '2026-07-13 03:21'
 labels:
   - 'kind:bug'
 dependencies: []
@@ -143,6 +143,10 @@ entry_phase: authoring/backlog
 来源：BACK-693 合并后，独立视觉 QA subagent（fresh-context，chrome-devtools MCP，移动视口 390x844 + 桌面 1280x800 回归对比）在真实渲染环境下发现本任务的 3 个 AC 对应问题；此前 BACK-693 的代码级 diff 审计未捕获，因为都是渲染后才可见的布局/交互问题。复现步骤与根因假设已写入 Implementation Plan。
 
 claimed: 2026-07-13T02:58:37Z
+
+Phase B Round 1 (fresh-context agent, mobile 390x844/375x667/414x896 + desktop 1280x800 regression): 3 known bugs (header overlap, drawer close mis-nav, count overflow) all confirmed fixed. 2 new findings: (1) Approve/Reject/Escalate icon buttons on Backlog-status cards are 24x24px, below ~40px tap-target guidance, adjacent buttons risk mis-tap. (2) 'Show details' toggle has ~16px vertical hit height. Not dry — fixing both, then dispatching round 2.
+
+claimed: 2026-07-13T03:16:58Z
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
