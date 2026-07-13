@@ -42,11 +42,11 @@ onStatusChange`), injected as environment variables:
 
 ## Security gating
 
-The API route (`POST /api/tasks/:id/actions/:actionId`) uses the same gating as the rest of
-the task API:
+The API route (`POST /api/tasks/:id/actions/:actionId`) has no dedicated enable/disable
+switch. The only condition for a request to execute is that `task_actions` in
+`backlog/config.yml` has an entry whose `id` matches the requested `actionId` (unknown
+`actionId` gets `404`).
 
-- `remoteOperations` must not be explicitly disabled (`remoteOperations: false` rejects
-  every action request with `403`).
 - `webAuthToken` is optional hardening, same as every other route — it is not a
   prerequisite for action requests to work. When unset, action requests are not
   separately rejected. When set, requests must present it as `Authorization: Bearer

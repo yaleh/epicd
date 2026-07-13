@@ -4,11 +4,12 @@ import { BacklogServer } from "../server/index.ts";
 import type { BacklogConfig, Task } from "../types/index.ts";
 import { createUniqueTestDir, safeCleanup } from "./test-utils.ts";
 
-// BACK-695/BACK-696: POST /api/tasks/:id/actions/:actionId - fire-and-forget dispatcher for
-// config-defined task action commands. Frontend sends only actionId+taskId; the command
-// string is resolved and executed server-side and never crosses the network. Gated by
-// remoteOperations only; webAuthToken is the same optional hardening as every other route
-// (BACK-696 removed the earlier BACK-695 hard requirement that webAuthToken be configured).
+// BACK-695/BACK-696/BACK-697: POST /api/tasks/:id/actions/:actionId - fire-and-forget dispatcher
+// for config-defined task action commands. Frontend sends only actionId+taskId; the command
+// string is resolved and executed server-side and never crosses the network. The only gate is
+// whether config.taskActions has an entry for the given actionId (404 otherwise); remoteOperations
+// is unrelated and no longer checked (BACK-697). webAuthToken is the same optional hardening as
+// every other route (BACK-696 removed the earlier BACK-695 hard requirement that it be configured).
 
 let TEST_DIR: string;
 let server: BacklogServer | null = null;
@@ -67,7 +68,7 @@ describe("BacklogServer task actions endpoint", () => {
 			expect(body.exitCode).toBe(0);
 		});
 
-		it("rejects with 403 when remoteOperations is disabled, even with a token configured", async () => {
+		it("executes normally when remoteOperations is disabled (unrelated to action gating)", async () => {
 			await startServer({
 				remoteOperations: false,
 				webAuthToken: "secret-token",
@@ -78,7 +79,9 @@ describe("BacklogServer task actions endpoint", () => {
 				method: "POST",
 				headers: { Authorization: "Bearer secret-token" },
 			});
-			expect(response.status).toBe(403);
+			expect(response.status).toBe(200);
+			const body = (await response.json()) as { exitCode: number; stdout?: string; stderr?: string };
+			expect(body.exitCode).toBe(0);
 		});
 
 		it("rejects with 401 when a token is configured but the request omits it", async () => {

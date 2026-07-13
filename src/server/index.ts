@@ -1120,11 +1120,7 @@ export class BacklogServer {
 	private async handleRunTaskAction(taskId: string, actionId: string): Promise<Response> {
 		try {
 			const config = await this.core.filesystem.loadConfig();
-			if (!config || config.remoteOperations === false) {
-				return Response.json({ error: "Task actions are disabled" }, { status: 403 });
-			}
-
-			const action = config.taskActions?.find((candidate) => candidate.id === actionId);
+			const action = config?.taskActions?.find((candidate) => candidate.id === actionId);
 			if (!action) {
 				return Response.json({ error: "Task action not found" }, { status: 404 });
 			}
