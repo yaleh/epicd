@@ -42,20 +42,30 @@ onStatusChange`), injected as environment variables:
 
 ## Security gating
 
-Task actions execute a maintainer-configured command, so the API route
-(`POST /api/tasks/:id/actions/:actionId`) is gated more strictly than the rest of the task
-API:
+The API route (`POST /api/tasks/:id/actions/:actionId`) uses the same gating as the rest of
+the task API:
 
 - `remoteOperations` must not be explicitly disabled (`remoteOperations: false` rejects
   every action request with `403`).
-- `webAuthToken` must be configured. Without a token, the route is disabled outright
-  (`403`) — it does not fall back to "no auth" the way the read/write task routes do.
-- Requests must present the configured token as `Authorization: Bearer <token>`, same as
-  the rest of the guarded task API (`401` otherwise).
+- `webAuthToken` is optional hardening, same as every other route — it is not a
+  prerequisite for action requests to work. When unset, action requests are not
+  separately rejected. When set, requests must present it as `Authorization: Bearer
+  <token>` (`401` otherwise), exactly like the rest of the guarded task API.
+
+The real trust boundary is `task_actions` itself being present in `backlog/config.yml`:
+a maintainer has to hand-write the shell command into config before any button exists to
+click. `webAuthToken` is a separate, orthogonal concern (whether the web server is exposed
+at all), not a gate on "should these commands be allowed to run".
 
 The frontend only ever sends `taskId` + `actionId`; it never sends a command string. The
 attack surface is "trigger one of the maintainer's predefined actions", not "execute
 arbitrary commands".
+
+**Caveat:** the Web UI does not yet attach the `Authorization` header to any request
+(frontend wiring for `webAuthToken` is not implemented — see BACK-651). If you configure
+`webAuthToken`, every other request the browser UI makes (including loading the task list)
+will also get `401` until BACK-651 lands. Weigh this before setting `webAuthToken` on a
+server you're driving from the browser UI.
 
 ## Fire-and-forget only — do not run long tasks synchronously
 

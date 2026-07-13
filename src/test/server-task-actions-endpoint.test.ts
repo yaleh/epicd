@@ -4,11 +4,11 @@ import { BacklogServer } from "../server/index.ts";
 import type { BacklogConfig, Task } from "../types/index.ts";
 import { createUniqueTestDir, safeCleanup } from "./test-utils.ts";
 
-// BACK-695: POST /api/tasks/:id/actions/:actionId - fire-and-forget dispatcher for
+// BACK-695/BACK-696: POST /api/tasks/:id/actions/:actionId - fire-and-forget dispatcher for
 // config-defined task action commands. Frontend sends only actionId+taskId; the command
 // string is resolved and executed server-side and never crosses the network. Gated by
-// remoteOperations + webAuthToken (stricter than the plain webAuthToken gate on read/write
-// task routes, since this route executes an arbitrary maintainer-configured shell command).
+// remoteOperations only; webAuthToken is the same optional hardening as every other route
+// (BACK-696 removed the earlier BACK-695 hard requirement that webAuthToken be configured).
 
 let TEST_DIR: string;
 let server: BacklogServer | null = null;
@@ -55,14 +55,16 @@ afterEach(async () => {
 });
 
 describe("BacklogServer task actions endpoint", () => {
-	describe("gating (AC #5)", () => {
-		it("rejects with 403 when webAuthToken is not configured, even with remoteOperations on", async () => {
+	describe("gating (AC #2/#3/#4)", () => {
+		it("executes normally when webAuthToken is not configured and remoteOperations is on", async () => {
 			await startServer({ remoteOperations: true, taskActions: [{ id: "echo", label: "Echo", command: "echo hi" }] });
 
 			const response = await fetch(`http://127.0.0.1:${serverPort}/api/tasks/${baseTask.id}/actions/echo`, {
 				method: "POST",
 			});
-			expect(response.status).toBe(403);
+			expect(response.status).toBe(200);
+			const body = (await response.json()) as { exitCode: number; stdout?: string; stderr?: string };
+			expect(body.exitCode).toBe(0);
 		});
 
 		it("rejects with 403 when remoteOperations is disabled, even with a token configured", async () => {

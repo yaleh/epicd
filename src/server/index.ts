@@ -1120,7 +1120,7 @@ export class BacklogServer {
 	private async handleRunTaskAction(taskId: string, actionId: string): Promise<Response> {
 		try {
 			const config = await this.core.filesystem.loadConfig();
-			if (config?.remoteOperations === false || !config?.webAuthToken) {
+			if (!config || config.remoteOperations === false) {
 				return Response.json({ error: "Task actions are disabled" }, { status: 403 });
 			}
 
