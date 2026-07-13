@@ -6,12 +6,12 @@ title: >-
 assignee:
   - '@yale'
 created_date: '2026-07-13 16:21'
-updated_date: '2026-07-13 16:40'
+updated_date: '2026-07-13 17:09'
 labels: []
 dependencies: []
 ordinal: 118000
 pipeline_id: execution
-phase: done
+phase: implementing
 dod:
   - text: 'grep -n ''fail-fast: false'' .github/workflows/ci.yml'
     checked: false
@@ -30,15 +30,22 @@ Three CI failures surfaced across runs 29264589417/29265231392/29265245349, anal
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 package.json's build script (or a replacement helper) reads the version without depending on process cwd being correctly formed by the invoking shell — verified by a green windows-latest compile-and-smoke-test/lint-and-unit-test run building successfully
-- [ ] #2 src/test/mcp-milestones.test.ts's milestone-clear assertion (currently line ~133) passes reliably under repeated/stress execution (e.g. bun test run multiple times or in a loop) with no stale-id race, OR the underlying milestone-clear code path (not just the test) is fixed so the read-after-clear is not racy
-- [ ] #3 .github/workflows/ci.yml's lint-and-unit-test job sets fail-fast: false on its matrix so one platform's failure does not cancel other platforms' independent jobs
+- [ ] #1 PRIMARY: a fresh push to main triggers the 'CI' GitHub Actions workflow (.github/workflows/ci.yml) and it completes with conclusion=success across every job/matrix leg (lint-and-unit-test x3 OS, compile-and-smoke-test x3 OS) — verified via 'gh run list --branch main --workflow CI --limit 1' / 'gh run view <id>' showing all-green, not merely local tsc/test passing
+- [ ] #2 PRIMARY: a fresh release tag triggers the release workflow (.github/workflows/release.yml) and it completes with conclusion=success across every job (build matrix, npm-publish, github-release, verify-platform-packages, install-sanity, sync-version) — verified via 'gh run view <id>' on the actual triggered run, not a local dry-run of the same steps
+- [ ] #3 package.json's build script (or a replacement helper) reads the version without depending on process cwd being correctly formed by the invoking shell
+- [ ] #4 scripts/package-plugin.sh reads the version the same cwd-independent way (no second/duplicate version-read implementation)
+- [ ] #5 src/test/mcp-milestones.test.ts's milestone-clear assertion passes reliably under repeated/stress execution, with the underlying milestone-clear code path (not just the test) fixed so the read-after-clear is not racy
+- [ ] #6 .github/workflows/ci.yml's lint-and-unit-test job sets fail-fast: false on its matrix
 <!-- AC:END -->
+
+
+
+
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-claimed: 2026-07-13T16:23:16Z
+Round 1 marked done prematurely on local-only verification (tsc/test/grep), never on the actual GitHub Actions run. Real push (run 29267385774, commit 6c0e28e5) still failed: a SECOND, independent version-read bug in scripts/package-plugin.sh (VERSION=$(node -p "require('${REPO_ROOT}/package.json').version")) hits the identical Windows path-mangling failure as AC#1's original bug, in a file BACK-705's first pass never touched. AC set rewritten per AGENTS.md's new 'trace the consumer' + 'adversarial self-check' rules: the primary AC is now the real GitHub Actions run's conclusion, not a local proxy for it. Reopening to implementing to fix package-plugin.sh (reuse scripts/print-version.ts instead of duplicating a second version-read implementation) and iterate against real CI until green.
 <!-- SECTION:NOTES:END -->
 
 ## Definition of Done
