@@ -4,14 +4,14 @@ title: BACK-693 移动端跟进：header 标题被汉堡按钮遮挡 + 抽屉关
 assignee:
   - '@claude'
 created_date: '2026-07-13 02:45'
-updated_date: '2026-07-13 03:11'
+updated_date: '2026-07-13 03:13'
 labels:
   - 'kind:bug'
 dependencies: []
 priority: medium
 ordinal: 107000
 pipeline_id: execution
-phase: needs-human
+phase: adjudicating
 dod:
   - text: bunx tsc --noEmit
     checked: false
