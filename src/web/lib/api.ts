@@ -13,6 +13,13 @@ import type {
 
 const API_BASE = "/api";
 
+/** Receipt returned by POST /api/tasks/:id/actions/:actionId (BACK-695). */
+export interface TaskActionResult {
+	exitCode: number;
+	stdout?: string;
+	stderr?: string;
+}
+
 export interface ReorderTaskPayload {
 	taskId: string;
 	targetStatus: string;
@@ -269,6 +276,17 @@ export class ApiClient {
 
 	async completeTask(id: string): Promise<void> {
 		await this.fetchWithRetry(`${API_BASE}/tasks/${id}/complete`, {
+			method: "POST",
+		});
+	}
+
+	/**
+	 * BACK-695: dispatches a config-defined task action by id. Sends only taskId+actionId -
+	 * never a command string - the server resolves the command from config.taskActions.
+	 * Fire-and-forget: does not change task status; the caller only gets a receipt.
+	 */
+	async runTaskAction(taskId: string, actionId: string): Promise<TaskActionResult> {
+		return this.fetchJson<TaskActionResult>(`${API_BASE}/tasks/${taskId}/actions/${actionId}`, {
 			method: "POST",
 		});
 	}

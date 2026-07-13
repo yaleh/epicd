@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AcceptanceCriterion, Milestone, Task, TaskComment } from "../../types";
+import type { AcceptanceCriterion, Milestone, Task, TaskAction, TaskComment } from "../../types";
 import Modal from "./Modal";
-import { apiClient } from "../lib/api";
+import { apiClient, type TaskActionResult } from "../lib/api";
 import { useTheme } from "../contexts/ThemeContext";
 import MDEditor from "@uiw/react-md-editor";
 import AcceptanceCriteriaEditor from "./AcceptanceCriteriaEditor";
@@ -12,6 +12,9 @@ import { formatStoredUtcDateForDisplay } from "../utils/date-display";
 import { displayStatus, getStatusBadgeClass } from "../lib/status-label";
 import { hasChildren } from "../lib/lanes";
 import { ALL_PIPELINES } from "../lib/driver-indicator";
+import { TaskActionButtons } from "./TaskActionButtons";
+import { TaskActionReceiptToast } from "./TaskActionReceiptToast";
+import { visibleTaskActions } from "../lib/task-actions";
 
 interface Props {
   task?: Task; // Optional for create mode
@@ -25,6 +28,7 @@ interface Props {
   milestoneEntities?: Milestone[];
   archivedMilestoneEntities?: Milestone[];
   definitionOfDoneDefaults?: string[];
+  taskActions?: TaskAction[]; // BACK-695
 }
 
 type Mode = "preview" | "edit" | "create";
@@ -66,10 +70,18 @@ export const TaskDetailsModal: React.FC<Props> = ({
   milestoneEntities,
   archivedMilestoneEntities,
   definitionOfDoneDefaults,
+  taskActions,
 }) => {
   const { theme } = useTheme();
   const isCreateMode = !task;
   const isFromOtherBranch = Boolean(task?.branch);
+  // BACK-695: fire-and-forget receipt for the most recently dispatched task action.
+  const [taskActionReceipt, setTaskActionReceipt] = useState<{ label: string; result: TaskActionResult } | null>(
+    null,
+  );
+  const handleTaskActionResult = (action: TaskAction, result: TaskActionResult) => {
+    setTaskActionReceipt({ label: action.label, result });
+  };
   const [mode, setMode] = useState<Mode>(isCreateMode ? "create" : "preview");
   const modeRef = useRef(mode);
   const previousTaskId = useRef(task?.id ?? "");
@@ -1242,6 +1254,19 @@ export const TaskDetailsModal: React.FC<Props> = ({
             />
           </div>
 
+          {/* Task Actions (BACK-695) */}
+          {task && visibleTaskActions(taskActions, task).length > 0 && (
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+              <SectionHeader title="Actions" />
+              <TaskActionButtons
+                task={task}
+                taskActions={taskActions}
+                className="flex flex-wrap items-center gap-2"
+                onResult={handleTaskActionResult}
+              />
+            </div>
+          )}
+
           {/* Archive button at bottom of sidebar */}
 		          {task && onArchive && !isFromOtherBranch && (
 		            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
@@ -1258,6 +1283,13 @@ export const TaskDetailsModal: React.FC<Props> = ({
           )}
         </div>
       </div>
+      {taskActionReceipt && (
+        <TaskActionReceiptToast
+          actionLabel={taskActionReceipt.label}
+          result={taskActionReceipt.result}
+          onDismiss={() => setTaskActionReceipt(null)}
+        />
+      )}
     </Modal>
   );
 };

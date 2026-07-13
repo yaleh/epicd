@@ -418,6 +418,23 @@ export interface PrefixConfig {
 	task: string;
 }
 
+/**
+ * A manually-triggered task action button (BACK-695). Defined in config by a project
+ * maintainer; the Web UI shows a button per task that matches `whenStatus` (or always,
+ * when `whenStatus` is omitted) and dispatches `POST /api/tasks/:id/actions/:id` by id only
+ * — the command string itself never crosses the network.
+ */
+export interface TaskAction {
+	/** Stable identifier referenced by the Web UI and the actions API route. */
+	id: string;
+	/** Button label shown in the Web UI. */
+	label: string;
+	/** Shell command run on the server. Supports $TASK_ID/$TASK_TITLE/$TASK_STATUS variables (see onStatusChange). */
+	command: string;
+	/** Optional status whitelist; button is shown on every task when omitted. */
+	whenStatus?: string[];
+}
+
 export interface BacklogConfig {
 	projectName: string;
 	defaultAssignee?: string;
@@ -447,6 +464,13 @@ export interface BacklogConfig {
 	backlogDirectory?: string;
 	/** Global callback command to run on any task status change. Supports $TASK_ID, $OLD_STATUS, $NEW_STATUS, $TASK_TITLE variables. */
 	onStatusChange?: string;
+	/**
+	 * Manually-triggered task action buttons shown in the Web UI (BACK-695). Each command is a
+	 * fire-and-forget dispatch (e.g. `manda-dispatch submit`); it must not synchronously run a
+	 * long task, since it executes on the web server process. Supports the same $TASK_ID/
+	 * $TASK_TITLE/$TASK_STATUS variables as onStatusChange.
+	 */
+	taskActions?: TaskAction[];
 	/** Shared-secret bearer token gating the web server's task API (issue-list + kanban board routes). Unset = no auth. */
 	webAuthToken?: string;
 	/** ID prefix configuration for tasks and drafts. Defaults to { task: "task", draft: "draft" } */
