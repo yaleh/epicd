@@ -4,7 +4,7 @@ title: BACK-695 跟进：task action 门控放宽为仅 remoteOperations，webAu
 assignee:
   - '@claude'
 created_date: '2026-07-13 07:30'
-updated_date: '2026-07-13 07:53'
+updated_date: '2026-07-13 08:06'
 labels:
   - 'kind:enhancement'
   - 'area:web'
@@ -14,7 +14,7 @@ dependencies:
 priority: medium
 ordinal: 109000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bunx tsc --noEmit
     checked: false
@@ -89,6 +89,16 @@ claimed: 2026-07-13T07:47:02Z
 
 Phase A+B done: gate loosened to remoteOperations only in handleRunTaskAction; tests updated (8/8 pass); docs/task-actions.md updated with optional-hardening note + BACK-651 caveat. All DoD gates green: tsc --noEmit, bun run check ., bun test --parallel (2089 pass/0 fail). Committed as 9e496ce1 on task/BACK-696.
 <!-- SECTION:NOTES:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+author: @claude
+created: 2026-07-13 08:06
+---
+跟进：进一步复核发现继续用 remoteOperations 门控 task action 仍是语义不一致的复用（该字段管 git remote 访问，与本地 shell 命令执行无关）。已创建 BACK-697 彻底去掉这个依赖，不引入新开关，唯一门控是 task_actions 中是否配置了该 actionId；webAuthToken 保持可选加固不变。本任务内容与状态不变。
+---
+<!-- COMMENTS:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->

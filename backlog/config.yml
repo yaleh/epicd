@@ -18,3 +18,7 @@ task_prefix: "back"
 # Engine self-drive (BACK-600 E0 cutover — sandbox fixpoint verified 2026-07-04)
 engine_self_drive: true
 engine_fallback_skill: "loop-backlog"
+task_actions:
+  - id: "log-task-id"
+    label: "Log Task ID"
+    command: "echo \"$TASK_ID $(date -u +%Y-%m-%dT%H:%M:%SZ)\" >> /tmp/epicd-task-action-demo.log"

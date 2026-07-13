@@ -4,7 +4,7 @@ title: BACK-696 跟进：task action 门控完全去掉 remoteOperations 依赖�
 assignee:
   - '@claude'
 created_date: '2026-07-13 08:06'
-updated_date: '2026-07-13 08:13'
+updated_date: '2026-07-13 08:14'
 labels:
   - 'kind:enhancement'
   - 'area:web'
@@ -14,7 +14,7 @@ dependencies:
 priority: medium
 ordinal: 110000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bunx tsc --noEmit
     checked: false
