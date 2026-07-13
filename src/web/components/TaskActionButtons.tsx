@@ -42,7 +42,7 @@ export function TaskActionButtons({ task, taskActions, className, onResult }: Ta
 					onClick={(event) => runAction(action, event)}
 					title={action.label}
 					aria-label={action.label}
-					className="inline-flex items-center rounded-md border border-transparent bg-blue-600 dark:bg-blue-500 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-1 disabled:opacity-50"
+					className="inline-flex items-center whitespace-nowrap rounded-md border border-transparent bg-blue-600 dark:bg-blue-500 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-1 disabled:opacity-50"
 				>
 					{action.label}
 				</button>

@@ -48,18 +48,18 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
 				aria-modal="true"
 				aria-labelledby="modal-title"
 			>
-				<div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-4 pb-3 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 supports-[backdrop-filter]:dark:bg-gray-800/75">
-					<h2 id="modal-title" className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
-					<div className="flex items-center gap-2">
-						{actions}
-							<button
-								onClick={onClose}
-								className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1 transition-colors duration-200 text-2xl leading-none w-8 h-8 flex items-center justify-center"
-								aria-label="Close modal"
-							>
-								×
-							</button>
+				<div className="sticky top-0 z-10 flex flex-col gap-2 px-6 pt-4 pb-3 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 supports-[backdrop-filter]:dark:bg-gray-800/75">
+					<div className="flex items-start justify-between gap-2">
+						<h2 id="modal-title" className="min-w-0 flex-1 text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+						<button
+							onClick={onClose}
+							className="flex-shrink-0 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1 transition-colors duration-200 text-2xl leading-none w-8 h-8 flex items-center justify-center"
+							aria-label="Close modal"
+						>
+							×
+						</button>
 					</div>
+					{actions && <div className="flex items-center justify-end gap-2">{actions}</div>}
 				</div>
 				<div className="px-6 pt-4 pb-6">
 					{children}
