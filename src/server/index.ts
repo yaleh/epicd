@@ -19,6 +19,7 @@ import {
 } from "../types/index.ts";
 import { watchConfig } from "../utils/config-watcher.ts";
 import { resolveMilestoneInputForStorage } from "../utils/milestone-storage.ts";
+import { executeTaskActionCommand } from "../utils/status-callback.ts";
 import { getVersion } from "../utils/version.ts";
 import { getCoordinatorClaimStates } from "../web/lib/coordinator-claims.ts";
 import { checkBearerAuth } from "./auth.ts";
@@ -89,6 +90,16 @@ function isDocumentValidationError(error: Error): boolean {
 		error.message === "Title is required to create a document." ||
 		error.message === "Document title cannot be empty."
 	);
+}
+
+const TASK_ACTION_OUTPUT_MAX_LINES = 20;
+
+/** Truncates task-action command output (BACK-695) so the receipt toast stays short. */
+function truncateActionOutput(output: string | undefined): string | undefined {
+	if (!output) return output;
+	const lines = output.split("\n");
+	if (lines.length <= TASK_ACTION_OUTPUT_MAX_LINES) return output;
+	return `${lines.slice(0, TASK_ACTION_OUTPUT_MAX_LINES).join("\n")}\n… (${lines.length - TASK_ACTION_OUTPUT_MAX_LINES} more lines truncated)`;
 }
 
 /**
@@ -348,6 +359,10 @@ export class BacklogServer {
 					"/api/tasks/:id/complete": {
 						POST: async (req: Request & { params: { id: string } }) =>
 							this.checkAuth(req) ?? (await this.handleCompleteTask(req.params.id)),
+					},
+					"/api/tasks/:id/actions/:actionId": {
+						POST: async (req: Request & { params: { id: string; actionId: string } }) =>
+							this.checkAuth(req) ?? (await this.handleRunTaskAction(req.params.id, req.params.actionId)),
 					},
 					"/api/statuses": {
 						GET: async (req: Request) => this.checkAuth(req) ?? (await this.handleGetStatuses()),
@@ -1094,6 +1109,47 @@ export class BacklogServer {
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Failed to complete task";
 			console.error("Error completing task:", error);
+			return Response.json({ error: message }, { status: 500 });
+		}
+	}
+
+	// BACK-695: fire-and-forget task action dispatcher. The frontend sends only actionId+taskId;
+	// the command string is looked up from config.taskActions server-side and never crosses the
+	// network in either direction. Deliberately does not touch task status - the response is a
+	// receipt (exitCode + truncated output), not a state transition.
+	private async handleRunTaskAction(taskId: string, actionId: string): Promise<Response> {
+		try {
+			const config = await this.core.filesystem.loadConfig();
+			if (config?.remoteOperations === false || !config?.webAuthToken) {
+				return Response.json({ error: "Task actions are disabled" }, { status: 403 });
+			}
+
+			const action = config.taskActions?.find((candidate) => candidate.id === actionId);
+			if (!action) {
+				return Response.json({ error: "Task action not found" }, { status: 404 });
+			}
+
+			const task = await this.core.filesystem.loadTask(taskId);
+			if (!task) {
+				return Response.json({ error: "Task not found" }, { status: 404 });
+			}
+
+			const result = await executeTaskActionCommand({
+				command: action.command,
+				taskId: task.id,
+				taskTitle: task.title,
+				taskStatus: task.status,
+				cwd: this.core.filesystem.rootDir,
+			});
+
+			return Response.json({
+				exitCode: result.exitCode ?? (result.success ? 0 : -1),
+				stdout: truncateActionOutput(result.output),
+				stderr: truncateActionOutput(result.error),
+			});
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Failed to run task action";
+			console.error("Error running task action:", error);
 			return Response.json({ error: message }, { status: 500 });
 		}
 	}

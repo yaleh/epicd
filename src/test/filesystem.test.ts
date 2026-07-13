@@ -226,6 +226,66 @@ Invalid content`,
 			const loaded = await filesystem.loadConfig();
 			expect(loaded?.defaultReporter).toBe("@author");
 		});
+
+		it("should save and load taskActions (BACK-695)", async () => {
+			const cfg: BacklogConfig = {
+				projectName: "Actions",
+				statuses: ["To Do", "In Progress", "Done"],
+				labels: [],
+				dateFormat: "yyyy-mm-dd",
+				taskActions: [
+					{
+						id: "dispatch",
+						label: "Dispatch to worker",
+						command: "manda-dispatch submit $TASK_ID",
+						whenStatus: ["To Do", "In Progress"],
+					},
+					{ id: "open-wt", label: "Open worktree", command: "code $TASK_ID" },
+				],
+			};
+
+			await filesystem.saveConfig(cfg);
+			const loaded = await filesystem.loadConfig();
+			expect(loaded?.taskActions).toEqual(cfg.taskActions);
+		});
+
+		it("should omit whenStatus when not configured and show button for every status", async () => {
+			const cfg: BacklogConfig = {
+				projectName: "Actions",
+				statuses: ["To Do", "Done"],
+				labels: [],
+				dateFormat: "yyyy-mm-dd",
+				taskActions: [{ id: "review", label: "Review diff", command: "gh pr diff $TASK_ID" }],
+			};
+
+			await filesystem.saveConfig(cfg);
+			const loaded = await filesystem.loadConfig();
+			expect(loaded?.taskActions).toEqual([{ id: "review", label: "Review diff", command: "gh pr diff $TASK_ID" }]);
+			expect(loaded?.taskActions?.[0]?.whenStatus).toBeUndefined();
+		});
+
+		it("should ignore taskActions entries missing required fields", async () => {
+			const configContent = `project_name: "Actions"
+statuses: ["To Do", "Done"]
+labels: []
+date_format: yyyy-mm-dd
+task_actions:
+  - id: "valid"
+    label: "Valid action"
+    command: "echo $TASK_ID"
+  - id: "missing-command"
+    label: "Missing command"
+`;
+			await Bun.write(join(TEST_DIR, "backlog", "config.yml"), configContent);
+			const loaded = await filesystem.loadConfig();
+			expect(loaded?.taskActions).toEqual([{ id: "valid", label: "Valid action", command: "echo $TASK_ID" }]);
+		});
+
+		it("should return no taskActions when not configured", async () => {
+			await filesystem.saveConfig(sampleConfig);
+			const loaded = await filesystem.loadConfig();
+			expect(loaded?.taskActions).toBeUndefined();
+		});
 	});
 
 	describe("directory accessors", () => {

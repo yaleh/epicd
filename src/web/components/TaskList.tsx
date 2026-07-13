@@ -5,6 +5,7 @@ import type {
 	Milestone,
 	SearchPriorityFilter,
 	Task,
+	TaskAction,
 	TaskSearchResult,
 } from "../../types";
 import { collectAvailableLabels } from "../../utils/label-filter.ts";
@@ -33,7 +34,10 @@ import {
 import CleanupModal from "./CleanupModal";
 import LabelFilterDropdown from "./LabelFilterDropdown";
 import { SuccessToast } from "./SuccessToast";
+import { TaskActionButtons } from "./TaskActionButtons";
+import { TaskActionReceiptToast } from "./TaskActionReceiptToast";
 import { useIsMobile } from "../hooks/useIsMobile";
+import type { TaskActionResult } from "../lib/api";
 
 interface TaskListProps {
 	onEditTask: (task: Task) => void;
@@ -45,6 +49,7 @@ interface TaskListProps {
 	milestoneEntities: Milestone[];
 	archivedMilestones: Milestone[];
 	onRefreshData?: () => Promise<void>;
+	taskActions?: TaskAction[];
 }
 
 const PRIORITY_OPTIONS: Array<{ label: string; value: "" | SearchPriorityFilter }> = [
@@ -87,6 +92,7 @@ const TaskList: React.FC<TaskListProps> = ({
 	milestoneEntities,
 	archivedMilestones,
 	onRefreshData,
+	taskActions,
 }) => {
 	const isMobile = useIsMobile();
 	// Filter panel collapse (BACK-693 Phase B): mobile only, defaults closed;
@@ -110,6 +116,10 @@ const TaskList: React.FC<TaskListProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [showCleanupModal, setShowCleanupModal] = useState(false);
 	const [cleanupSuccessMessage, setCleanupSuccessMessage] = useState<string | null>(null);
+	// BACK-695: fire-and-forget receipt for the most recently dispatched task action.
+	const [taskActionReceipt, setTaskActionReceipt] = useState<{ label: string; result: TaskActionResult } | null>(
+		null,
+	);
 	// Default sort (BACK-653 AC#4): driver-indicator priority (👤 > ⚠️ > 🤖 > ⏳ > ✓).
 	// Clicking any other column header (below) switches to that column's own order;
 	// "driver" has no clickable header, so it's reachable only as the initial default.
@@ -555,6 +565,11 @@ const TaskList: React.FC<TaskListProps> = ({
 		}
 	};
 
+	// BACK-695: shows the fire-and-forget receipt toast for a dispatched task action.
+	const handleTaskActionResult = (action: TaskAction, result: TaskActionResult) => {
+		setTaskActionReceipt({ label: action.label, result });
+	};
+
 	// Shared by renderTaskRow and renderTaskCard (BACK-693 Phase C): the
 	// approve/reject/escalate inline gate-review action buttons are identical
 	// in both the desktop table row and the mobile card, only the wrapper's
@@ -748,6 +763,12 @@ const TaskList: React.FC<TaskListProps> = ({
 							</span>
 						)}
 						{canShowGateActions(task) && renderGateActionButtons(task, "ml-auto flex shrink-0 items-center gap-1")}
+						<TaskActionButtons
+							task={task}
+							taskActions={taskActions}
+							className="flex shrink-0 items-center gap-1"
+							onResult={handleTaskActionResult}
+						/>
 					</div>
 				</td>
 				<td className="px-3 py-2.5">
@@ -908,6 +929,12 @@ const TaskList: React.FC<TaskListProps> = ({
 				</div>
 
 				{canShowGateActions(task) && renderGateActionButtons(task, "mt-2 flex items-center gap-1")}
+				<TaskActionButtons
+					task={task}
+					taskActions={taskActions}
+					className="mt-2 flex flex-wrap items-center gap-1"
+					onResult={handleTaskActionResult}
+				/>
 
 				<button
 					type="button"
@@ -1455,6 +1482,15 @@ const TaskList: React.FC<TaskListProps> = ({
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
 					}
+				/>
+			)}
+
+			{/* Task Action Receipt Toast (BACK-695) */}
+			{taskActionReceipt && (
+				<TaskActionReceiptToast
+					actionLabel={taskActionReceipt.label}
+					result={taskActionReceipt.result}
+					onDismiss={() => setTaskActionReceipt(null)}
 				/>
 			)}
 		</div>

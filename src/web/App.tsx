@@ -480,6 +480,7 @@ function App() {
 	                  milestoneEntities={milestoneEntities}
 	                  archivedMilestones={archivedMilestones}
 	                  onRefreshData={refreshData}
+	                  taskActions={config?.taskActions}
 	                />
 	              }
 	            />
@@ -498,6 +499,7 @@ function App() {
 	                  milestoneEntities={milestoneEntities}
 	                  archivedMilestones={archivedMilestones}
 	                  onRefreshData={refreshData}
+	                  taskActions={config?.taskActions}
 	                />
 	              }
 	            />
@@ -555,6 +557,7 @@ function App() {
           milestoneEntities={milestoneEntities}
           archivedMilestoneEntities={archivedMilestones}
           definitionOfDoneDefaults={config?.definitionOfDone ?? []}
+          taskActions={config?.taskActions}
         />
 
         {/* Task Creation Confirmation Toast */}

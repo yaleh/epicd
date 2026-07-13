@@ -17,32 +17,21 @@ export interface StatusCallbackResult {
 }
 
 /**
- * Executes a status change callback command with variable injection.
- * Variables are passed as environment variables to the shell command.
- *
- * @param options - The callback options including command and task details
- * @returns The result of the callback execution
+ * Runs a shell command with variables injected as environment variables, capturing
+ * stdout/stderr. Shared by the onStatusChange callback and the BACK-695 task-action
+ * executor - both are "config-defined command + task variables" spawns that only differ
+ * in which variables they inject.
  */
-export async function executeStatusCallback(options: StatusCallbackOptions): Promise<StatusCallbackResult> {
-	const { command, taskId, oldStatus, newStatus, taskTitle, cwd } = options;
-
+async function runCallbackCommand(command: string, cwd: string, env: Record<string, string | undefined>) {
 	if (!command || command.trim().length === 0) {
-		return { success: false, error: "Empty command" };
+		return { success: false, error: "Empty command" } satisfies StatusCallbackResult;
 	}
 
 	try {
-		const env = {
-			...process.env,
-			TASK_ID: taskId,
-			OLD_STATUS: oldStatus,
-			NEW_STATUS: newStatus,
-			TASK_TITLE: taskTitle,
-		};
-
 		const proc = spawn({
 			cmd: ["sh", "-c", command],
 			cwd,
-			env,
+			env: { ...process.env, ...env },
 			stdout: "pipe",
 			stderr: "pipe",
 		});
@@ -59,11 +48,52 @@ export async function executeStatusCallback(options: StatusCallbackOptions): Pro
 			output: output || undefined,
 			exitCode,
 			...(stderr.trim() && !success && { error: stderr.trim() }),
-		};
+		} satisfies StatusCallbackResult;
 	} catch (error) {
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : String(error),
-		};
+		} satisfies StatusCallbackResult;
 	}
+}
+
+/**
+ * Executes a status change callback command with variable injection.
+ * Variables are passed as environment variables to the shell command.
+ *
+ * @param options - The callback options including command and task details
+ * @returns The result of the callback execution
+ */
+export async function executeStatusCallback(options: StatusCallbackOptions): Promise<StatusCallbackResult> {
+	const { command, taskId, oldStatus, newStatus, taskTitle, cwd } = options;
+
+	return runCallbackCommand(command, cwd, {
+		TASK_ID: taskId,
+		OLD_STATUS: oldStatus,
+		NEW_STATUS: newStatus,
+		TASK_TITLE: taskTitle,
+	});
+}
+
+export interface TaskActionCommandOptions {
+	command: string;
+	taskId: string;
+	taskTitle: string;
+	taskStatus: string;
+	cwd: string;
+}
+
+/**
+ * Executes a BACK-695 task-action command with $TASK_ID/$TASK_TITLE/$TASK_STATUS injected as
+ * environment variables - the same variable-injection pattern as executeStatusCallback, applied
+ * to a manually-triggered (rather than status-change-triggered) command.
+ */
+export async function executeTaskActionCommand(options: TaskActionCommandOptions): Promise<StatusCallbackResult> {
+	const { command, taskId, taskTitle, taskStatus, cwd } = options;
+
+	return runCallbackCommand(command, cwd, {
+		TASK_ID: taskId,
+		TASK_TITLE: taskTitle,
+		TASK_STATUS: taskStatus,
+	});
 }

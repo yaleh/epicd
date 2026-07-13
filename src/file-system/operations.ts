@@ -5,7 +5,7 @@ import lockfile from "proper-lockfile";
 import { DEFAULT_DIRECTORIES, DEFAULT_FILES, DEFAULT_STATUSES } from "../constants/index.ts";
 import { parseDecision, parseDocument, parseMilestone, parseTask } from "../markdown/parser.ts";
 import { serializeDecision, serializeDocument, serializeTask } from "../markdown/serializer.ts";
-import type { BacklogConfig, Decision, Document, Milestone, Task, TaskListFilter } from "../types/index.ts";
+import type { BacklogConfig, Decision, Document, Milestone, Task, TaskAction, TaskListFilter } from "../types/index.ts";
 import type { BacklogConfigSource } from "../utils/backlog-directory.ts";
 import { normalizeProjectBacklogDirectory, resolveBacklogDirectory } from "../utils/backlog-directory.ts";
 import { documentIdsEqual, normalizeDocumentId } from "../utils/document-id.ts";
@@ -1130,6 +1130,10 @@ ${description || `Milestone: ${title}`}`,
 	private parseConfig(content: string): BacklogConfig {
 		const config: Partial<BacklogConfig> = {};
 		const parsedDefinitionOfDone = this.parseDefinitionOfDone(content);
+		const parsedTaskActions = this.parseTaskActions(content);
+		if (parsedTaskActions !== undefined) {
+			config.taskActions = parsedTaskActions;
+		}
 		const lines = content.split("\n");
 
 		for (const line of lines) {
@@ -1212,6 +1216,12 @@ ${description || `Milestone: ${title}`}`,
 					// Remove surrounding quotes if present, but preserve inner content
 					config.onStatusChange = value.replace(/^['"]|['"]$/g, "");
 					break;
+				case "taskActions":
+				case "task_actions":
+					// Already parsed as a YAML block by parseTaskActions() above; the line loop
+					// only needs to skip the key line itself (list items below have no colon at
+					// this position that maps to another case).
+					break;
 				case "task_prefix":
 					config.prefixes = { task: value.replace(/['"]/g, "") };
 					break;
@@ -1247,6 +1257,7 @@ ${description || `Milestone: ${title}`}`,
 			checkActiveBranches: config.checkActiveBranches,
 			activeBranchDays: config.activeBranchDays,
 			onStatusChange: config.onStatusChange,
+			taskActions: config.taskActions,
 			prefixes: config.prefixes,
 			backlogDirectory: config.backlogDirectory,
 			webAuthToken: config.webAuthToken,
@@ -1280,6 +1291,9 @@ ${description || `Milestone: ${title}`}`,
 				: []),
 			...(typeof config.activeBranchDays === "number" ? [`active_branch_days: ${config.activeBranchDays}`] : []),
 			...(config.onStatusChange ? [`onStatusChange: '${config.onStatusChange}'`] : []),
+			...(Array.isArray(config.taskActions) && config.taskActions.length > 0
+				? this.serializeTaskActions(config.taskActions)
+				: []),
 			...(config.prefixes?.task ? [`task_prefix: "${config.prefixes.task}"`] : []),
 			...(config.backlogDirectory ? [`backlog_directory: "${config.backlogDirectory}"`] : []),
 			...(config.webAuthToken ? [`web_auth_token: "${config.webAuthToken}"`] : []),
@@ -1328,33 +1342,7 @@ ${description || `Milestone: ${title}`}`,
 	}
 
 	private extractDefinitionOfDoneYaml(content: string): string | undefined {
-		const lines = content.split(/\r?\n/);
-		const keyPattern = /^(\s*)definition_of_done\s*:/;
-		const topLevelKeyPattern = /^\s*[A-Za-z_][A-Za-z0-9_]*\s*:/;
-		const startIndex = lines.findIndex((line) => keyPattern.test(line));
-		if (startIndex === -1) {
-			return undefined;
-		}
-
-		const startLine = lines[startIndex];
-		const startIndent = startLine?.match(keyPattern)?.[1]?.length ?? 0;
-		const collected: string[] = [];
-
-		for (let index = startIndex; index < lines.length; index++) {
-			const line = lines[index] ?? "";
-			const trimmed = line.trim();
-			const indent = line.length - line.trimStart().length;
-			const isNextTopLevelKey =
-				index > startIndex && trimmed.length > 0 && indent <= startIndent && topLevelKeyPattern.test(line);
-
-			if (isNextTopLevelKey) {
-				break;
-			}
-
-			collected.push(line);
-		}
-
-		return collected.join("\n");
+		return this.extractYamlBlock(content, /^(\s*)definition_of_done\s*:/);
 	}
 
 	private escapeLegacyDefinitionOfDoneBackslashes(content: string): string | undefined {
@@ -1418,5 +1406,101 @@ ${description || `Milestone: ${title}`}`,
 			.filter((item): item is string => typeof item === "string")
 			.map((item) => item.trim())
 			.filter((item) => item.length > 0);
+	}
+
+	/**
+	 * Extracts and parses the `taskActions`/`task_actions` block from a raw config.yml document
+	 * (BACK-695). Mirrors extractDefinitionOfDoneYaml/parseDefinitionOfDoneFromYaml: the block is
+	 * a multi-line YAML value that the line-based parser above cannot express directly, so it's
+	 * sliced out and parsed with the real YAML parser (via gray-matter).
+	 */
+	private parseTaskActions(content: string): TaskAction[] | undefined {
+		const block = this.extractYamlBlock(content, /^(\s*)(?:taskActions|task_actions)\s*:/);
+		if (block === undefined) {
+			return undefined;
+		}
+
+		try {
+			const data = matter(`---\n${block.trimEnd()}\n---\n`).data as Record<string, unknown>;
+			const raw = data.taskActions ?? data.task_actions;
+			return this.normalizeTaskActions(raw);
+		} catch {
+			return undefined;
+		}
+	}
+
+	private normalizeTaskActions(value: unknown): TaskAction[] | undefined {
+		if (!Array.isArray(value)) {
+			return undefined;
+		}
+
+		const actions: TaskAction[] = [];
+		for (const item of value) {
+			if (!item || typeof item !== "object") continue;
+			const record = item as Record<string, unknown>;
+			const id = typeof record.id === "string" ? record.id.trim() : "";
+			const label = typeof record.label === "string" ? record.label.trim() : "";
+			const command = typeof record.command === "string" ? record.command : "";
+			if (!id || !label || !command) continue;
+
+			const whenStatus = Array.isArray(record.whenStatus)
+				? record.whenStatus.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+				: undefined;
+
+			actions.push({
+				id,
+				label,
+				command,
+				...(whenStatus && whenStatus.length > 0 ? { whenStatus } : {}),
+			});
+		}
+
+		return actions;
+	}
+
+	private serializeTaskActions(taskActions: TaskAction[]): string[] {
+		const lines = ["task_actions:"];
+		for (const action of taskActions) {
+			lines.push(`  - id: ${JSON.stringify(action.id)}`);
+			lines.push(`    label: ${JSON.stringify(action.label)}`);
+			lines.push(`    command: ${JSON.stringify(action.command)}`);
+			if (action.whenStatus && action.whenStatus.length > 0) {
+				lines.push(`    whenStatus: [${action.whenStatus.map((s) => JSON.stringify(s)).join(", ")}]`);
+			}
+		}
+		return lines;
+	}
+
+	/**
+	 * Generic version of extractDefinitionOfDoneYaml: slices out a top-level `key: ...` block
+	 * (the key line plus every subsequent more-indented line) so it can be re-parsed as YAML.
+	 */
+	private extractYamlBlock(content: string, keyPattern: RegExp): string | undefined {
+		const lines = content.split(/\r?\n/);
+		const topLevelKeyPattern = /^\s*[A-Za-z_][A-Za-z0-9_]*\s*:/;
+		const startIndex = lines.findIndex((line) => keyPattern.test(line));
+		if (startIndex === -1) {
+			return undefined;
+		}
+
+		const startLine = lines[startIndex];
+		const startIndent = startLine?.match(keyPattern)?.[1]?.length ?? 0;
+		const collected: string[] = [];
+
+		for (let index = startIndex; index < lines.length; index++) {
+			const line = lines[index] ?? "";
+			const trimmed = line.trim();
+			const indent = line.length - line.trimStart().length;
+			const isNextTopLevelKey =
+				index > startIndex && trimmed.length > 0 && indent <= startIndent && topLevelKeyPattern.test(line);
+
+			if (isNextTopLevelKey) {
+				break;
+			}
+
+			collected.push(line);
+		}
+
+		return collected.join("\n");
 	}
 }
