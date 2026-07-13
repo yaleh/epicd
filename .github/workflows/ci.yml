@@ -17,6 +17,7 @@ jobs:
   test:
     name: lint-and-unit-test
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
