@@ -6,7 +6,7 @@ title: >-
 assignee:
   - '@claude'
 created_date: '2026-07-13 13:18'
-updated_date: '2026-07-13 14:09'
+updated_date: '2026-07-13 14:13'
 labels:
   - config
   - cli
@@ -14,7 +14,7 @@ dependencies: []
 priority: low
 ordinal: 114000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bun test
     checked: false
@@ -68,9 +68,15 @@ claimed: 2026-07-13T13:37:25Z
 Post-merge verification (mergeAndVerify) found and fixed a bug the implementation agent introduced: src/engine/dispatch.ts's board-state comment line had a stray literal doublequote+comma baked into the generated dispatch text (a botched plain-string→template-literal conversion), confirmed by directly rendering renderBasicReadyDispatch() output. Fixed in place, added a regression test (engine-dispatch.test.ts: 'keeps every line a plain >-prefixed markdown quote line, with no stray quote/comma artifacts'), and re-ran bun test (2113 pass/0 fail), bunx tsc --noEmit, and bun run check . (13 pre-existing warnings, no errors) before committing.
 <!-- SECTION:NOTES:END -->
 
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Extracted plugin/scripts/lib/resolve-backlog-dir.sh as the single shared backlog>.backlog>.epicd probe, sourced by handle-basic-ready.sh/complete-task.sh/skill-lint.sh; added a bun test locking scan-loop.cjs's resolveBacklogDirName() in step with it. Scope expanded (user-confirmed) to fix a related live bug in src/engine/dispatch.ts, which hardcoded 'backlog' in generated dispatch instructions instead of the resolved board dir name. Post-merge review caught and fixed a stray-character bug the implementation agent introduced in that same fix, backed by a new regression test. Independent fresh-context audit (full depth, engine-core touching) verified all 4 ACs against the actual diff and rendered output; verdict done.
+<!-- SECTION:FINAL_SUMMARY:END -->
+
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
+- [x] #1 bunx tsc --noEmit passes when TypeScript touched
+- [x] #2 bun run check . passes when formatting/linting touched
+- [x] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
