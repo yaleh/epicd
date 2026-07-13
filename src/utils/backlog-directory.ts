@@ -2,7 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 import { join, normalize } from "node:path";
 import { DEFAULT_DIRECTORIES, DEFAULT_FILES } from "../constants/index.ts";
 
-export type BacklogDirectorySource = "backlog" | ".backlog" | "custom";
+export type BacklogDirectorySource = "backlog" | ".backlog" | ".epicd" | "custom";
 export type BacklogConfigSource = "folder" | "root";
 
 export interface BacklogDirectoryResolution {
@@ -90,14 +90,17 @@ function resolveFolderConfigPath(backlogPath: string): string | null {
 function resolveBuiltInBacklogDirectory(projectRoot: string): {
 	backlogDir: string;
 	backlogPath: string;
-	source: "backlog" | ".backlog";
+	source: "backlog" | ".backlog" | ".epicd";
 } | null {
 	const defaultBacklogPath = join(projectRoot, DEFAULT_DIRECTORIES.BACKLOG);
 	const hiddenBacklogPath = join(projectRoot, DEFAULT_DIRECTORIES.HIDDEN_BACKLOG);
+	const epicdPath = join(projectRoot, DEFAULT_DIRECTORIES.EPICD);
 	const defaultBacklogExists = directoryExists(defaultBacklogPath);
 	const hiddenBacklogExists = directoryExists(hiddenBacklogPath);
+	const epicdExists = directoryExists(epicdPath);
 	const defaultConfigPath = defaultBacklogExists ? resolveFolderConfigPath(defaultBacklogPath) : null;
 	const hiddenConfigPath = hiddenBacklogExists ? resolveFolderConfigPath(hiddenBacklogPath) : null;
+	const epicdConfigPath = epicdExists ? resolveFolderConfigPath(epicdPath) : null;
 
 	if (defaultConfigPath) {
 		return {
@@ -115,6 +118,14 @@ function resolveBuiltInBacklogDirectory(projectRoot: string): {
 		};
 	}
 
+	if (epicdConfigPath) {
+		return {
+			backlogDir: DEFAULT_DIRECTORIES.EPICD,
+			backlogPath: epicdPath,
+			source: ".epicd",
+		};
+	}
+
 	if (defaultBacklogExists) {
 		return {
 			backlogDir: DEFAULT_DIRECTORIES.BACKLOG,
@@ -128,6 +139,14 @@ function resolveBuiltInBacklogDirectory(projectRoot: string): {
 			backlogDir: DEFAULT_DIRECTORIES.HIDDEN_BACKLOG,
 			backlogPath: hiddenBacklogPath,
 			source: ".backlog",
+		};
+	}
+
+	if (epicdExists) {
+		return {
+			backlogDir: DEFAULT_DIRECTORIES.EPICD,
+			backlogPath: epicdPath,
+			source: ".epicd",
 		};
 	}
 

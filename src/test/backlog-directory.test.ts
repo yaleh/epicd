@@ -89,4 +89,47 @@ describe("resolveBacklogDirectory", () => {
 		expect(resolution.backlogDir).toBe(".backlog");
 		expect(resolution.configPath).toBe(join(testDir, ".backlog", "config.yml"));
 	});
+
+	it("resolves .epicd/ when only .epicd/config.yml exists (no backlog/ or .backlog/)", async () => {
+		await mkdir(join(testDir, ".epicd", "tasks"), { recursive: true });
+		await writeFile(join(testDir, ".epicd", "config.yml"), 'project_name: "Test"\n');
+
+		const resolution = resolveBacklogDirectory(testDir);
+		expect(resolution.source).toBe(".epicd");
+		expect(resolution.configSource).toBe("folder");
+		expect(resolution.backlogDir).toBe(".epicd");
+		expect(resolution.configPath).toBe(join(testDir, ".epicd", "config.yml"));
+	});
+
+	it("prefers backlog/ config marker over .epicd/ when both exist", async () => {
+		await mkdir(join(testDir, "backlog", "tasks"), { recursive: true });
+		await writeFile(join(testDir, "backlog", "config.yml"), 'project_name: "Test"\n');
+		await mkdir(join(testDir, ".epicd", "tasks"), { recursive: true });
+		await writeFile(join(testDir, ".epicd", "config.yml"), 'project_name: "Test"\n');
+
+		const resolution = resolveBacklogDirectory(testDir);
+		expect(resolution.source).toBe("backlog");
+		expect(resolution.backlogDir).toBe("backlog");
+	});
+
+	it("prefers .backlog/ config marker over .epicd/ when both exist", async () => {
+		await mkdir(join(testDir, ".backlog", "tasks"), { recursive: true });
+		await writeFile(join(testDir, ".backlog", "config.yml"), 'project_name: "Test"\n');
+		await mkdir(join(testDir, ".epicd", "tasks"), { recursive: true });
+		await writeFile(join(testDir, ".epicd", "config.yml"), 'project_name: "Test"\n');
+
+		const resolution = resolveBacklogDirectory(testDir);
+		expect(resolution.source).toBe(".backlog");
+		expect(resolution.backlogDir).toBe(".backlog");
+	});
+
+	it("falls back to bare .epicd/ existence (no config marker) when nothing else is present", async () => {
+		await mkdir(join(testDir, ".epicd", "tasks"), { recursive: true });
+
+		const resolution = resolveBacklogDirectory(testDir);
+		expect(resolution.source).toBe(".epicd");
+		expect(resolution.backlogDir).toBe(".epicd");
+		expect(resolution.configPath).toBeNull();
+		expect(resolution.configSource).toBeNull();
+	});
 });
