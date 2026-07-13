@@ -91,3 +91,6 @@ backlog/.supervisor-*
 
 # gate-event log runtime output
 docs/research/gcl-events.jsonl
+
+# manda-monitor skill runtime state (hub address, dispatch config, verify screenshots)
+.manda/
