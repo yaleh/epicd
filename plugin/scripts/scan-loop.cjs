@@ -633,6 +633,7 @@ module.exports = {
   computeReviewDueLine,
   logStaleInProgress,
   resolveTasksDir,
+  resolveBacklogDirName,
   selfBootstrap,
   reapSameFieldScanners,
   shouldReapPeer,

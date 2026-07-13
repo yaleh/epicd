@@ -28,19 +28,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # Must match the literal sentinel documented in plugin/skills/README.md.
 MECHANICAL_SENTINEL="mechanical: no methodology"
 
-# BACKLOG_DIR_NAME: resolve whichever board directory actually exists on disk, in
-# the same priority order as resolveBuiltInBacklogDirectory (backlog > .backlog >
-# .epicd, BACK-700). Probes existence only — never creates one; defaults to
-# 'backlog' for backward compatibility with a never-initialized repo.
-if [[ -d "${REPO_ROOT}/backlog" ]]; then
-	BACKLOG_DIR_NAME="backlog"
-elif [[ -d "${REPO_ROOT}/.backlog" ]]; then
-	BACKLOG_DIR_NAME=".backlog"
-elif [[ -d "${REPO_ROOT}/.epicd" ]]; then
-	BACKLOG_DIR_NAME=".epicd"
-else
-	BACKLOG_DIR_NAME="backlog"
-fi
+# BACKLOG_DIR/BACKLOG_DIR_NAME: resolve whichever board directory actually
+# exists on disk (backlog > .backlog > .epicd, BACK-700/BACK-701 shared helper).
+source "${SCRIPT_DIR}/lib/resolve-backlog-dir.sh"
 
 fail_any=0
 

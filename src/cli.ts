@@ -4455,7 +4455,13 @@ engineCmd
 			const payload =
 				task.phase === "adjudicating"
 					? renderAdjudicatingDispatch(task.id, title)
-					: renderBasicReadyDispatch(task.id, title, cwd, worktreeMarkerPath(core.filesystem.backlogDir, task.id));
+					: renderBasicReadyDispatch(
+							task.id,
+							title,
+							cwd,
+							worktreeMarkerPath(core.filesystem.backlogDir, task.id),
+							core.filesystem.backlogDirName,
+						);
 			process.stdout.write(`${payload}\n`);
 		} catch (err) {
 			console.error("engine dispatch failed:", err instanceof Error ? err.message : String(err));

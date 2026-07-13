@@ -17,18 +17,10 @@ set -uo pipefail
 
 TASK_ID="${1:?usage: complete-task.sh TASK-ID}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-# BACKLOG_DIR: resolve whichever board directory actually exists on disk, in the
-# same priority order as resolveBuiltInBacklogDirectory (backlog > .backlog >
-# .epicd). Probes existence only — never creates one.
-if [ -d "${REPO_ROOT}/backlog" ]; then
-  BACKLOG_DIR="${REPO_ROOT}/backlog"
-elif [ -d "${REPO_ROOT}/.backlog" ]; then
-  BACKLOG_DIR="${REPO_ROOT}/.backlog"
-elif [ -d "${REPO_ROOT}/.epicd" ]; then
-  BACKLOG_DIR="${REPO_ROOT}/.epicd"
-else
-  BACKLOG_DIR="${REPO_ROOT}/backlog"
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# BACKLOG_DIR/BACKLOG_DIR_NAME: resolve whichever board directory actually
+# exists on disk (backlog > .backlog > .epicd, BACK-700/BACK-701 shared helper).
+source "${SCRIPT_DIR}/lib/resolve-backlog-dir.sh"
 CAPS_DIR="${BACKLOG_DIR}/.caps"
 WT_PATH_FILE="${CAPS_DIR}/${TASK_ID}.wt"
 SIGNAL_FILE="${BACKLOG_DIR}/.agent-done-${TASK_ID}"
