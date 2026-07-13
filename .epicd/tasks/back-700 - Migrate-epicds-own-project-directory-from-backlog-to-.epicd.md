@@ -4,7 +4,7 @@ title: Migrate epicd's own project directory from backlog/ to .epicd/
 assignee:
   - '@claude'
 created_date: '2026-07-13 11:54'
-updated_date: '2026-07-13 13:10'
+updated_date: '2026-07-13 13:18'
 labels:
   - config
   - migration
@@ -13,7 +13,7 @@ dependencies:
 priority: medium
 ordinal: 113000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bun test && bunx tsc --noEmit && bun run check .
     checked: false
@@ -121,6 +121,8 @@ authoring/refining review: APPROVED after 1 iteration(s). Plan verified against 
 claimed: 2026-07-13T12:32:42Z
 
 needs-human triage: OperationalMistake, not RealGate. engine complete hit a git merge conflict (file-location conflict: BACK-700's own board file was added in main's backlog/tasks/ after the worktree branched, while task/BACK-700 renamed backlog/->.epicd/ — classic add-vs-rename collision, analogous to the BACK-662 case study). Resolved manually: merged task/BACK-700 into main, placed the board file at .epicd/tasks/ keeping HEAD's content (latest board metadata). Post-merge bun test showed 3 failures, root-caused to a SEPARATE issue: git mv only moves git-tracked files, so gitignored runtime-state cruft (.agent-done-*, .caps/, .locks/, etc.) was left behind in the old backlog/ directory, making plugin/scripts/skill-lint.sh's bare-existence directory probe (backlog > .backlog > .epicd) resolve to the now-empty-of-tracked-content backlog/ instead of .epicd/. Fixed by removing the leftover backlog/ directory (untracked/gitignored cruft only, zero git content) — directly satisfies AC#1 (backlog/ directory no longer exists). Re-ran full gates after fix: bun test 2101 pass/0 fail, bunx tsc --noEmit clean, bun run check . exit 0 (13 pre-existing warnings, unrelated). All 9 ACs remain satisfied post-fix.
+
+Independent fresh-context audit (full depth, dispatched round 1): verdict=done. All 9 ACs independently re-verified against live repo state and re-run gates (not implementer narrative) — all PASS. bun test 2101 pass/0 fail (matches), bunx tsc --noEmit clean, bun run check . exit 0. Pre-migration baseline check (detached worktree at 1320f5d8) confirmed the 8 legacy status-field lint warnings are pre-existing, not a regression. Scope check: no surprise files outside the described plan. One finding: NIT/OUT_OF_SCOPE — the backlog/.backlog/.epicd priority-probe logic is duplicated identically across 4 files (handle-basic-ready.sh, complete-task.sh, skill-lint.sh, scan-loop.cjs) rather than shared. No live bug today (all 4 agree), but flagged since it's exactly the class of inconsistency that caused this task's own leftover-backlog/-directory bug. Filed as follow-up BACK-701 (low priority), not a blocker for this task. newBlockers=0 (no HIGH findings) -> audit loop is dry after round 1, no further rounds required.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
@@ -168,6 +170,8 @@ Scenario 2 (concurrent draft promotion) fails with "unknown command 'draft'" bot
 before and after this change — pre-existing CLI surface issue, unrelated to BACK-700.
 
 Gate: bun test && bunx tsc --noEmit && bun run check . all green. All 9 ACs checked.
+
+Migrated epicd's own board directory from backlog/ to .epicd/, including the engine's own claim/dispatch/merge scripts (handle-basic-ready.sh, complete-task.sh, scan-loop.cjs, skill-lint.sh) which were made dual-path-safe (backlog > .backlog > .epicd probe) before the actual git mv, so the migration didn't sever its own execution mechanism mid-flight. Hit one real operational snag during merge (board-file add-vs-directory-rename conflict, resolved manually) and one real bug (leftover gitignored backlog/ runtime-state cruft confusing skill-lint.sh's directory probe, fixed by removing it). All 9 ACs verified independently in a fresh-context audit; 2101/2101 tests pass, tsc/check clean. Filed BACK-701 as a low-priority follow-up to deduplicate the now-4x-repeated directory-probe logic across plugin scripts.
 <!-- SECTION:FINAL_SUMMARY:END -->
 
 ## Definition of Done
