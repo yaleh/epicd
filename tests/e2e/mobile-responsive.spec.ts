@@ -37,15 +37,37 @@ test.describe("Mobile responsive: All Tasks page", () => {
 			await drawerTasksLink.click();
 			await expect(page.getByRole("button", { name: "Close navigation menu" })).toBeHidden();
 
-			// Re-open and close via the scrim instead (click near the right edge of
-			// the viewport, outside the drawer panel's own width, so the click
-			// lands on the scrim rather than a nav link inside the drawer).
+			// Re-open and close via the drawer's dedicated close button (BACK-694
+			// bug #2 regression: this button used to sit behind the drawer panel
+			// in the DOM/stacking order, so tapping it actually hit a nav link
+			// underneath and navigated away instead of closing the drawer).
 			await hamburger.click();
 			await expect(page.getByRole("navigation").getByRole("link", { name: /All Tasks/ })).toBeVisible();
-			await page
-				.getByRole("button", { name: "Close navigation menu" })
-				.click({ position: { x: MOBILE_VIEWPORT.width - 10, y: 10 } });
+			const urlBeforeClose = page.url();
+			await page.getByRole("button", { name: "Close navigation menu" }).click();
 			await expect(page.getByRole("navigation").getByRole("link", { name: /All Tasks/ })).toBeHidden();
+			expect(page.url()).toBe(urlBeforeClose);
+		});
+
+		test("mobile (BACK-694 bug #1): header title does not overlap the hamburger button", async ({ page }) => {
+			await page.setViewportSize(MOBILE_VIEWPORT);
+			await page.goto("/tasks");
+			await expect(page.getByRole("heading", { name: "All Tasks" })).toBeVisible();
+
+			const hamburger = page.getByRole("button", { name: "Open navigation menu" });
+			await expect(hamburger).toBeVisible();
+			const brandLink = page.getByRole("link", { name: "epicd" });
+			await expect(brandLink).toBeVisible();
+
+			const hamburgerBox = await hamburger.boundingBox();
+			const brandBox = await brandLink.boundingBox();
+			expect(hamburgerBox).not.toBeNull();
+			expect(brandBox).not.toBeNull();
+			if (hamburgerBox && brandBox) {
+				// No horizontal overlap: the brand link starts at/after the
+				// hamburger button's right edge.
+				expect(brandBox.x).toBeGreaterThanOrEqual(hamburgerBox.x + hamburgerBox.width);
+			}
 		});
 
 		test("desktop: sidebar renders inline with no hamburger/drawer", async ({ page }) => {
@@ -55,6 +77,34 @@ test.describe("Mobile responsive: All Tasks page", () => {
 
 			await expect(page.getByRole("button", { name: "Open navigation menu" })).toHaveCount(0);
 			await expect(page.getByRole("navigation").getByRole("link", { name: /All Tasks/ })).toBeVisible();
+		});
+	});
+
+	test.describe("BACK-694: mobile viewport bug fixes", () => {
+		test("mobile: filter panel task count text fits within the viewport width", async ({ page }) => {
+			await page.setViewportSize(MOBILE_VIEWPORT);
+			await page.goto("/tasks");
+			await expect(page.getByRole("heading", { name: "All Tasks" })).toBeVisible();
+
+			await page.getByRole("button", { name: "Filters" }).click();
+			const countText = page.getByText(/^Showing \d+ of \d+ tasks$/);
+			await expect(countText).toBeVisible();
+
+			const box = await countText.boundingBox();
+			expect(box).not.toBeNull();
+			if (box) {
+				expect(box.x).toBeGreaterThanOrEqual(0);
+				expect(box.x + box.width).toBeLessThanOrEqual(MOBILE_VIEWPORT.width);
+			}
+		});
+
+		test("desktop: filter panel task count text still renders (no regression)", async ({ page }) => {
+			await page.setViewportSize(DESKTOP_VIEWPORT);
+			await page.goto("/tasks");
+			await expect(page.getByRole("heading", { name: "All Tasks" })).toBeVisible();
+
+			const countText = page.getByText(/^Showing \d+ of \d+ tasks$/);
+			await expect(countText).toBeVisible();
 		});
 	});
 

@@ -1281,7 +1281,7 @@ const TaskList: React.FC<TaskListProps> = ({
 
 					</div>
 
-					<div className="flex items-center gap-3 flex-shrink-0">
+					<div className="flex flex-wrap items-center gap-3 md:flex-nowrap md:flex-shrink-0">
 						<label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 whitespace-nowrap select-none">
 							<input
 								type="checkbox"
