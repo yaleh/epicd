@@ -4,7 +4,7 @@ title: Migrate epicd's own project directory from backlog/ to .epicd/
 assignee:
   - '@claude'
 created_date: '2026-07-13 11:54'
-updated_date: '2026-07-13 12:58'
+updated_date: '2026-07-13 13:10'
 labels:
   - config
   - migration
@@ -13,7 +13,7 @@ dependencies:
 priority: medium
 ordinal: 113000
 pipeline_id: execution
-phase: needs-human
+phase: adjudicating
 dod:
   - text: bun test && bunx tsc --noEmit && bun run check .
     checked: false
@@ -119,6 +119,8 @@ Ordering rationale: handle-basic-ready.sh / complete-task.sh are the scripts dri
 authoring/refining review: APPROVED after 1 iteration(s). Plan verified against actual code (plugin/scripts/handle-basic-ready.sh:34,38, plugin/scripts/complete-task.sh:11,18,20,23,24 line numbers re-confirmed against current file content). Phase ordering (A: dual-path-safe scripts before B: actual git mv) is load-bearing since this task's own worktree execution is driven by the scripts being modified — confirmed this is not a chicken-and-egg problem because the resolved-path scripts are backward-compatible with backlog/ until Phase B actually removes it. AC#1-9 each map to a Phase DoD or Acceptance Gate item. touchesEngineCore(T) = True (plugin/scripts/*.sh directly implement claim/dispatch/merge mechanics) -> auditPolicy = Mandatory per fixpoint-convergence Stage 3, loop-until-dry required at audit time regardless of auditDepthFor's literal src/engine/ path-prefix check.
 
 claimed: 2026-07-13T12:32:42Z
+
+needs-human triage: OperationalMistake, not RealGate. engine complete hit a git merge conflict (file-location conflict: BACK-700's own board file was added in main's backlog/tasks/ after the worktree branched, while task/BACK-700 renamed backlog/->.epicd/ — classic add-vs-rename collision, analogous to the BACK-662 case study). Resolved manually: merged task/BACK-700 into main, placed the board file at .epicd/tasks/ keeping HEAD's content (latest board metadata). Post-merge bun test showed 3 failures, root-caused to a SEPARATE issue: git mv only moves git-tracked files, so gitignored runtime-state cruft (.agent-done-*, .caps/, .locks/, etc.) was left behind in the old backlog/ directory, making plugin/scripts/skill-lint.sh's bare-existence directory probe (backlog > .backlog > .epicd) resolve to the now-empty-of-tracked-content backlog/ instead of .epicd/. Fixed by removing the leftover backlog/ directory (untracked/gitignored cruft only, zero git content) — directly satisfies AC#1 (backlog/ directory no longer exists). Re-ran full gates after fix: bun test 2101 pass/0 fail, bunx tsc --noEmit clean, bun run check . exit 0 (13 pre-existing warnings, unrelated). All 9 ACs remain satisfied post-fix.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
