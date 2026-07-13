@@ -110,16 +110,17 @@ function parseArgs(argv) {
 }
 
 // resolveTasksDir: self-resolving tasks-dir (ADR-012 §151 / TASK-232). Returns
-// args.tasksDir when explicitly set; otherwise derives <git-toplevel>/backlog/tasks.
-// On git failure falls back to the relative 'backlog/tasks'. Kept separate from
-// parseArgs so parseArgs stays pure and require-able (git resolution isolated here).
+// args.tasksDir when explicitly set; otherwise derives <git-toplevel>/<candidate>/tasks
+// via resolveBacklogDirName. On git failure falls back to a relative path using the
+// same candidate-probing logic against cwd. Kept separate from parseArgs so parseArgs
+// stays pure and require-able (git resolution isolated here).
 function resolveTasksDir(args) {
   if (args && args.tasksDir) return args.tasksDir;
   try {
     const root = execSync('git rev-parse --show-toplevel').toString().trim();
     return path.join(root, resolveBacklogDirName(root), 'tasks');
   } catch (_) {
-    return 'backlog/tasks';
+    return path.join(resolveBacklogDirName('.'), 'tasks');
   }
 }
 

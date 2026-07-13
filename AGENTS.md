@@ -65,7 +65,7 @@ Note: "fixpoint" is still the correct name for the **engine's** Stage 2 self-hos
 
 - **CLI Tool**: Built with Bun and TypeScript as a global npm package (`npm i -g backlog.md`)
 - **Source Code**: Located in `/src` directory with modular TypeScript structure
-- **Task Management**: Uses markdown files in `backlog/` directory structure
+- **Task Management**: Uses markdown files in `.epicd/` directory structure
 - **Workflow**: Git-integrated with task IDs referenced in commits and PRs
 
 ## Agent POV

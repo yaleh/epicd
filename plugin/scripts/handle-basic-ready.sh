@@ -33,9 +33,8 @@ else
 fi
 # BACKLOG_DIR: resolve whichever board directory actually exists on disk, in the
 # same priority order as resolveBuiltInBacklogDirectory (backlog > .backlog >
-# .epicd). Probes existence only — never creates one — so this script works
-# unmodified whether the repo is still on backlog/ or has migrated to .epicd/
-# (BACK-700).
+# .epicd). Probes existence only — never creates one — so this script keeps
+# working whichever candidate directory is actually present on disk (BACK-700).
 if [ -d "${REPO_ROOT}/backlog" ]; then
   BACKLOG_DIR="${REPO_ROOT}/backlog"
 elif [ -d "${REPO_ROOT}/.backlog" ]; then

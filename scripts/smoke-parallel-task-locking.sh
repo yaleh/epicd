@@ -75,7 +75,7 @@ init_repo() {
 	git init -q
 	git config user.name "Backlog Smoke Test"
 	git config user.email "smoke@example.com"
-	run_cli init "Parallel Lock Smoke" --defaults --integration-mode none --check-branches false --include-remote false >/dev/null
+	run_cli init "Parallel Lock Smoke" --defaults --integration-mode none --check-branches false --include-remote false --backlog-dir backlog >/dev/null
 	set_check_active_branches_false "${repo_dir}/backlog/backlog.config.yml"
 	popd >/dev/null
 }

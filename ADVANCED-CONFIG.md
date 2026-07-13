@@ -39,7 +39,7 @@ Running `epicd config` with no arguments launches the interactive advanced wizar
 
 ## Detailed Notes
 
-> Editor setup guide: See [Configuring VIM and Neovim as Default Editor](backlog/docs/doc-002%20-%20Configuring-VIM-and-Neovim-as-Default-Editor.md) for configuration tips and troubleshooting interactive editors.
+> Editor setup guide: See [Configuring VIM and Neovim as Default Editor](.epicd/docs/doc-002%20-%20Configuring-VIM-and-Neovim-as-Default-Editor.md) for configuration tips and troubleshooting interactive editors.
 
 > **Note**: Set `remoteOperations: false` to work offline. This disables git fetch operations and loads tasks from local branches only, useful when working without network connectivity.
 

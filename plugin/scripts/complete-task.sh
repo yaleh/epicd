@@ -8,9 +8,9 @@
 # Status is a pure phase projection (BACK-664 child 1): this script sets --phase,
 # never --status, and the human-facing status string is derived automatically.
 # Behavior-equivalent port of the old SKILL.md merge pseudocode. Merge-serialised via
-# BACKLOG_DIR/.merge-lock (resolved dynamically below — backlog/, .backlog/, or .epicd/,
-# whichever exists on disk, BACK-700) so a /clear mid-merge cannot leave a half-merged
-# main worktree.
+# BACKLOG_DIR/.merge-lock (resolved dynamically below — whichever candidate board
+# directory exists on disk, BACK-700) so a /clear mid-merge cannot leave a
+# half-merged main worktree.
 #
 # RULE: never pipe `git merge` (| tail/cat/tee) — a pipe replaces its exit code and masks abort.
 set -uo pipefail

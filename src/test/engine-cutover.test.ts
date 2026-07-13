@@ -2,7 +2,7 @@
  * Phase B — Cutover with loop-backlog preserved
  *
  * Asserts:
- *   1. The engine self-drive configuration is enabled in backlog/config.yml.
+ *   1. The engine self-drive configuration is enabled in .epicd/config.yml.
  *   2. The legacy loop-backlog skill file still exists (fallback preserved).
  */
 
@@ -18,16 +18,16 @@ function repoRoot(): string {
 }
 
 describe("engine-cutover — self-drive enabled + loop-backlog preserved", () => {
-	it("backlog/config.yml sets engine_self_drive: true", async () => {
-		const configPath = join(repoRoot(), "backlog", "config.yml");
+	it(".epicd/config.yml sets engine_self_drive: true", async () => {
+		const configPath = join(repoRoot(), ".epicd", "config.yml");
 		expect(existsSync(configPath)).toBe(true);
 
 		const content = await readFile(configPath, "utf-8");
 		expect(content).toContain("engine_self_drive: true");
 	});
 
-	it("backlog/config.yml names loop-backlog as the fallback skill", async () => {
-		const configPath = join(repoRoot(), "backlog", "config.yml");
+	it(".epicd/config.yml names loop-backlog as the fallback skill", async () => {
+		const configPath = join(repoRoot(), ".epicd", "config.yml");
 		const content = await readFile(configPath, "utf-8");
 		expect(content).toContain("loop-backlog");
 	});
