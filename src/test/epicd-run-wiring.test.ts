@@ -136,8 +136,8 @@ describe("epicd-run wiring (BACK-625 / ADR-015)", () => {
 			expect(contents).toContain("engine complete");
 		});
 
-		it("keeps the BACK-619 board-file exclusion in the commit guidance", () => {
-			expect(contents).toMatch(/:!backlog\/tasks|:\(exclude\)backlog\/tasks/);
+		it("keeps the BACK-619 board-file exclusion in the commit guidance, resolved via backlogDirName (BACK-701)", () => {
+			expect(contents).toMatch(/:!\$\{backlogDirName\}\/tasks|:\(exclude\)\$\{backlogDirName\}\/tasks/);
 		});
 
 		it("does not reference `claude --print`", () => {

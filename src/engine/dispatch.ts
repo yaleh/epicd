@@ -33,12 +33,18 @@
  * This module stays a pure, zero-import string builder (`engine-spawn-seam.test.ts`'s
  * absence-of-spawn-capability guard) — it never imports `claim.ts` itself, so the doc text
  * and the runtime path still can't diverge, without dispatch.ts gaining a dependency.
+ *
+ * `backlogDirName` (BACK-701): the board directory name actually resolved on disk for this
+ * repo (`"backlog"`, `".backlog"`, or `".epicd"` — see `resolveBacklogDirectory` in
+ * `src/utils/backlog-directory.ts`). Threaded in as a plain string, never resolved here,
+ * to keep this module import-free (see above).
  */
 export function renderBasicReadyDispatch(
 	taskId: string,
 	title: string,
 	repoRoot: string,
 	wtMarkerPath: string,
+	backlogDirName: string,
 ): string {
 	const heading = title ? `${taskId} — ${title}` : taskId;
 	const lines: string[] = [
@@ -72,8 +78,8 @@ export function renderBasicReadyDispatch(
 		"> **Constraints**",
 		"> - Work exclusively inside `$WT_PATH`. Do NOT run `git merge` or `git push`.",
 		"> - Do NOT spawn sub-agents (the Agent tool is not available to you).",
-		"> - After all work, run `git add -A -- . ':!backlog/tasks' && git commit` if there are changes",
-		">   (board state is engine-owned — `main`'s `backlog/tasks/**` is authoritative and `engine complete`",
+		`> - After all work, run \`git add -A -- . ':!${backlogDirName}/tasks' && git commit\` if there are changes`,
+		`">   (board state is engine-owned — \`main\`'s \`${backlogDirName}/tasks/**\` is authoritative and \`engine complete\`",`,
 		">   commits it after merge; never stage or commit the task board file on the branch. `--append-notes`",
 		">   below is for the human-readable progress trail only, not for committing).",
 		`> - Do NOT run \`bun run cli task edit\` with \`--status\`/\`--dod\`/\`--check-dod\` — the target task's terminal`,
@@ -86,21 +92,21 @@ export function renderBasicReadyDispatch(
 		`>   \`echo "DoD #N: PASS|FAIL — <cmd>" >> "$WT_PATH/.agent-summary-${taskId}"\` (≤5 lines of output on FAIL)`,
 		">",
 		"> **Completion (your LAST action before exit)** — write the signal file:",
-		`> - success → \`${repoRoot}/backlog/.agent-done-${taskId}\` containing \`done\``,
+		`> - success → \`${repoRoot}/${backlogDirName}/.agent-done-${taskId}\` containing \`done\``,
 		"> - cannot proceed without human input → the same file containing `needs-human: <one-line reason>`",
 		">",
 		"> allowed-tools: Bash, Read, Write, Edit, Glob, Grep",
 		"",
 		"## Step 7–9: Wait, then complete or escalate",
 		"",
-		`Wait for \`${repoRoot}/backlog/.agent-done-${taskId}\` (created when the Agent finishes) using a`,
+		`Wait for \`${repoRoot}/${backlogDirName}/.agent-done-${taskId}\` (created when the Agent finishes) using a`,
 		"**persistent** Monitor — the background implementation Agent's runtime is unbounded, so a",
 		"bounded/default-timeout Monitor can expire before it finishes and silently drop the poll:",
 		"",
 		"```",
 		"# harness-primitive: Monitor",
 		`Monitor(persistent=true, description="waiting for ${taskId} agent completion signal",`,
-		`  command="while [ ! -f \\"${repoRoot}/backlog/.agent-done-${taskId}\\" ]; do sleep 5; done; echo done")`,
+		`  command="while [ ! -f \\"${repoRoot}/${backlogDirName}/.agent-done-${taskId}\\" ]; do sleep 5; done; echo done")`,
 		"```",
 		"",
 		"Once the signal file is present, run:",

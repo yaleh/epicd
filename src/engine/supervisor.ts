@@ -27,7 +27,6 @@
  * fails fast instead of double-driving the same lane.
  */
 
-import { join } from "node:path";
 import lockfile from "proper-lockfile";
 import type { Core } from "../core/backlog.js";
 import { worktreeMarkerPath } from "./claim.js";
@@ -62,7 +61,8 @@ export async function supervisorTick(core: Core, repoRoot: string, emit: Supervi
 			task.id,
 			task.title,
 			repoRoot,
-			worktreeMarkerPath(join(repoRoot, "backlog"), task.id),
+			worktreeMarkerPath(core.filesystem.backlogDir, task.id),
+			core.filesystem.backlogDirName,
 		);
 		await core.updateTask(addCapMarker(task, DISPATCH_CAP_PHASE), false);
 		await emit(task.id, payload);

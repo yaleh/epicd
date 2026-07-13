@@ -33,11 +33,15 @@ const scanLoop = require("../../plugin/scripts/scan-loop.cjs") as {
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
 
 describe("renderBasicReadyDispatch — self-contained payload (AC #1/#8)", () => {
+	// Deliberately NOT "backlog" here (BACK-701): asserts the board directory name is threaded
+	// through as a parameter, not hardcoded, by using a value that would fail every assertion
+	// below if renderBasicReadyDispatch silently fell back to a literal "backlog".
 	const payload = renderBasicReadyDispatch(
 		"BACK-999",
 		"Some task title",
 		"/abs/repo",
-		"/abs/repo/backlog/.caps/BACK-999.wt",
+		"/abs/repo/.epicd/.caps/BACK-999.wt",
+		".epicd",
 	);
 
 	it("puts the stable machine key on the first line", () => {
@@ -46,7 +50,7 @@ describe("renderBasicReadyDispatch — self-contained payload (AC #1/#8)", () =>
 
 	it("bakes in absolute paths (no cwd/env assumed by the reader shell)", () => {
 		expect(payload).toContain("/abs/repo/plugin/scripts/handle-basic-ready.sh BACK-999");
-		expect(payload).toContain("/abs/repo/backlog/.agent-done-BACK-999");
+		expect(payload).toContain("/abs/repo/.epicd/.agent-done-BACK-999");
 	});
 
 	it("carries the full worktree → Agent → sentinel → engine complete flow", () => {
@@ -60,15 +64,15 @@ describe("renderBasicReadyDispatch — self-contained payload (AC #1/#8)", () =>
 		expect(payload).toContain("Do NOT ask the user for confirmation");
 	});
 
-	it("keeps the BACK-619 board-file exclusion", () => {
-		expect(payload).toContain(":!backlog/tasks");
+	it("keeps the BACK-619 board-file exclusion using the resolved board directory name", () => {
+		expect(payload).toContain(":!.epicd/tasks");
 	});
 
 	it("does not instruct a bare `git add -A && git commit` without excluding the board file (BACK-619)", () => {
 		// Negative guard carried over from the retired template test: a future added commit line
 		// that omits the exclusion must fail even though the first exclusion still satisfies the
 		// positive check above.
-		expect(payload).not.toMatch(/git add -A && git commit(?!.*backlog\/tasks)/);
+		expect(payload).not.toMatch(/git add -A && git commit(?!.*\.epicd\/tasks)/);
 	});
 
 	it("leaves no unsubstituted template tokens", () => {
