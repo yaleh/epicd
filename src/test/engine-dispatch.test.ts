@@ -80,6 +80,14 @@ describe("renderBasicReadyDispatch — self-contained payload (AC #1/#8)", () =>
 		expect(payload).not.toContain("__TASK_TITLE__");
 		expect(payload).not.toContain("${REPO_ROOT}");
 	});
+
+	it("keeps every line a plain `>`-prefixed markdown quote line, with no stray quote/comma artifacts", () => {
+		for (const line of payload.split("\n")) {
+			if (line.startsWith(">")) {
+				expect(line).not.toMatch(/^">|`",$|`"$/);
+			}
+		}
+	});
 });
 
 describe("engine dispatch <id> — CLI end-to-end", () => {

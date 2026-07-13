@@ -79,7 +79,7 @@ export function renderBasicReadyDispatch(
 		"> - Work exclusively inside `$WT_PATH`. Do NOT run `git merge` or `git push`.",
 		"> - Do NOT spawn sub-agents (the Agent tool is not available to you).",
 		`> - After all work, run \`git add -A -- . ':!${backlogDirName}/tasks' && git commit\` if there are changes`,
-		`">   (board state is engine-owned — \`main\`'s \`${backlogDirName}/tasks/**\` is authoritative and \`engine complete\`",`,
+		`>   (board state is engine-owned — \`main\`'s \`${backlogDirName}/tasks/**\` is authoritative and \`engine complete\``,
 		">   commits it after merge; never stage or commit the task board file on the branch. `--append-notes`",
 		">   below is for the human-readable progress trail only, not for committing).",
 		`> - Do NOT run \`bun run cli task edit\` with \`--status\`/\`--dod\`/\`--check-dod\` — the target task's terminal`,
