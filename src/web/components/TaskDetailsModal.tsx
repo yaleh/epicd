@@ -677,6 +677,14 @@ export const TaskDetailsModal: React.FC<Props> = ({
       disableEscapeClose={mode === "edit" || mode === "create"}
       actions={
         <div className="flex items-center gap-2">
+		          {task && mode === "preview" && !isCreateMode && !isFromOtherBranch && visibleTaskActions(taskActions, task).length > 0 && (
+		            <TaskActionButtons
+		              task={task}
+		              taskActions={taskActions}
+		              className="flex items-center gap-2"
+		              onResult={handleTaskActionResult}
+		            />
+		          )}
 		          {isDoneStatus && mode === "preview" && !isCreateMode && !isFromOtherBranch && (
 		            <button
 		              onClick={handleComplete}
@@ -1253,19 +1261,6 @@ export const TaskDetailsModal: React.FC<Props> = ({
               disabled={isFromOtherBranch}
             />
           </div>
-
-          {/* Task Actions (BACK-695) */}
-          {task && visibleTaskActions(taskActions, task).length > 0 && (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
-              <SectionHeader title="Actions" />
-              <TaskActionButtons
-                task={task}
-                taskActions={taskActions}
-                className="flex flex-wrap items-center gap-2"
-                onResult={handleTaskActionResult}
-              />
-            </div>
-          )}
 
           {/* Archive button at bottom of sidebar */}
 		          {task && onArchive && !isFromOtherBranch && (
