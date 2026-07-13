@@ -163,6 +163,11 @@ Backlog.md now relies on npm Trusted Publishing with GitHub Actions OIDC. The
 release workflow builds binaries, publishes all npm packages, and records
 provenance automatically. Follow the steps below to keep the setup healthy.
 
+After a global npm install/upgrade of epicd, if this machine also has the
+epicd Claude Code plugin installed, separately run
+`claude plugin update epicd@epicd` to sync the plugin cache — the npm
+package upgrade does not refresh an already-installed Claude Code plugin.
+
 ### Prerequisites
 
 - Choose the release version and ensure your git tag follows the

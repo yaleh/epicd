@@ -11,6 +11,17 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${REPO_ROOT}/dist/epicd-plugin.tar.gz"
 
+# Sync both manifests' "version" field to the current package.json version.
+# Without this, the manifests stay hardcoded at their initial value forever,
+# so `claude plugin update`/`claude plugin marketplace update` short-circuit
+# on version-string equality and silently no-op even when the underlying
+# directory-source plugin content has changed.
+VERSION="$(node -p "require('${REPO_ROOT}/package.json').version")"
+for manifest in "${REPO_ROOT}/plugin/.claude-plugin/plugin.json" "${REPO_ROOT}/.claude-plugin/marketplace.json"; do
+	sed -i.bak -E "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" "$manifest"
+	rm -f "${manifest}.bak"
+done
+
 mkdir -p "${REPO_ROOT}/dist"
 # Give tar a relative -f path (by cd-ing into REPO_ROOT first) rather than an
 # absolute one: an absolute path containing a drive letter (e.g.
