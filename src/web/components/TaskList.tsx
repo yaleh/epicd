@@ -571,7 +571,7 @@ const TaskList: React.FC<TaskListProps> = ({
 				onClick={() => runGateAction(task, "approve")}
 				title={`Approve ${task.id} (advance past the human gate)`}
 				aria-label={`Approve ${task.id}`}
-				className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60"
+				className="inline-flex h-10 w-10 items-center justify-center rounded-circle bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60"
 			>
 				✓
 			</button>
@@ -581,7 +581,7 @@ const TaskList: React.FC<TaskListProps> = ({
 				onClick={() => runGateAction(task, "reject")}
 				title={`Reject ${task.id} (archive)`}
 				aria-label={`Reject ${task.id}`}
-				className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
+				className="inline-flex h-10 w-10 items-center justify-center rounded-circle bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
 			>
 				✕
 			</button>
@@ -591,7 +591,7 @@ const TaskList: React.FC<TaskListProps> = ({
 				onClick={() => runGateAction(task, "escalate")}
 				title={`Escalate ${task.id} (needs-human)`}
 				aria-label={`Escalate ${task.id}`}
-				className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
+				className="inline-flex h-10 w-10 items-center justify-center rounded-circle bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
 			>
 				⚠
 			</button>
@@ -916,7 +916,7 @@ const TaskList: React.FC<TaskListProps> = ({
 						toggleCardExpanded(task.id);
 					}}
 					aria-expanded={isExpanded}
-					className="mt-2 inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+					className="mt-2 inline-flex items-center gap-1 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
 				>
 					{isExpanded ? "Hide details" : "Show details"}
 					<svg

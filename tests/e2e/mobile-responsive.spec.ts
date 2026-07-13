@@ -142,6 +142,36 @@ test.describe("Mobile responsive: All Tasks page", () => {
 			await expect(page.getByTestId("task-card").first()).toBeVisible();
 		});
 
+		test("mobile (BACK-694 Phase B): card tap targets are large enough for touch", async ({ page }) => {
+			await page.setViewportSize(MOBILE_VIEWPORT);
+			await page.goto("/tasks");
+			await expect(page.getByRole("heading", { name: "All Tasks" })).toBeVisible();
+			await expect(page.getByTestId("task-card").first()).toBeVisible();
+
+			// "Show details" toggle: text-only link, previously ~16px tall with no
+			// padding. Should now have enough vertical padding for a comfortable tap.
+			const detailsToggle = page.getByRole("button", { name: /Show details|Hide details/ }).first();
+			await expect(detailsToggle).toBeVisible();
+			const detailsBox = await detailsToggle.boundingBox();
+			expect(detailsBox).not.toBeNull();
+			if (detailsBox) {
+				expect(detailsBox.height).toBeGreaterThanOrEqual(32);
+			}
+
+			// Approve/Reject/Escalate gate-review buttons: only present on cards
+			// whose current phase actor is "human". Not every fixture task has
+			// one, so skip gracefully if none is visible on this page.
+			const approveButton = page.getByRole("button", { name: /^Approve / }).first();
+			if (await approveButton.isVisible().catch(() => false)) {
+				const approveBox = await approveButton.boundingBox();
+				expect(approveBox).not.toBeNull();
+				if (approveBox) {
+					expect(approveBox.width).toBeGreaterThanOrEqual(32);
+					expect(approveBox.height).toBeGreaterThanOrEqual(32);
+				}
+			}
+		});
+
 		test("desktop: task list still renders as a table with all columns", async ({ page }) => {
 			await page.setViewportSize(DESKTOP_VIEWPORT);
 			await page.goto("/tasks");
