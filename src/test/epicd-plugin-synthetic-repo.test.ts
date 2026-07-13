@@ -115,7 +115,10 @@ describe("BACK-605.9 M1 — synthetic scratch-repo plugin verification", () => {
 		chmodSync(scratchBin, 0o755);
 
 		// ---- init skill: `epicd init --defaults` ----
-		sh(`${scratchBin} init "scratch" --defaults`, scratchDir);
+		// Pin --backlog-dir backlog explicitly: this test exercises engine/plugin
+		// mechanics against the "backlog" board directory, independent of whichever
+		// directory `epicd init` defaults to for brand-new projects.
+		sh(`${scratchBin} init "scratch" --defaults --backlog-dir backlog`, scratchDir);
 		const configPath = join(scratchDir, "backlog", "config.yml");
 		expect(existsSync(configPath)).toBe(true);
 

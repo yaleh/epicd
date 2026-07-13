@@ -747,12 +747,12 @@ addHelpSchema(program.command("init [projectName]"), {
 				}
 
 				let backlogDirectory: string | undefined;
-				let backlogDirectorySource: "backlog" | ".backlog" | "custom" | undefined;
+				let backlogDirectorySource: "backlog" | ".backlog" | ".epicd" | "custom" | undefined;
 				let configLocation: "folder" | "root" | undefined;
 				if (!isReInitialization) {
 					const backlogResolution = core.filesystem.resolveBacklogDirectoryInfo();
-					const defaultBacklogDirectory = backlogResolution.backlogDir ?? DEFAULT_DIRECTORIES.BACKLOG;
-					const defaultBacklogSource = backlogResolution.source ?? "backlog";
+					const defaultBacklogDirectory = backlogResolution.backlogDir ?? DEFAULT_DIRECTORIES.EPICD;
+					const defaultBacklogSource = backlogResolution.source ?? ".epicd";
 					const defaultConfigLocation = backlogResolution.configSource ?? "folder";
 					const normalizedBacklogDirOption = options.backlogDir
 						? normalizeProjectBacklogDirectory(options.backlogDir)
@@ -778,8 +778,9 @@ addHelpSchema(program.command("init [projectName]"), {
 							backlogDirectory = normalizedBacklogDirOption;
 							backlogDirectorySource =
 								normalizedBacklogDirOption === DEFAULT_DIRECTORIES.BACKLOG ||
-								normalizedBacklogDirOption === DEFAULT_DIRECTORIES.HIDDEN_BACKLOG
-									? (normalizedBacklogDirOption as "backlog" | ".backlog")
+								normalizedBacklogDirOption === DEFAULT_DIRECTORIES.HIDDEN_BACKLOG ||
+								normalizedBacklogDirOption === DEFAULT_DIRECTORIES.EPICD
+									? (normalizedBacklogDirOption as "backlog" | ".backlog" | ".epicd")
 									: "custom";
 						} else {
 							backlogDirectory = defaultBacklogDirectory;
@@ -798,7 +799,12 @@ addHelpSchema(program.command("init [projectName]"), {
 							initialValue: defaultBacklogSource,
 							options: [
 								{
-									label: "backlog/ (default)",
+									label: ".epicd/ (default)",
+									value: ".epicd",
+									hint: "Store tasks and config in .epicd/",
+								},
+								{
+									label: "backlog/",
 									value: "backlog",
 									hint: "Store tasks and config in backlog/",
 								},
@@ -819,7 +825,7 @@ addHelpSchema(program.command("init [projectName]"), {
 							return;
 						}
 
-						backlogDirectorySource = locationPrompt as "backlog" | ".backlog" | "custom";
+						backlogDirectorySource = locationPrompt as "backlog" | ".backlog" | ".epicd" | "custom";
 						if (backlogDirectorySource === "custom") {
 							const customDirectory = await clack.text({
 								message: "Project-relative backlog directory:",

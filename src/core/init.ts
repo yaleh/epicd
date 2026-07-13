@@ -49,7 +49,7 @@ function formatAgentInstructionResults(results: AgentInstructionWriteResult[]): 
 export interface InitializeProjectOptions {
 	projectName: string;
 	backlogDirectory?: string;
-	backlogDirectorySource?: "backlog" | ".backlog" | "custom";
+	backlogDirectorySource?: "backlog" | ".backlog" | ".epicd" | "custom";
 	configLocation?: "folder" | "root";
 	integrationMode: IntegrationMode;
 	mcpClients?: McpClient[];
@@ -211,7 +211,9 @@ export async function initializeProject(
 				? ".backlog"
 				: normalizedBacklogDirectory === "backlog"
 					? "backlog"
-					: "custom"
+					: normalizedBacklogDirectory === ".epicd"
+						? ".epicd"
+						: "custom"
 			: undefined;
 		if (
 			options.backlogDirectorySource &&
@@ -235,7 +237,9 @@ export async function initializeProject(
 				? ".backlog"
 				: effectiveBacklogDirectorySource === "backlog"
 					? "backlog"
-					: "backlog");
+					: effectiveBacklogDirectorySource === ".epicd"
+						? ".epicd"
+						: "backlog");
 		core.filesystem.setBacklogDirectory(selectedBacklogDirectory);
 		core.filesystem.setConfigLocation(effectiveConfigLocation);
 		await core.filesystem.ensureBacklogStructure();

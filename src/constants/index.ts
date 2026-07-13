@@ -6,6 +6,8 @@ export const DEFAULT_DIRECTORIES = {
 	BACKLOG: "backlog",
 	/** Hidden backlog directory */
 	HIDDEN_BACKLOG: ".backlog",
+	/** Hidden epicd directory (new-project default) */
+	EPICD: ".epicd",
 	/** Active tasks directory */
 	TASKS: "tasks",
 	/** Completed tasks directory */

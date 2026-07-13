@@ -265,6 +265,75 @@ describe("epicd init command", () => {
 		expect(claudeFile).toBe(false);
 	});
 
+	it("should default to .epicd/ for non-interactive init with no explicit --backlog-dir", async () => {
+		await $`git init -b main`.cwd(TEST_DIR).quiet();
+		await $`git config user.name "Test User"`.cwd(TEST_DIR).quiet();
+		await $`git config user.email test@example.com`.cwd(TEST_DIR).quiet();
+
+		// CLI-CONTRACT: verifies 'init --defaults' with no --backlog-dir creates .epicd/config.yml, not backlog/config.yml
+		const output = await $`bun ${CLI_PATH} init EpicdDefaultProj --defaults --integration-mode none`
+			.cwd(TEST_DIR)
+			.text();
+
+		expect(output).toContain("Backlog directory: .epicd");
+		expect(await Bun.file(join(TEST_DIR, ".epicd", "config.yml")).exists()).toBe(true);
+		expect(await Bun.file(join(TEST_DIR, "backlog", "config.yml")).exists()).toBe(false);
+	});
+
+	it("should honor an explicit --backlog-dir override instead of the .epicd/ default", async () => {
+		await $`git init -b main`.cwd(TEST_DIR).quiet();
+		await $`git config user.name "Test User"`.cwd(TEST_DIR).quiet();
+		await $`git config user.email test@example.com`.cwd(TEST_DIR).quiet();
+
+		// CLI-CONTRACT: verifies 'init --defaults --backlog-dir backlog' still honors the explicit override
+		const output =
+			await $`bun ${CLI_PATH} init ExplicitBacklogProj --defaults --integration-mode none --backlog-dir backlog`
+				.cwd(TEST_DIR)
+				.text();
+
+		expect(output).toContain("Backlog directory: backlog");
+		expect(await Bun.file(join(TEST_DIR, "backlog", "config.yml")).exists()).toBe(true);
+		expect(await Bun.file(join(TEST_DIR, ".epicd", "config.yml")).exists()).toBe(false);
+	});
+
+	it("should keep using an existing backlog/ directory on re-init, unaffected by the .epicd/ default", async () => {
+		await $`git init -b main`.cwd(TEST_DIR).quiet();
+		await $`git config user.name "Test User"`.cwd(TEST_DIR).quiet();
+		await $`git config user.email test@example.com`.cwd(TEST_DIR).quiet();
+
+		await $`bun ${CLI_PATH} init ReinitBacklogProj --defaults --integration-mode none --backlog-dir backlog`
+			.cwd(TEST_DIR)
+			.quiet();
+
+		// CLI-CONTRACT: verifies re-init of an existing backlog/ project keeps using backlog/, not .epicd/
+		const output = await $`bun ${CLI_PATH} init ReinitBacklogProj --defaults --integration-mode none`
+			.cwd(TEST_DIR)
+			.text();
+
+		expect(output).toContain("Backlog directory: backlog");
+		expect(await Bun.file(join(TEST_DIR, "backlog", "config.yml")).exists()).toBe(true);
+		expect(await Bun.file(join(TEST_DIR, ".epicd")).exists()).toBe(false);
+	});
+
+	it("should keep using an existing .backlog/ directory on re-init, unaffected by the .epicd/ default", async () => {
+		await $`git init -b main`.cwd(TEST_DIR).quiet();
+		await $`git config user.name "Test User"`.cwd(TEST_DIR).quiet();
+		await $`git config user.email test@example.com`.cwd(TEST_DIR).quiet();
+
+		await $`bun ${CLI_PATH} init ReinitHiddenProj --defaults --integration-mode none --backlog-dir .backlog`
+			.cwd(TEST_DIR)
+			.quiet();
+
+		// CLI-CONTRACT: verifies re-init of an existing .backlog/ project keeps using .backlog/, not .epicd/
+		const output = await $`bun ${CLI_PATH} init ReinitHiddenProj --defaults --integration-mode none`
+			.cwd(TEST_DIR)
+			.text();
+
+		expect(output).toContain("Backlog directory: .backlog");
+		expect(await Bun.file(join(TEST_DIR, ".backlog", "config.yml")).exists()).toBe(true);
+		expect(await Bun.file(join(TEST_DIR, ".epicd")).exists()).toBe(false);
+	});
+
 	it("should support non-interactive .backlog selection via --backlog-dir", async () => {
 		await $`git init -b main`.cwd(TEST_DIR).quiet();
 		await $`git config user.name "Test User"`.cwd(TEST_DIR).quiet();
