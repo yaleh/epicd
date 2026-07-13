@@ -1,6 +1,0 @@
-Phase 1 (implement gate-event-store.ts + tests) ✓ 2026-07-05T09:16:20Z
-DoD #1: PASS — bunx tsc --noEmit
-DoD #2: PASS — bun run check .
-DoD #3: PASS — bun test src/test/gate-event-store.test.ts (15 pass)
-Phase 2 (full suite green) ✓ 2026-07-05T09:16:43Z
-DoD full: PASS — bun test (1811 pass, 2 skip, 0 fail)

@@ -1,5 +1,0 @@
-Phase A ✓ 2026-07-04T17:21:33Z
-Phase B ✓ 2026-07-04T17:21:33Z
-DoD #1: PASS — bunx tsc --noEmit
-DoD #2: PASS — bun run check .
-DoD #3: PASS — bun test --parallel (1696 pass, 2 skip, 1 flaky pre-existing build.test.ts timeout unrelated to change, passes standalone)

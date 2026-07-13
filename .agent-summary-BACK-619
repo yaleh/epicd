@@ -1,8 +1,0 @@
-Phase A ✓ 2026-07-04T23:58:24Z
-DoD #1: PASS — bun test src/test/engine-merge.test.ts src/test/engine-merge-wire.test.ts
-DoD #2: PASS — bunx tsc --noEmit
-Phase B ✓ 2026-07-04T23:59:22Z
-DoD #1: PASS — bun test src/test/epicd-run-wiring.test.ts
-DoD #2: PASS — bunx tsc --noEmit
-DoD #3: PASS — bun test (1701-1702/1704 pass; 1-2 pre-existing flaky timeouts under --parallel, unrelated, pass in isolation)
-DoD: PASS — bun run check . (0 errors; 9 pre-existing warnings in unrelated files)

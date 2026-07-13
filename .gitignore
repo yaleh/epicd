@@ -67,6 +67,11 @@ test-benchmark-report.json
 
 .conductor
 
+# worktree-root worker scratch files (dispatch payload checkpoints/signal, BACK-702) —
+# written relative to $WT_PATH by a background implementation Agent, never board state
+/.agent-summary-*
+/.agent-done-*
+
 # TUI screenshot captures
 .tui-screenshots
 

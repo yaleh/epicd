@@ -1,9 +1,0 @@
-Phase A ✓ 2026-07-04T03:26:03Z
-DoD #1: PASS — pipeline.ts: PipelineState.actor replaces actionable; executionPipeline has 6 phases matching state diagram
-Phase B ✓ 2026-07-04T03:26:03Z
-DoD #2: PASS — Task.phase replaces state; role removed; parser/serializer updated; roundtrip tests pass
-Phase C ✓ 2026-07-04T03:26:03Z
-DoD #3: PASS — Interpreter.scan uses task.phase and actor==='machine'; 27 engine tests pass
-DoD #1 (global): PASS — bunx tsc --noEmit
-DoD #2 (global): PASS — bun run check . (errors are pre-existing in unmodified files)
-DoD #3 (global): PASS — bun test engine-interpreter + engine-fields-roundtrip: 27/27
