@@ -28,6 +28,20 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # Must match the literal sentinel documented in plugin/skills/README.md.
 MECHANICAL_SENTINEL="mechanical: no methodology"
 
+# BACKLOG_DIR_NAME: resolve whichever board directory actually exists on disk, in
+# the same priority order as resolveBuiltInBacklogDirectory (backlog > .backlog >
+# .epicd, BACK-700). Probes existence only — never creates one; defaults to
+# 'backlog' for backward compatibility with a never-initialized repo.
+if [[ -d "${REPO_ROOT}/backlog" ]]; then
+	BACKLOG_DIR_NAME="backlog"
+elif [[ -d "${REPO_ROOT}/.backlog" ]]; then
+	BACKLOG_DIR_NAME=".backlog"
+elif [[ -d "${REPO_ROOT}/.epicd" ]]; then
+	BACKLOG_DIR_NAME=".epicd"
+else
+	BACKLOG_DIR_NAME="backlog"
+fi
+
 fail_any=0
 
 # Resolve a path-like provenance value against the repo root (absolute paths pass
@@ -42,7 +56,8 @@ path_resolves() {
 }
 
 # Resolve an experiment-pending pointer (a task id, e.g. BACK-658) to a real task
-# file under backlog/tasks/.
+# file under BACKLOG_DIR_NAME/tasks/ (resolved above; backlog/, .backlog/, or
+# .epicd/, whichever exists on disk).
 pointer_resolves() {
 	local pointer="$1"
 	local id
@@ -50,7 +65,7 @@ pointer_resolves() {
 	[[ -n "$id" ]] || return 1
 	local slug
 	slug="$(tr '[:upper:]' '[:lower:]' <<<"$id")"
-	compgen -G "${REPO_ROOT}/backlog/tasks/${slug} - *" >/dev/null 2>&1
+	compgen -G "${REPO_ROOT}/${BACKLOG_DIR_NAME}/tasks/${slug} - *" >/dev/null 2>&1
 }
 
 # Validate one skill directory. Echoes a one-line verdict. Returns 0/1.
@@ -115,7 +130,7 @@ lint_skill_dir() {
 			;;
 		experiment-pending)
 			if ! pointer_resolves "$provenance"; then
-				errors+=("'provenance' (${provenance}) does not resolve to a task file under backlog/tasks/ (required for creation_path=experiment-pending)")
+				errors+=("'provenance' (${provenance}) does not resolve to a task file under ${BACKLOG_DIR_NAME}/tasks/ (required for creation_path=experiment-pending)")
 			fi
 			;;
 		esac

@@ -31,11 +31,24 @@ elif [ -f "$DEV_CLI_JS" ]; then
 else
   CLI_CMD="epicd"
 fi
-CAPS_DIR="${REPO_ROOT}/backlog/.caps"
+# BACKLOG_DIR: resolve whichever board directory actually exists on disk, in the
+# same priority order as resolveBuiltInBacklogDirectory (backlog > .backlog >
+# .epicd). Probes existence only — never creates one — so this script keeps
+# working whichever candidate directory is actually present on disk (BACK-700).
+if [ -d "${REPO_ROOT}/backlog" ]; then
+  BACKLOG_DIR="${REPO_ROOT}/backlog"
+elif [ -d "${REPO_ROOT}/.backlog" ]; then
+  BACKLOG_DIR="${REPO_ROOT}/.backlog"
+elif [ -d "${REPO_ROOT}/.epicd" ]; then
+  BACKLOG_DIR="${REPO_ROOT}/.epicd"
+else
+  BACKLOG_DIR="${REPO_ROOT}/backlog"
+fi
+CAPS_DIR="${BACKLOG_DIR}/.caps"
 LOCK_FILE="${CAPS_DIR}/${TASK_ID}.exec-lock"
 WT_PATH="${REPO_ROOT}/../$(basename "$REPO_ROOT")-${TASK_ID}"
 BRANCH="task/${TASK_ID}"
-SIGNAL_FILE="${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
+SIGNAL_FILE="${BACKLOG_DIR}/.agent-done-${TASK_ID}"
 
 mkdir -p "$CAPS_DIR"
 

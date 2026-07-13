@@ -6,7 +6,8 @@
  *   - extract              -> a repo-relative path that exists on disk
  *   - mechanical            -> the exact literal sentinel "mechanical: no methodology"
  *   - experiment-pending    -> a task id that resolves to a real task file under
- *                              backlog/tasks/
+ *                              the repo's board tasks directory (backlog/tasks/,
+ *                              .backlog/tasks/, or .epicd/tasks/ — whichever exists)
  *
  * This is the rule that distinguishes "an experiment actually converged this
  * methodology" from "someone hand-wrote a skill and a structural lint let it
@@ -62,7 +63,7 @@ describe("provenance — creation_path: mechanical", () => {
 });
 
 describe("provenance — creation_path: experiment-pending", () => {
-	it("passes when the pointer resolves to a real task file under backlog/tasks/", async () => {
+	it("passes when the pointer resolves to a real task file under the board tasks directory", async () => {
 		const { code } = await runLint([join(FIXTURES, "valid-experiment-pending")]);
 		expect(code).toBe(0);
 	});
@@ -70,6 +71,6 @@ describe("provenance — creation_path: experiment-pending", () => {
 	it("fails when the pointer does not resolve to any task file", async () => {
 		const { code, out } = await runLint([join(FIXTURES, "invalid-experiment-pending-bogus")]);
 		expect(code).not.toBe(0);
-		expect(out).toMatch(/does not resolve to a task file under backlog\/tasks/);
+		expect(out).toMatch(/does not resolve to a task file under \.?[a-zA-Z]*\/tasks/);
 	});
 });

@@ -8,20 +8,34 @@
 # Status is a pure phase projection (BACK-664 child 1): this script sets --phase,
 # never --status, and the human-facing status string is derived automatically.
 # Behavior-equivalent port of the old SKILL.md merge pseudocode. Merge-serialised via
-# backlog/.merge-lock so a /clear mid-merge cannot leave a half-merged main worktree.
+# BACKLOG_DIR/.merge-lock (resolved dynamically below — whichever candidate board
+# directory exists on disk, BACK-700) so a /clear mid-merge cannot leave a
+# half-merged main worktree.
 #
 # RULE: never pipe `git merge` (| tail/cat/tee) — a pipe replaces its exit code and masks abort.
 set -uo pipefail
 
 TASK_ID="${1:?usage: complete-task.sh TASK-ID}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-CAPS_DIR="${REPO_ROOT}/backlog/.caps"
+# BACKLOG_DIR: resolve whichever board directory actually exists on disk, in the
+# same priority order as resolveBuiltInBacklogDirectory (backlog > .backlog >
+# .epicd). Probes existence only — never creates one.
+if [ -d "${REPO_ROOT}/backlog" ]; then
+  BACKLOG_DIR="${REPO_ROOT}/backlog"
+elif [ -d "${REPO_ROOT}/.backlog" ]; then
+  BACKLOG_DIR="${REPO_ROOT}/.backlog"
+elif [ -d "${REPO_ROOT}/.epicd" ]; then
+  BACKLOG_DIR="${REPO_ROOT}/.epicd"
+else
+  BACKLOG_DIR="${REPO_ROOT}/backlog"
+fi
+CAPS_DIR="${BACKLOG_DIR}/.caps"
 WT_PATH_FILE="${CAPS_DIR}/${TASK_ID}.wt"
-SIGNAL_FILE="${REPO_ROOT}/backlog/.agent-done-${TASK_ID}"
+SIGNAL_FILE="${BACKLOG_DIR}/.agent-done-${TASK_ID}"
 BRANCH="task/${TASK_ID}"
 CAP_FILE="${CAPS_DIR}/${TASK_ID}"
-ACTIVE_FILE="${REPO_ROOT}/backlog/.active-agents"
-MERGE_LOCK="${REPO_ROOT}/backlog/.merge-lock"
+ACTIVE_FILE="${BACKLOG_DIR}/.active-agents"
+MERGE_LOCK="${BACKLOG_DIR}/.merge-lock"
 
 WT_PATH="$(cat "$WT_PATH_FILE" 2>/dev/null || echo "")"
 TASK_VIEW="$(epicd task view "$TASK_ID" --plain 2>/dev/null || echo "")"
