@@ -1,6 +1,6 @@
 {
   "name": "epicd",
-  "version": "1.48.14",
+  "version": "1.48.15",
   "type": "module",
   "module": "src/cli.ts",
   "files": [
