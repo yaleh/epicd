@@ -1,9 +1,9 @@
 ---
 id: BACK-660
-title: monitor 前台顺序 loop 执行（取代 scan-loop push + 座席外包受限后台 Agent），解锁前台全工具/skill 调用
+title: manda-monitor 执行座席：并发 task subagents + epicd skill 直调 + 深层嵌套（取代受限后台 Agent）
 assignee: []
 created_date: '2026-07-06 07:44'
-updated_date: '2026-07-07 18:13'
+updated_date: '2026-07-13 03:29'
 labels:
   - 'kind:feature'
   - 'area:engine'
@@ -15,43 +15,58 @@ dependencies:
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-> 状态：draft。里程碑 A（手动用 skill 驱动执行）达成后的下游；proposal/plan 待进一步讨论后再补，勿直接跑 feature-to-backlog。依赖 BACK-682(收敛机制层),会被 fixpoint-convergence 驱动(单叶 Basic/Feature task,无 children)。
-
 ## 背景
 
-到「手动用 skill 驱动执行」为止不需要 monitor：skills（BACK-657）+ 4 轴数据/CLI/web（BACK-655 + 已有）+ phase→skill 表就够，人可在一个 Claude Code 会话里按任务的 (pipeline_id, phase) 手动 invoke 对应 skill。本任务是把这一步**自动化**。
+当前执行链路：`engine supervisor` 扫板 → emit payload 到 stdout → Monitor 座席读取 → `handle-basic-ready.sh`（认领 + worktree）→ spawn **受限后台 Agent**（`allowed-tools: Bash/Read/Write/Edit/Glob/Grep`，无 Skill/Agent 工具）→ engine complete。受限工具集使后台 Agent 无法调用 phase skill，BACK-660 最初设计为「前台顺序 loop」来解决这个问题。
 
-当前生产执行链路：scan-loop.cjs（push 流式传输）→ engine scan → engine dispatch <id> → src/engine/dispatch.ts 渲染 payload → Monitor 座席 → handle-basic-ready.sh（认领+worktree）→ 座席 spawn 一个受限后台 Agent 干活 → engine complete。受限后台 Agent 的 allowed-tools 只有 Bash/Read/Write/Edit/Glob/Grep（dispatch.ts:81），无 Skill/Agent 工具、不能再嵌套派 Agent——故无法 invoke phase skill。
+2026-07-13 架构讨论后确认更优路径：以 **manda-monitor 作为执行座席**替换受限后台 Agent。manda-monitor（depth-0 会话）并发 spawn depth-1 Agent subagents；depth-1 subagents **可直接调用 epicd skills**；若需更深层执行，还可通过 cap-proxy（`cap-requests-<broker>` channel）请求 parent 代为 spawn depth-2 Agent（MAX_DEPTH = 3）。前台顺序 loop 方案因此废止。
 
-## 目标
+## 新执行模型
 
-把执行改为**前台顺序 loop**：一个独立 Claude Code 会话跑 monitor（重构后的 scan-loop），取一个 ready item → 在该会话自己的前台执行（可用全套前台工具，含 Skill）→ engine complete → 循环。并让 dispatch 按 (pipeline_id, phase) 从 registry（BACK-657 child 1 交付、folded 进覆盖 manifest 的单一真值）查出 skill 附到消息，前台会话 invoke。
+```
+engine supervisor --loop
+  └─ supervisorTick()                    [scan + cap-mark + field-lock，不变]
+       └─ emit → manda-dispatch submit
+                    ↓
+             manda pending channel
+                    ↓
+         manda-monitor 会话（depth-0）
+           ├─ Agent subagent (depth-1, task A) → invoke epicd:primitive-executor
+           ├─ Agent subagent (depth-1, task B) → invoke epicd:adjudicate
+           └─ Agent subagent (depth-1, task C) → invoke skill X
+                └─ cap-proxy → parent → depth-2 subagent（如需）
+```
+
+manda-monitor 的 claim/settle/reap/cancel 治理由 manda 负责；epicd engine 只管任务板状态（cap marker + phase 迁移 + DoD gate）。
 
 ## 做什么
 
-- 重构 scan-loop：从 push 流式（逼座席外包）改为 sequential/pull（取一个→前台执行→complete→再取）。
-- 执行 locus 从受限后台 Agent 移到会话前台：替换 dispatch.ts payload 里“spawn 后台实现 Agent”段（dispatch.ts:50-81）为前台执行指令。
-- 保留每车道 driver/lane 抽象：单会话内顺序，多车道靠多会话；不写死单车道。
-- 更新 run/epicd-run 操作 skill，arm 新前台 loop。
-- payload 仍由引擎 author（dispatch.ts），仍自包含、仍过 ADR-015 swap-litmus；按 (pipeline,phase) 注入 skill 引用，前台会话 invoke。
-
-注(前瞻性备忘,非本任务的 invariant 要求)：不排除未来切到「后台 agent 支持的更大并发」模式；driver/lane 抽象要能容纳未来 N 并发，本 task 的单车道实现不得把这条路堵死。
+1. **supervisor.ts `emit` 回调**：改为调用 `manda-dispatch submit <taskId> "<payload>"`，替换当前的 stdout 打印。field lock 和 cap marker 不变。
+2. **dispatch.ts payload 重写**：移除「spawn ONE background implementation Agent + allowed-tools 白名单 + wait for .agent-done-X Monitor」段（dispatch.ts:50–100 区间）；改为：
+   - Step 1–5：仍运行 `handle-basic-ready.sh`（认领 + worktree，不变）
+   - Step 6（新）：按 `(pipeline_id, phase)` 从 `phase-coverage.json` 查出 skill，直接 invoke
+   - 移除 `.agent-done-<taskId>` signal-file 约定（manda DispatchSettle 替代）
+3. **manda-monitor 配置**：为 epicd 项目配置 `.manda/config.yml`，接 epicd supervisor 发出的 pending channel；绑定 dispatch executor role。
+4. **engine supervisor CLI**：`engine supervisor --once/--loop` 的 emit 实现换为 manda-dispatch submit（含 manda daemon 地址配置）。
+5. **dispatch.ts phase→skill 注入**：payload 按 `(pipeline_id, phase)` 注入 skill 引用，从 `phase-coverage.json` 读取（BACK-657 child 1 已交付 registry）。
 
 ## 非目标
 
-- 不做 phase→skill registry 本身（BACK-657 child 1 交付）；本任务只消费它做运行时注入。
-- 不做 authoring/exploration 机器 phase 的生产 transport 接线（E7/BACK-608、BACK-641）。
-- 不改 BACK-655 conformance 范围、不动 adjudicate（BACK-654，其机制层由 BACK-682 交付）。
+- 不改 supervisorTick board 扫描 + cap-marking + field lock 逻辑
+- 不改 handle-basic-ready.sh 的 exec-lock/cap 幂等/.caps/.wt 机制
+- 不改 engine complete / DoD gate / merge-lock（ENG-8）
+- 不改核心状态机 / pipeline-as-data（ADR-011 D-2）
+- 不做 authoring/exploration 车道的 manda 接线
+- 不实现 MAX_DEPTH > 1 的具体用例（cap-proxy 由 manda 提供，本任务不需配置深层 spawn 场景）
 
 ## 参考
 
-- CLAUDE.md「Acceptance Criteria conventions when authoring a task」
-- docs/adr/ADR-015-monitor-as-invocation-adapter.md（Monitor=invocation adapter；scan-loop 纯传输；swap-litmus）
-- docs/task-lifecycle-model.md（4 轴模型 + phase→skill 表）
-- src/engine/dispatch.ts（renderBasicReadyDispatch 的后台-Agent-offload 段）
-- plugin/scripts/scan-loop.cjs（现状 push 流式轮询）
-- plugin/skills/fixpoint-convergence/SKILL.md（Stage 4 evaluate）
-- BACK-657（phase 执行 skill 集 + child 1 的 phase→skill registry）；BACK-655（4 轴数据 conformance）；BACK-682（收敛机制层，前置依赖）；docs/proposals/2026-07-03-driver-supervisor-multi-lane-runtime.md（多车道 supervisor 方向）
+- manda 项目 `/home/yale/work/manda`（README.md、plugin/skills/manda-monitor/、internal/dispatch/）
+- ADR-015 swap-litmus（dispatch payload 仍由 engine 单点 author）
+- src/engine/supervisor.ts（emit 回调改造点）
+- src/engine/dispatch.ts（renderBasicReadyDispatch，payload 重写点）
+- plugin/scripts/handle-basic-ready.sh（认领/worktree，保留）
+- BACK-657 child 1（phase-coverage.json registry）；BACK-682（收敛机制层，前置依赖）
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Definition of Done
@@ -63,23 +78,18 @@ dependencies:
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 scan-loop 从 push 流式改为 sequential pull(取一个 ready item→前台执行→complete→再取),有测试/脚本断言该行为
-- [ ] #2 dispatch 按 (pipeline_id, phase) 从 phase-coverage.json 查出 skill 并注入 payload,有测试覆盖
-- [ ] #3 dispatch.ts 中 spawn 受限后台实现 Agent 的段落被移除/替换为前台执行指令,不再依赖后台 Agent 的 allowed-tools 白名单
-- [ ] #4 端到端:一个真实 task 经前台 loop 从 ready 到 done,全程未经过受限后台 Agent
-- [ ] #5 ADR-015 swap-litmus & 分层:payload 仍完全由 src/engine/dispatch.ts 单点 author;scan-loop.cjs 不包含 skill 选择/prompt-authoring 逻辑;Monitor 座席核心不内嵌 phase→skill 路由规则;有结构检查或测试断言(如 scan-loop.cjs 无 skill 选择分支、dispatch.ts 是唯一注入点),且验证装了插件的裸 claude -p 按名 invoke skill 不依赖 Monitor 内部状态
-- [ ] #6 不改核心状态机 & pipeline-as-data(ADR-011 D-2):pipeline 定义、phase/actor 语义、interpreter scan 谓词不变;既有 scan 谓词测试套件全绿
-- [ ] #7 不改完成路径(ENG-8):engine complete/adjudicate/DoD 独立重跑/merge-lock/worktree 隔离不变,worker 永不自证 done;既有 engine complete 测试套件全绿
-- [ ] #8 不改认领 & 隔离机制:handle-basic-ready.sh 的 exec-lock/cap 幂等/.caps/.wt/.signal、单驱动守卫(.active-agents)、merge 串行化不变;既有隔离机制测试套件全绿
+- [ ] #1 supervisor.ts emit 回调改为 manda-dispatch submit；engine supervisor --once 不再向 stdout 打印 dispatch payload，改为 submit 到 manda pending channel；有集成测试或脚本断言该行为
+- [ ] #2 dispatch.ts payload 中「spawn 受限后台实现 Agent + wait for .agent-done-X」段被移除；新 payload 包含 handle-basic-ready.sh（Step 1–5）+ invoke phase skill 指令；有 snapshot/单元测试覆盖新 payload 结构
+- [ ] #3 端到端：manda-monitor 会话运行时，一个真实 task 从 ready → implementing → done 全程不经过受限后台 Agent，depth-1 subagent 直接 invoke epicd phase skill 完成执行
+- [ ] #4 并发：manda-monitor 能同时持有 ≥2 个 in-flight depth-1 task subagents（manda 治理，不需 epicd 层额外代码）
+- [ ] #5 ADR-015 swap-litmus 继续成立：payload 仍由 dispatch.ts 单点 author；phase→skill 查找逻辑仅在 dispatch.ts 内；scan-loop.cjs（兼容传输）不含 skill 选择分支
+- [ ] #6 不改核心状态机（ADR-011 D-2）：pipeline 定义、phase/actor 语义、interpreter scan 谓词不变；既有 scan 谓词测试套件全绿
+- [ ] #7 不改完成路径（ENG-8）：engine complete/DoD 独立重跑/merge-lock/worktree 隔离不变；既有 engine complete 测试套件全绿
+- [ ] #8 不改认领隔离机制：handle-basic-ready.sh 的 exec-lock/cap 幂等/.caps/.wt、单驱动守卫、merge 串行化不变；既有隔离机制测试套件全绿
 <!-- AC:END -->
 
 ## Implementation Notes
 
 <!-- SECTION:NOTES:BEGIN -->
-架构定位(2026-07-07 讨论):本 task = Task 3「monitor 自动 dispatch」,是收敛机制(BACK-682)的**后台驱动器**。
-
-- fixpoint-convergence(前台 stand-in driver)与 monitor(本 task,后台 driver)是**并列的两个驱动器**,消费同一套收敛机制层(BACK-682:adjudicating phase + gap 守卫 + adjudicate skill + primitive-executor 内循环 + 三分类回退契约)。
-- monitor 真正依赖的是 BACK-682 的机制层(它 dispatch 的 phase skills 含 adjudicating,须先存在),不依赖 fixpoint-convergence(那是它的替代品,非前置)。
-- 依赖 BACK-682 已登记。执行顺序:BACK-682(机制,含 fixpoint 适配 Stage)→ 本 task(monitor)。
-- 收敛的迭代能力(gap→回退→再执行)由 BACK-682 的机制层提供;monitor 只负责「取 ready→dispatch→complete」的传输,不自带迭代收敛。
+2026-07-13：原「前台顺序 loop」方案废止。manda-monitor 作为执行座席，解决了受限后台 Agent 无法调用 skill/Agent 工具的根本问题，同时获得并发执行（多 depth-1 subagents）和治理（claim/reap/cancel）能力。supervisorTick 扫描层不变；emit 回调是唯一改造点；dispatch.ts payload 去除后台 Agent 段并注入 phase skill 引用。
 <!-- SECTION:NOTES:END -->
