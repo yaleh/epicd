@@ -535,7 +535,7 @@ jobs:
           TAG="${RELEASE_TAG##v}"
           jq ".version = \"$TAG\"" package.json > tmp.json && mv tmp.json package.json
           jq ".version = \"$TAG\"" plugin/.claude-plugin/plugin.json > tmp.json && mv tmp.json plugin/.claude-plugin/plugin.json
-          jq ".version = \"$TAG\"" .claude-plugin/marketplace.json > tmp.json && mv tmp.json .claude-plugin/marketplace.json
+          jq ".version = \"$TAG\" | .plugins[].version = \"$TAG\"" .claude-plugin/marketplace.json > tmp.json && mv tmp.json .claude-plugin/marketplace.json
       - name: Commit version bump
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
