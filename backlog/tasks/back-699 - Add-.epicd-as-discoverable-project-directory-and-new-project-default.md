@@ -4,7 +4,7 @@ title: Add .epicd as discoverable project directory and new-project default
 assignee:
   - '@claude'
 created_date: '2026-07-13 11:53'
-updated_date: '2026-07-13 12:16'
+updated_date: '2026-07-13 12:23'
 labels:
   - config
   - cli
@@ -12,7 +12,7 @@ dependencies: []
 priority: medium
 ordinal: 112000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bun test && bunx tsc --noEmit && bun run check .
     checked: false
@@ -40,12 +40,14 @@ entry_phase: authoring/backlog
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 全新空目录运行 epicd init --defaults（未显式指定 --backlog-dir）后，生成的是 .epicd/config.yml 而非 backlog/config.yml
-- [ ] #2 已存在 backlog/config.yml 或 .backlog/config.yml 的目录运行现有命令，行为与改动前完全一致（回归测试覆盖 resolveBacklogDirectory 三种既有分支）
-- [ ] #3 resolveBuiltInBacklogDirectory 的探测顺序为 backlog/ -> .backlog/ -> .epicd/，验证：新增单测覆盖仅存在 .epicd/ 时被正确探测到
-- [ ] #4 epicd init 交互向导中 .epicd/ 为默认高亮选项，验证：cli.ts 相关测试或手工核查向导选项顺序
-- [ ] #5 bun test 全绿，bunx tsc --noEmit 通过
+- [x] #1 全新空目录运行 epicd init --defaults（未显式指定 --backlog-dir）后，生成的是 .epicd/config.yml 而非 backlog/config.yml
+- [x] #2 已存在 backlog/config.yml 或 .backlog/config.yml 的目录运行现有命令，行为与改动前完全一致（回归测试覆盖 resolveBacklogDirectory 三种既有分支）
+- [x] #3 resolveBuiltInBacklogDirectory 的探测顺序为 backlog/ -> .backlog/ -> .epicd/，验证：新增单测覆盖仅存在 .epicd/ 时被正确探测到
+- [x] #4 epicd init 交互向导中 .epicd/ 为默认高亮选项，验证：cli.ts 相关测试或手工核查向导选项顺序
+- [x] #5 bun test 全绿，bunx tsc --noEmit 通过
 <!-- AC:END -->
+
+
 
 ## Implementation Plan
 
