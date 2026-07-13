@@ -4,14 +4,14 @@ title: BACK-693 移动端跟进：header 标题被汉堡按钮遮挡 + 抽屉关
 assignee:
   - '@claude'
 created_date: '2026-07-13 02:45'
-updated_date: '2026-07-13 03:21'
+updated_date: '2026-07-13 03:33'
 labels:
   - 'kind:bug'
 dependencies: []
 priority: medium
 ordinal: 107000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bunx tsc --noEmit
     checked: false
@@ -34,12 +34,12 @@ entry_phase: authoring/backlog
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 移动视口下 header 的 'epicd' 标题完整可见，不与汉堡按钮重叠
-- [ ] #2 移动视口下点击抽屉的 'Close navigation menu' 按钮会关闭抽屉，不触发导航
-- [ ] #3 移动视口下筛选面板的任务计数文字（如 'Showing 40 of 132 tasks'）完整可见，不溢出视口
-- [ ] #4 桌面视口（≥768px）上述三处的现有行为不受影响
-- [ ] #5 独立 fresh-context agent（不共享实现者上下文）用 chrome-devtools MCP 移动视口对 All Tasks 页面做完整主动视觉扫查（不局限于验证上述 3 条已知问题），逐轮寻找新的视觉/交互缺陷（遮挡、溢出、点击命中错误、tap target 过小、对比度、动画/过渡异常等）
-- [ ] #6 上述独立视觉扫查连续一轮零新发现（loop-until-dry）才可判定完成；每轮发现的问题都必须修复并记录，不得以'只修 3 个已知问题'为由提前收尾
+- [x] #1 移动视口下 header 的 'epicd' 标题完整可见，不与汉堡按钮重叠
+- [x] #2 移动视口下点击抽屉的 'Close navigation menu' 按钮会关闭抽屉，不触发导航
+- [x] #3 移动视口下筛选面板的任务计数文字（如 'Showing 40 of 132 tasks'）完整可见，不溢出视口
+- [x] #4 桌面视口（≥768px）上述三处的现有行为不受影响
+- [x] #5 独立 fresh-context agent（不共享实现者上下文）用 chrome-devtools MCP 移动视口对 All Tasks 页面做完整主动视觉扫查（不局限于验证上述 3 条已知问题），逐轮寻找新的视觉/交互缺陷（遮挡、溢出、点击命中错误、tap target 过小、对比度、动画/过渡异常等）
+- [x] #6 上述独立视觉扫查连续一轮零新发现（loop-until-dry）才可判定完成；每轮发现的问题都必须修复并记录，不得以'只修 3 个已知问题'为由提前收尾
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -147,11 +147,21 @@ claimed: 2026-07-13T02:58:37Z
 Phase B Round 1 (fresh-context agent, mobile 390x844/375x667/414x896 + desktop 1280x800 regression): 3 known bugs (header overlap, drawer close mis-nav, count overflow) all confirmed fixed. 2 new findings: (1) Approve/Reject/Escalate icon buttons on Backlog-status cards are 24x24px, below ~40px tap-target guidance, adjacent buttons risk mis-tap. (2) 'Show details' toggle has ~16px vertical hit height. Not dry — fixing both, then dispatching round 2.
 
 claimed: 2026-07-13T03:16:58Z
+
+Phase B Round 2 (fresh-context agent, independent of round-1 fix agent, mobile 390x844/375x667/414x896 + desktop 1280x800 regression): ZERO DEFECTS FOUND. All 5 checks passed: header/hamburger no overlap, drawer close button closes without mis-navigation, scrim close works, count text no overflow, Approve/Reject/Escalate buttons exactly 40x40px, Show-details toggle exactly 32px tap height. Full-page overflow sweep and tap-target sweep found nothing else. Loop-until-dry satisfied (1 dry round after round 1's fixes). Proceeding to Phase C finalization.
+
+Validation: bunx tsc --noEmit clean; bun run test:e2e -- mobile-responsive.spec.ts 10/10 pass; full bun test (serial) 2073 pass/0 fail (parallel-mode run showed unrelated flaky timeout in cli-milestone-management.test.ts, confirmed passing in isolation and in serial full run — not caused by this task's changes).
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+修复 BACK-693 遗留的 3 个移动端渲染后可见问题：(1) Navigation.tsx 加 pl-16 移动端左内边距，标题不再被固定汉堡按钮遮挡；(2) SideNavigation.tsx 把 scrim 改为纯点击外部关闭层（z-20），抽屉面板提升到 z-30，并在面板内新增独立、层级最高（z-40）的关闭按钮，不再被面板内容遮挡误触发导航；(3) TaskList.tsx 筛选行加 flex-wrap（移动端）+ md:flex-nowrap（桌面保持不变），任务计数文字不再溢出视口。随后按任务要求做了强制的独立 fresh-context 视觉扫查 loop-until-dry：第 1 轮（chrome-devtools MCP，390x844/375x667/414x896 + 桌面 1280x800 回归）确认 3 个已知问题修复有效，但发现 2 个新的 tap-target 过小问题（Approve/Reject/Escalate 图标按钮 24x24px、Show details 切换 ~16px 高）；已修复（按钮扩到 40x40px，切换加 py-2 到 32px+）并合并；第 2 轮独立扫查零新发现，连续一轮 dry，满足 loop-until-dry 收尾条件。DoD 全绿：bunx tsc --noEmit、bun run test:e2e -- mobile-responsive.spec.ts（10/10）、bun test 全量（serial 2073 pass/0 fail）。
+<!-- SECTION:FINAL_SUMMARY:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 bunx tsc --noEmit passes when TypeScript touched
-- [ ] #2 bun run check . passes when formatting/linting touched
-- [ ] #3 bun test (or scoped test) passes
+- [x] #1 bunx tsc --noEmit passes when TypeScript touched
+- [x] #2 bun run check . passes when formatting/linting touched
+- [x] #3 bun test (or scoped test) passes
 <!-- DOD:END -->
