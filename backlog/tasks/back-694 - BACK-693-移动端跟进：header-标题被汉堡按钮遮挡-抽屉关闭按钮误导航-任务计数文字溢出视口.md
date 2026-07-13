@@ -4,7 +4,7 @@ title: BACK-693 移动端跟进：header 标题被汉堡按钮遮挡 + 抽屉关
 assignee:
   - '@claude'
 created_date: '2026-07-13 02:45'
-updated_date: '2026-07-13 03:10'
+updated_date: '2026-07-13 03:11'
 labels:
   - 'kind:bug'
 dependencies: []
