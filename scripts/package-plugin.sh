@@ -16,7 +16,7 @@ OUT="${REPO_ROOT}/dist/epicd-plugin.tar.gz"
 # so `claude plugin update`/`claude plugin marketplace update` short-circuit
 # on version-string equality and silently no-op even when the underlying
 # directory-source plugin content has changed.
-VERSION="$(node -p "require('${REPO_ROOT}/package.json').version")"
+VERSION="$(bun "${REPO_ROOT}/scripts/print-version.ts")"
 for manifest in "${REPO_ROOT}/plugin/.claude-plugin/plugin.json" "${REPO_ROOT}/.claude-plugin/marketplace.json"; do
 	sed -i.bak -E "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" "$manifest"
 	rm -f "${manifest}.bak"
