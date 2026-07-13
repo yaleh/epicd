@@ -4,12 +4,12 @@ title: All Tasks 页面移动端适配：抽屉侧边栏 + 折叠筛选面板 + 
 assignee:
   - '@claude'
 created_date: '2026-07-13 02:01'
-updated_date: '2026-07-13 02:29'
+updated_date: '2026-07-13 02:33'
 labels: []
 dependencies: []
 ordinal: 106000
 pipeline_id: execution
-phase: adjudicating
+phase: done
 dod:
   - text: bunx tsc --noEmit
     checked: false
