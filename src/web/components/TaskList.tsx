@@ -33,6 +33,7 @@ import {
 import CleanupModal from "./CleanupModal";
 import LabelFilterDropdown from "./LabelFilterDropdown";
 import { SuccessToast } from "./SuccessToast";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 interface TaskListProps {
 	onEditTask: (task: Task) => void;
@@ -87,6 +88,11 @@ const TaskList: React.FC<TaskListProps> = ({
 	archivedMilestones,
 	onRefreshData,
 }) => {
+	const isMobile = useIsMobile();
+	// Filter panel collapse (BACK-693 Phase B): mobile only, defaults closed;
+	// desktop always renders the filter row inline (isMobile is false there, so
+	// the "hidden" class below never applies and this state is simply unused).
+	const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") ?? "");
 	const [priorityFilter, setPriorityFilter] = useState<"" | SearchPriorityFilter>(
@@ -549,6 +555,49 @@ const TaskList: React.FC<TaskListProps> = ({
 		}
 	};
 
+	// Shared by renderTaskRow and renderTaskCard (BACK-693 Phase C): the
+	// approve/reject/escalate inline gate-review action buttons are identical
+	// in both the desktop table row and the mobile card, only the wrapper's
+	// className differs slightly for layout.
+	const renderGateActionButtons = (task: Task, wrapperClassName: string) => (
+		<div
+			className={wrapperClassName}
+			onClick={(event) => event.stopPropagation()}
+			onKeyDown={(event) => event.stopPropagation()}
+		>
+			<button
+				type="button"
+				disabled={gatePendingTaskId === task.id}
+				onClick={() => runGateAction(task, "approve")}
+				title={`Approve ${task.id} (advance past the human gate)`}
+				aria-label={`Approve ${task.id}`}
+				className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60"
+			>
+				✓
+			</button>
+			<button
+				type="button"
+				disabled={gatePendingTaskId === task.id}
+				onClick={() => runGateAction(task, "reject")}
+				title={`Reject ${task.id} (archive)`}
+				aria-label={`Reject ${task.id}`}
+				className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
+			>
+				✕
+			</button>
+			<button
+				type="button"
+				disabled={gatePendingTaskId === task.id}
+				onClick={() => runGateAction(task, "escalate")}
+				title={`Escalate ${task.id} (needs-human)`}
+				aria-label={`Escalate ${task.id}`}
+				className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
+			>
+				⚠
+			</button>
+		</div>
+	);
+
 	const getPriorityColor = (priority?: string) => {
 		switch (priority?.toLowerCase()) {
 			case "high":
@@ -698,44 +747,7 @@ const TaskList: React.FC<TaskListProps> = ({
 								{task.branch}
 							</span>
 						)}
-						{canShowGateActions(task) && (
-							<div
-								className="ml-auto flex shrink-0 items-center gap-1"
-								onClick={(event) => event.stopPropagation()}
-								onKeyDown={(event) => event.stopPropagation()}
-							>
-								<button
-									type="button"
-									disabled={gatePendingTaskId === task.id}
-									onClick={() => runGateAction(task, "approve")}
-									title={`Approve ${task.id} (advance past the human gate)`}
-									aria-label={`Approve ${task.id}`}
-									className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60"
-								>
-									✓
-								</button>
-								<button
-									type="button"
-									disabled={gatePendingTaskId === task.id}
-									onClick={() => runGateAction(task, "reject")}
-									title={`Reject ${task.id} (archive)`}
-									aria-label={`Reject ${task.id}`}
-									className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
-								>
-									✕
-								</button>
-								<button
-									type="button"
-									disabled={gatePendingTaskId === task.id}
-									onClick={() => runGateAction(task, "escalate")}
-									title={`Escalate ${task.id} (needs-human)`}
-									aria-label={`Escalate ${task.id}`}
-									className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
-								>
-									⚠
-								</button>
-							</div>
-						)}
+						{canShowGateActions(task) && renderGateActionButtons(task, "ml-auto flex shrink-0 items-center gap-1")}
 					</div>
 				</td>
 				<td className="px-3 py-2.5">
@@ -814,6 +826,177 @@ const TaskList: React.FC<TaskListProps> = ({
 			</table>
 		</div>
 	);
+
+	// Mobile card view (BACK-693 Phase C): replaces the table for narrow
+	// viewports. Each card always shows ID/Title/Status; Priority/Labels/
+	// Assignee/Milestone/Created live behind a per-card expand affordance so
+	// the collapsed card stays compact. Desktop keeps rendering `renderTaskRow`/
+	// `renderLaneTable` unchanged.
+	const [expandedCardIds, setExpandedCardIds] = useState<Set<string>>(new Set());
+	const toggleCardExpanded = (taskId: string) => {
+		setExpandedCardIds((previous) => {
+			const next = new Set(previous);
+			if (next.has(taskId)) {
+				next.delete(taskId);
+			} else {
+				next.add(taskId);
+			}
+			return next;
+		});
+	};
+
+	const renderTaskCard = (task: Task) => {
+		const isFromOtherBranch = Boolean(task.branch);
+		const visibleAssignees = task.assignee.slice(0, 2);
+		const assigneeOverflow = Math.max(task.assignee.length - visibleAssignees.length, 0);
+		const milestoneLabel = task.milestone ? getMilestoneLabel(task.milestone, milestoneEntities) : "—";
+		const createdLabel = formatStoredUtcDateForCompactDisplay(task.createdDate ?? "");
+		const actor = getPhaseActor(task.pipeline_id, task.phase);
+		const claimState: ClaimState = claimStates[task.id] ?? "unclaimed";
+		const driverIndicator = computeDriverIndicator(actor, claimState);
+		const taskHasChildren = hasChildren(task, tasks);
+		const isExpanded = expandedCardIds.has(task.id);
+
+		return (
+			<div
+				key={task.id}
+				data-testid="task-card"
+				onClick={() => onEditTask(task)}
+				className={`cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-3 transition-colors ${
+					isFromOtherBranch
+						? "bg-amber-50/50 hover:bg-amber-100/70 dark:bg-amber-900/10 dark:hover:bg-amber-900/20"
+						: "bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700/50"
+				}`}
+			>
+				<div className="flex items-start justify-between gap-2">
+					<div className="min-w-0 flex-1">
+						<div className="flex items-center gap-1.5 text-xs font-mono text-gray-500 dark:text-gray-400">
+							{driverIndicator && (
+								<span
+									className="shrink-0 text-[13px] leading-none"
+									title={DRIVER_INDICATOR_LABEL[driverIndicator]}
+									aria-label={DRIVER_INDICATOR_LABEL[driverIndicator]}
+								>
+									{DRIVER_INDICATOR_ICON[driverIndicator]}
+								</span>
+							)}
+							{taskHasChildren && (
+								<span
+									className="shrink-0 text-[13px] leading-none text-gray-400 dark:text-gray-500"
+									title="Has subtasks"
+									aria-label="Has subtasks"
+								>
+									▸
+								</span>
+							)}
+							{task.id}
+						</div>
+						<div
+							className={`mt-1 text-sm font-medium truncate ${
+								isFromOtherBranch ? "text-gray-600 dark:text-gray-300" : "text-gray-900 dark:text-gray-100"
+							}`}
+							title={task.title}
+						>
+							{task.title}
+						</div>
+					</div>
+					<span
+						className={`shrink-0 inline-flex rounded-circle px-2 py-0.5 text-[11px] font-medium ${getStatusBadgeClass(task.status, task.phase, task.pipeline_id)}`}
+					>
+						{displayStatus(task, availableStatuses)}
+					</span>
+				</div>
+
+				{canShowGateActions(task) && renderGateActionButtons(task, "mt-2 flex items-center gap-1")}
+
+				<button
+					type="button"
+					onClick={(event) => {
+						event.stopPropagation();
+						toggleCardExpanded(task.id);
+					}}
+					aria-expanded={isExpanded}
+					className="mt-2 inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+				>
+					{isExpanded ? "Hide details" : "Show details"}
+					<svg
+						className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+					</svg>
+				</button>
+
+				{isExpanded && (
+					<div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-100 dark:border-gray-700 pt-2 text-xs">
+						<div>
+							<div className="text-gray-400 dark:text-gray-500">Priority</div>
+							{task.priority ? (
+								<span className={`inline-flex mt-0.5 rounded-circle px-2 py-0.5 text-[11px] font-medium ${getPriorityColor(task.priority)}`}>
+									{task.priority}
+								</span>
+							) : (
+								<span className="text-gray-300 dark:text-gray-600">—</span>
+							)}
+						</div>
+						<div>
+							<div className="text-gray-400 dark:text-gray-500">Milestone</div>
+							<div className="truncate text-gray-600 dark:text-gray-300" title={milestoneLabel}>
+								{milestoneLabel}
+							</div>
+						</div>
+						<div>
+							<div className="text-gray-400 dark:text-gray-500">Labels</div>
+							{task.labels.length > 0 ? (
+								<div className="mt-0.5 flex flex-wrap items-center gap-1">
+									{task.labels.map((label) => (
+										<span
+											key={label}
+											className="inline-flex max-w-[7rem] truncate rounded-circle bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+											title={label}
+										>
+											{label}
+										</span>
+									))}
+								</div>
+							) : (
+								<span className="text-gray-300 dark:text-gray-600">—</span>
+							)}
+						</div>
+						<div>
+							<div className="text-gray-400 dark:text-gray-500">Assignee</div>
+							{visibleAssignees.length > 0 ? (
+								<div className="mt-0.5 flex items-center gap-1.5">
+									{visibleAssignees.map((assignee) => (
+										<span
+											key={assignee}
+											title={assignee}
+											className="inline-flex h-6 w-6 items-center justify-center rounded-circle bg-blue-100 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-200"
+										>
+											{getAssigneeInitials(assignee)}
+										</span>
+									))}
+									{assigneeOverflow > 0 && (
+										<span className="text-[11px] text-gray-500 dark:text-gray-400">+{assigneeOverflow}</span>
+									)}
+								</div>
+							) : (
+								<span className="text-gray-300 dark:text-gray-600">—</span>
+							)}
+						</div>
+						<div className="col-span-2">
+							<div className="text-gray-400 dark:text-gray-500">Created</div>
+							<div className="text-gray-500 dark:text-gray-400">{createdLabel}</div>
+						</div>
+					</div>
+				)}
+			</div>
+		);
+	};
+
+	const renderCardList = (list: Task[]) => <div className="space-y-2">{list.map((task) => renderTaskCard(task))}</div>;
 
 	const sortedDisplayTasks = useMemo(() => {
 		const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
@@ -1022,7 +1205,33 @@ const TaskList: React.FC<TaskListProps> = ({
 					</button>
 				</div>
 
-				<div className="flex flex-wrap items-center gap-3 justify-between">
+				{isMobile && (
+					<button
+						type="button"
+						onClick={() => setIsFilterPanelOpen((previous) => !previous)}
+						aria-expanded={isFilterPanelOpen}
+						aria-controls="task-list-filter-panel"
+						className="inline-flex items-center gap-2 self-start py-2 px-3 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+					>
+						Filters
+						{hasActiveFilters && (
+							<span className="inline-flex h-2 w-2 rounded-full bg-blue-500" aria-hidden="true" />
+						)}
+						<svg
+							className={`w-4 h-4 transition-transform duration-200 ${isFilterPanelOpen ? "rotate-180" : ""}`}
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+						</svg>
+					</button>
+				)}
+
+				<div
+					id="task-list-filter-panel"
+					className={`flex flex-wrap items-center gap-3 justify-between ${isMobile && !isFilterPanelOpen ? "hidden" : ""}`}
+				>
 					<div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
 						<select
 							value={statusFilter}
@@ -1138,24 +1347,28 @@ const TaskList: React.FC<TaskListProps> = ({
 					</p>
 				</div>
 			) : laneMode === "none" ? (
-				<div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-					<div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/90 supports-[backdrop-filter]:dark:bg-gray-700/85">
-						<div ref={tableHeaderScrollRef} className="overflow-x-auto" style={{ overflowY: "hidden" }}>
+				isMobile ? (
+					renderCardList(visibleSortedTasks)
+				) : (
+					<div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+						<div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/95 backdrop-blur supports-[backdrop-filter]:bg-gray-50/90 supports-[backdrop-filter]:dark:bg-gray-700/85">
+							<div ref={tableHeaderScrollRef} className="overflow-x-auto" style={{ overflowY: "hidden" }}>
+								<table className="w-full min-w-[1100px] table-fixed border-collapse">
+									{renderColumnGroup()}
+									<thead>{renderHeaderRow()}</thead>
+								</table>
+							</div>
+						</div>
+						<div ref={tableBodyScrollRef} className="overflow-x-auto" style={{ overflowY: "hidden" }}>
 							<table className="w-full min-w-[1100px] table-fixed border-collapse">
 								{renderColumnGroup()}
-								<thead>{renderHeaderRow()}</thead>
+								<tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+									{visibleSortedTasks.map((task) => renderTaskRow(task))}
+								</tbody>
 							</table>
 						</div>
 					</div>
-					<div ref={tableBodyScrollRef} className="overflow-x-auto" style={{ overflowY: "hidden" }}>
-						<table className="w-full min-w-[1100px] table-fixed border-collapse">
-							{renderColumnGroup()}
-							<tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-								{visibleSortedTasks.map((task) => renderTaskRow(task))}
-							</tbody>
-						</table>
-					</div>
-				</div>
+				)
 			) : (
 				<div className="space-y-4">
 					{visibleLanes.map((lane) => {
@@ -1211,10 +1424,12 @@ const TaskList: React.FC<TaskListProps> = ({
 															{group.label}{" "}
 															<span className="ml-1 text-gray-400 dark:text-gray-500">({group.tasks.length})</span>
 														</h4>
-														{renderLaneTable(group.tasks)}
+														{isMobile ? renderCardList(group.tasks) : renderLaneTable(group.tasks)}
 													</div>
 												))
-											: renderLaneTable(laneTasks)}
+											: isMobile
+												? renderCardList(laneTasks)
+												: renderLaneTable(laneTasks)}
 									</div>
 								)}
 							</div>

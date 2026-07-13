@@ -17,6 +17,7 @@ import { sanitizeUrlTitle } from '../utils/urlHelpers';
 import { getWebVersion } from '../utils/version';
 import { apiClient } from '../lib/api';
 import { parseSearchCommandQuery } from '../utils/search-command-query';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 // Utility functions for ID transformations
 const stripIdPrefix = (id: string): string => {
@@ -338,22 +339,37 @@ const SideNavigation = memo(function SideNavigation({
 		setIsCollapsed((prev: any) => !prev);
 	}, []);
 
-	return (
-		<ErrorBoundary>
-			<div className={`relative bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col min-h-full z-10 ${isCollapsed ? 'w-16' : 'w-80 min-w-80'}`}>
+	const isMobile = useIsMobile();
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+	// Mobile branch (BACK-693 AC#1): sidebar is hidden by default, exposed via a
+	// fixed hamburger button that opens an overlay drawer (scrim + panel). The
+	// drawer always renders the nav fully expanded (mobileForceExpanded below
+	// forces isCollapsed's effect to false) since there's no room-pressure
+	// reason to collapse it on a touch overlay. Desktop branch (isMobile ===
+	// false) keeps the exact same JSX as before this change.
+	const mobileForceExpanded = isMobile;
+	const effectiveCollapsed = mobileForceExpanded ? false : isCollapsed;
+
+	const sidebarPanel = (
+		<div className={`relative bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col min-h-full z-10 ${effectiveCollapsed ? 'w-16' : 'w-80 min-w-80'}`}>
 			{/* Search Bar */}
-			<div className={`${isCollapsed ? 'px-2' : 'px-4'} border-b border-gray-200 dark:border-gray-700 h-18 flex items-center relative`}>
-				{/* Collapse Toggle Button - Always positioned on the border */}
-				<button
-					onClick={toggleCollapse}
-					className="absolute -right-3 top-1/2 transform -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-circle shadow-sm hover:shadow-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200"
-					aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-					title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-				>
-					{isCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
-				</button>
-				
-				{!isCollapsed ? (
+			<div className={`${effectiveCollapsed ? 'px-2' : 'px-4'} border-b border-gray-200 dark:border-gray-700 h-18 flex items-center relative`}>
+				{/* Collapse Toggle Button - Always positioned on the border. Hidden on
+				    mobile: the drawer is always fully expanded and closes via the scrim/
+				    hamburger instead, so this desktop-only affordance would be a no-op. */}
+				{!mobileForceExpanded && (
+					<button
+						onClick={toggleCollapse}
+						className="absolute -right-3 top-1/2 transform -translate-y-1/2 z-10 flex items-center justify-center w-6 h-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-circle shadow-sm hover:shadow-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200"
+						aria-label={effectiveCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+						title={effectiveCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+					>
+						{effectiveCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
+					</button>
+				)}
+
+				{!effectiveCollapsed ? (
 					<div className="flex items-center w-full">
 						<div className="relative flex-1">
 							<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
@@ -393,7 +409,7 @@ const SideNavigation = memo(function SideNavigation({
 			</div>
 
 			{/* Unified Search Results */}
-			{!isCollapsed && searchQuery.trim() && unifiedSearchResults.length > 0 && (
+			{!effectiveCollapsed && searchQuery.trim() && unifiedSearchResults.length > 0 && (
 				<div className="p-4 border-b border-gray-200 dark:border-gray-700">
 					<div className="flex items-center justify-between mb-3">
 						<h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Search Results</h3>
@@ -451,13 +467,13 @@ const SideNavigation = memo(function SideNavigation({
 				</div>
 			)}
 
-			{!isCollapsed && searchQuery.trim() && unifiedSearchResults.length === 0 && !isSearching && !searchError && (
+			{!effectiveCollapsed && searchQuery.trim() && unifiedSearchResults.length === 0 && !isSearching && !searchError && (
 				<div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
 					No matching results
 				</div>
 			)}
 
-			{!isCollapsed && searchQuery.trim() && searchError && (
+			{!effectiveCollapsed && searchQuery.trim() && searchError && (
 				<div className="px-4 py-2 text-sm text-red-600 dark:text-red-400 border-b border-gray-200 dark:border-gray-700">
 					{searchError}
 				</div>
@@ -466,12 +482,12 @@ const SideNavigation = memo(function SideNavigation({
 
 			<nav className="flex-1 overflow-y-auto">
 				{/* Loading Indicator - only show when expanded since collapsed nav is static */}
-				{isLoading && !isCollapsed && (
+				{isLoading && !effectiveCollapsed && (
 					<SidebarSkeleton isCollapsed={false} />
 				)}
 
 				{/* Error State */}
-				{error && !isLoading && !isCollapsed && (
+				{error && !isLoading && !effectiveCollapsed && (
 					<div className="px-4 py-4">
 						<div className="text-center p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
 							<p className="text-sm text-red-700 dark:text-red-400 mb-2">Failed to load navigation</p>
@@ -488,7 +504,7 @@ const SideNavigation = memo(function SideNavigation({
 				)}
 				
 				{/* Tasks Section - Hidden in collapsed state and when loading */}
-				{!isCollapsed && !isLoading && (
+				{!effectiveCollapsed && !isLoading && (
 					<div className="px-4 py-4">
 						<div className="flex items-center space-x-3 text-gray-700 dark:text-gray-300">
 							<span className="text-gray-500 dark:text-gray-400"><Icons.Tasks /></span>
@@ -498,7 +514,7 @@ const SideNavigation = memo(function SideNavigation({
 				)}
 
 				{/* Navigation items only show when expanded and not loading */}
-				{!isCollapsed && !isLoading && (
+				{!effectiveCollapsed && !isLoading && (
 					<div className="px-4 space-y-1">
 						{/* Kanban Board Navigation - hidden (BACK-647): the board is deprecated to a
 						    desktop-only overview. Its route (now "/board", see BACK-653) stays
@@ -552,7 +568,7 @@ const SideNavigation = memo(function SideNavigation({
 					</div>
 				)}
 
-				{!isCollapsed && !isLoading && (
+				{!effectiveCollapsed && !isLoading && (
 					<>
 						{/* Divider between Tasks and Documents */}
 						<div className="mx-4 my-2 border-t border-gray-200 dark:border-gray-700"></div>
@@ -671,7 +687,7 @@ const SideNavigation = memo(function SideNavigation({
 					</>
 				)}
 
-				{isCollapsed && (
+				{effectiveCollapsed && (
 					<div className="px-2 py-2 space-y-2">
 						{/* Kanban Board Navigation - hidden (BACK-647), see expanded nav for rationale. */}
 						<NavLink
@@ -763,8 +779,8 @@ const SideNavigation = memo(function SideNavigation({
 			</nav>
 			
 			{/* Settings Button - Bottom Left */}
-			<div className={`border-t border-gray-200 dark:border-gray-700 ${isCollapsed ? 'px-2 py-2' : 'px-4 py-4'}`}>
-				{!isCollapsed ? (
+			<div className={`border-t border-gray-200 dark:border-gray-700 ${effectiveCollapsed ? 'px-2 py-2' : 'px-4 py-4'}`}>
+				{!effectiveCollapsed ? (
 					<NavLink
 						to="/settings"
 						className={({ isActive }) =>
@@ -800,11 +816,57 @@ const SideNavigation = memo(function SideNavigation({
 					</NavLink>
 				)}
 			</div>
-			
+
 			<Tooltip id="sidebar-tooltip" place="right" />
 			</div>
-		</ErrorBoundary>
 	);
+
+	// Mobile branch (BACK-693 AC#1): sidebar is hidden by default; a fixed
+	// hamburger button triggers an overlay drawer (scrim + the same nav panel
+	// above, always expanded) instead of the in-flow desktop column.
+	if (isMobile) {
+		return (
+			<ErrorBoundary>
+				<button
+					type="button"
+					onClick={() => setIsDrawerOpen(true)}
+					aria-label="Open navigation menu"
+					aria-expanded={isDrawerOpen}
+					className="fixed top-3 left-3 z-30 flex items-center justify-center w-10 h-10 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm text-gray-600 dark:text-gray-300"
+				>
+					<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+					</svg>
+				</button>
+
+				{isDrawerOpen && (
+					<>
+						{/* Scrim */}
+						<button
+							type="button"
+							aria-label="Close navigation menu"
+							onClick={() => setIsDrawerOpen(false)}
+							className="fixed inset-0 z-20 bg-black/40"
+						/>
+						{/* Overlay drawer */}
+						<div
+							className="fixed inset-y-0 left-0 z-20 max-w-[85vw] overflow-y-auto"
+							onClick={(event) => {
+								// Close the drawer once a nav link inside it is clicked.
+								if ((event.target as HTMLElement).closest('a')) {
+									setIsDrawerOpen(false);
+								}
+							}}
+						>
+							{sidebarPanel}
+						</div>
+					</>
+				)}
+			</ErrorBoundary>
+		);
+	}
+
+	return <ErrorBoundary>{sidebarPanel}</ErrorBoundary>;
 });
 
 export default SideNavigation;
