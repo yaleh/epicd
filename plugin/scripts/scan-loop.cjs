@@ -64,6 +64,19 @@ const EPIC_PROPOSAL_STATUS  = 'epic: proposal';
 const EPIC_REFINING_STATUS  = 'epic: refining';
 const REAP_THRESHOLD_MS = 1800000; // 30 minutes
 
+// resolveBacklogDirName: probe which board directory actually exists under `root`,
+// in the same priority order as resolveBuiltInBacklogDirectory (backlog > .backlog >
+// .epicd, BACK-700). Probes existence only — never creates one; defaults to 'backlog'
+// for backward compatibility with a never-initialized repo.
+function resolveBacklogDirName(root) {
+  try {
+    if (fs.existsSync(path.join(root, 'backlog'))) return 'backlog';
+    if (fs.existsSync(path.join(root, '.backlog'))) return '.backlog';
+    if (fs.existsSync(path.join(root, '.epicd'))) return '.epicd';
+  } catch (_) { /* fall through to default */ }
+  return 'backlog';
+}
+
 // MODE_CHANNELS: --mode <name> selects which channel group a scanner instance polls.
 // 'ready' (default) reproduces the pre-mode scanner's full channel set unchanged.
 // 'draft' is the loop-draft skill's mode — only Draft-lane channels.
@@ -75,7 +88,7 @@ const MODE_CHANNELS = {
 function parseArgs(argv) {
   const args = {
     tasksDir:       null,   // null → resolveTasksDir() derives from git toplevel
-    stopFile:       'backlog/.loop-stop',
+    stopFile:       null,   // null → runtime entry point derives from resolveBacklogDirName
     interval:       2,
     scanOnce:       false,
     reviewInterval: 10,
@@ -104,7 +117,7 @@ function resolveTasksDir(args) {
   if (args && args.tasksDir) return args.tasksDir;
   try {
     const root = execSync('git rev-parse --show-toplevel').toString().trim();
-    return path.join(root, 'backlog', 'tasks');
+    return path.join(root, resolveBacklogDirName(root), 'tasks');
   } catch (_) {
     return 'backlog/tasks';
   }
@@ -217,7 +230,7 @@ function findSameFieldPeers(selfPid, tasksDir, mode) {
         const cwd = fs.readlinkSync('/proc/' + pid + '/cwd');
         const root = execSync('git rev-parse --show-toplevel',
           { cwd, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-        target = path.join(root, 'backlog', 'tasks');
+        target = path.join(root, resolveBacklogDirName(root), 'tasks');
       } catch (_) { target = null; }
     }
     // Resolve the candidate's mode the same way parseArgs does (default 'ready').
@@ -489,8 +502,8 @@ function computeReviewDueLine(headShort, isDue) {
 // reap threshold. Purely observational — performs NO status mutation and NO worktree
 // mutation (TASK-242 removed the destructive auto-requeue/auto-delete branch that used to
 // live here; see ADR-010 INV-20). Recovery from a genuinely orphaned task is a human action.
-// Best-effort append to backlog/.reap-log.jsonl (NOT gcl-events.jsonl — that file has a
-// 21-field gate schema; this is a separate lightweight observability stream).
+// Best-effort append to <backlogDir>/.reap-log.jsonl (NOT gcl-events.jsonl — that file
+// has a 21-field gate schema; this is a separate lightweight observability stream).
 function logStaleInProgress(tasksDir, id) {
   try {
     const reapLog = path.join(tasksDir, '..', '.reap-log.jsonl');
@@ -634,9 +647,7 @@ if (require.main === module) {
   const backlogDir = path.dirname(tasksDir);
   const repoRoot   = path.dirname(backlogDir);
   const intervalMs = Math.round(args.interval * 1000);
-  const stopFile   = (args.stopFile && args.stopFile !== 'backlog/.loop-stop')
-    ? args.stopFile
-    : path.join(backlogDir, '.loop-stop');
+  const stopFile   = args.stopFile ? args.stopFile : path.join(backlogDir, '.loop-stop');
 
   // Clean stop handlers (defined early; releaseScannerLock is a no-op until lock is acquired)
   let _releaseLock = () => {};
