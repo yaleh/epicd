@@ -16,7 +16,7 @@ task_actions:
   - id: dispatch-worker
     label: "Dispatch to worker"
     command: manda-dispatch submit "/epicd:fixpoint-convergence $TASK_ID" --worker my-worker
-    whenStatus: ["To Do", "In Progress"]
+    whenPhase: ["backlog", "implementing"]
   - id: open-worktree
     label: "Open worktree"
     command: code "$(git worktree list | grep $TASK_ID | awk '{print $1}')"
@@ -30,8 +30,13 @@ Each entry:
 - `id` — stable identifier referenced by the Web UI and the API route. Must be unique.
 - `label` — button text shown in the Web UI.
 - `command` — a shell command (`sh -c`), run on the web server process, in the project root.
-- `whenStatus` (optional) — a status whitelist. When set, the button is only shown on tasks
-  whose current status is in the list. When omitted, the button is shown on every task.
+- `whenPhase` (optional) — a whitelist of raw pipeline **phase machine-names** (e.g.
+  `drafting`, `backlog`, `needs-human`, `implementing`, `done`, `spiking` — see
+  `Pipeline.states` in `src/engine/pipeline.ts`), compared directly against the task's
+  `phase`. When set, the button is only shown on tasks whose current phase is in the list;
+  legacy status-only tasks with no `phase` never match a non-empty list. When omitted, the
+  button is shown on every task. Every value is validated at config-load time — an illegal
+  phase name throws rather than silently hiding the button.
 
 The command has the same variables available as `onStatusChange` (see `backlog config get
 onStatusChange`), injected as environment variables:
@@ -39,6 +44,38 @@ onStatusChange`), injected as environment variables:
 - `$TASK_ID`
 - `$TASK_TITLE`
 - `$TASK_STATUS`
+
+## Quoting and building JSON payloads safely
+
+`command` runs via `sh -c`, and `$TASK_ID` / `$TASK_TITLE` / `$TASK_STATUS` are
+injected as **environment variables** — so inside the command string they are live
+shell values. Two consequences bite the most:
+
+1. **Backticks and `$( )` are command substitution, not literal text.** A payload
+   like `` -args="{...run `epicd task view $TASK_ID`...}" `` does not embed the literal
+   string `` `epicd task view 5` `` — the shell *runs* `epicd task view 5` and splices
+   its multi-line output into the value, producing raw newlines that break the JSON
+   (`invalid character '\n' in string literal`). If you mean a literal backtick,
+   escape it (`` \` ``) or, better, build the JSON with a tool (below).
+
+2. **Never hand-concatenate task fields into JSON.** A title with a `"`, `\`, tab, or
+   newline will corrupt a hand-written `{"task":"...$TASK_TITLE..."}`. Use `jq` to do
+   the JSON encoding for you:
+
+   ```yaml
+   command: >-
+     manda-dispatch submit -id="$TASK_ID" -to=worker -async
+     -args="$(jq -nc --arg id "$TASK_ID"
+     '{task: ("Work on epicd task " + $id + ": run `epicd task view " + $id + "`, then follow `epicd instructions task-execution`.")}')"
+   ```
+
+   `jq -nc --arg` performs all JSON escaping, and backticks inside jq's single-quoted
+   program stay literal (no shell substitution). This is the recommended form for any
+   action that dispatches a JSON payload.
+
+Because task fields are author-/task-controlled text run through `sh -c`, always
+**double-quote** every variable reference (`"$TASK_TITLE"`, never bare `$TASK_TITLE`)
+to avoid word-splitting and accidental glob/metacharacter interpretation.
 
 ## Security gating
 
