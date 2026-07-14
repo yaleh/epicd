@@ -12,132 +12,95 @@ description: "Draft an initial proposal for a task or epic and self-review it ag
 > lands, this skill can only be invoked manually, or by an agent a human has
 > explicitly directed to run it — never assume it fires on its own.
 
-## Background
+λ(taskId: TaskId) → DraftOutcome
 
-Every task in this repository's own history — every `Basic`/`Epic` entry under
-`backlog/tasks/` — starts life as a rough idea and only becomes actionable once it
-has passed through a drafting step that turns that idea into a structured proposal:
-a stated motivation, a set of goals someone can actually check, and a plain
-statement of what is explicitly out of scope. Skipping straight to implementation
-plans off an unreviewed idea repeatedly produces scope creep, unverifiable goals,
-and rework once a reviewer finally asks "why does this exist?" — the drafting step
-exists to catch exactly that class of defect before it's expensive to fix.
+Every task in this repository's own history starts life as a rough idea and only
+becomes actionable once it has passed through a drafting step that turns that idea
+into a structured proposal: a stated motivation, a set of goals someone can
+actually check, and a plain statement of what is explicitly out of scope. Skipping
+straight to implementation plans off an unreviewed idea repeatedly produces scope
+creep, unverifiable goals, and rework once a reviewer finally asks "why does this
+exist?" — the drafting step exists to catch exactly that class of defect before
+it's expensive to fix.
 
-## Method
+## Spec
 
-### Phase 0 — Read the seed
-
-Run `epicd task view <taskId> --plain` and read the current Description. If
-the task already carries a substantive Description, treat it as the seed to refine
-in place — do not throw it away and start from a blank page. If the Description is
-thin (a title-only stub or a one-line idea), you are drafting from scratch.
-
-### Phase 1 — Draft the proposal
-
-Write (or rewrite) the task's Description as a proposal with these sections:
-
-```markdown
-## Background
-(3-8 lines: WHY this is needed — what problem it solves, not just what it does)
-
-## Goals
-1. (a concrete, verifiable outcome — checkable by reading code or running a command)
-2. ...
-
-## Approach
-(High-level shape of the change: what to build, the key pieces involved — no
-implementation code, no file-by-file diff)
-
-## Non-Goals / Trade-offs
-(What this explicitly will NOT do, and any risks or alternatives considered)
 ```
+DraftOutcome = Approved(rounds: Int) | NeedsHuman(rounds: Int, unresolved: [String])
 
-Search the codebase enough to ground the Background and Approach in what actually
-exists today — a proposal that contradicts the current architecture fails review
-before it ever reaches a human.
+Proposal :: {
+  background : Text,        -- WHY not WHAT, 3-8 lines
+  goals      : [Goal],      -- each concretely verifiable
+  approach   : Text,        -- high-level shape, no file-by-file diff
+  nonGoals   : Text,        -- explicit exclusions + trade-offs
+  ac         : [Criterion]  -- SEPARATE structured field; persisted via
+                             --   `task edit --ac`, never written into Description
+}
 
-Separately from the Description markdown above, draft the task's Acceptance
-Criteria — the engine's structured `## Acceptance Criteria` field (persisted via
-`epicd task edit --ac`, not written into the Description). Follow CLAUDE.md's
-"Acceptance Criteria conventions when authoring a task":
+draft :: TaskId → DraftOutcome
+draft(id) =
+  requires sideEffects(draft) ⊆ {description, ac}  -- no branches/worktrees/child tasks,
+                                                     -- no engine mechanics (complete/adjudicate/
+                                                     -- DoD re-run/merge-lock/worktree/claim)
+  requires ¬nestedAgentCalls
+  seed = run(epicd task view <id> --plain)
+  -- substantive Description ⇒ refine in place, don't discard it and start
+  -- blank; thin/title-only stub ⇒ draft from scratch.
+  loop(1, write(seed, id))
 
-- A convergence target (the task's deliverable *is* a mechanism meant to reach
-  some end state) becomes a machine-checkable AC: what monotonically shrinks,
-  the termination condition, and the exact command that goes green — never a
-  prose claim that it terminates.
-- An invariant ("X must not change") becomes a negative AC naming its own
-  concrete check (e.g. "MCP server name stays `backlog`; verify:
-  `grep MCP_SERVER_NAME src/cli.ts`"). Only write one if it is literally true
-  for this task's actual scope — otherwise it belongs in Non-Goals, not as an
-  AC that misdescribes the change.
-- Never phrase an AC as a safety argument ("this is an extension, not a
-  rewrite") — state a checkable fact instead.
-- If an AC claims a change is visible to an external consumer (another tool,
-  file format, downstream process), name the exact field or code path that
-  consumer reads — verified by reading its real logic/schema — not just "the
-  value appears in the file somewhere."
-- Do not add a separate "不动点"/"严格不改" section to the task. Fold
-  convergence targets and invariants into Acceptance Criteria as above; keep
-  un-checkable scope prose in the Description's Non-Goals / Trade-offs instead.
+write :: (Seed, TaskId) → Proposal
+write(seed, id) = ground(search(codebase)) ∧ compose(
+  background : explain(why, ¬what),
+  goals      : [g | g ← extract(seed), verifiable(g)],
+  approach   : shape(seed) ∧ ¬implementationDiff,
+  nonGoals   : exclusions(seed) ∧ risksAndAlternatives,
+  ac         : draftAC(seed, kind(id))
+)
+-- Search the codebase enough to ground background/approach in what actually
+-- exists today — a proposal that contradicts the current architecture fails
+-- review before it ever reaches a human.
 
-For an Epic (`kind:epic`), write the Acceptance Criteria at the epic level too —
-this repo's own precedent (e.g. BACK-600, BACK-664) always states the epic's
-overall done-state as real, checkable ACs, not an empty list left for children to
-define; children each cover a sub-scope of the same epic-level criteria.
+draftAC :: (Seed, Kind) → [Criterion]      -- CLAUDE.md "AC conventions"
+draftAC(seed, kind) =
+    [convergenceAC(d) | d ← convergenceTargets(seed)]      -- what shrinks + termination condition + exact command that goes green — never a prose claim that it terminates
+  ∪ [invariantAC(d)    | d ← invariants(seed), true(d)]     -- negative AC naming its own check, e.g. "MCP server name stays `backlog`; verify: `grep MCP_SERVER_NAME src/cli.ts`"; a false invariant belongs in nonGoals, not ac
+  where ¬∃ c. isSafetyRationalization(c)                    -- "this is an extension, not a rewrite" ⇒ reject; state a checkable fact instead
+    ∧   ∀ c. claimsExternalConsumer(c) → namesExactReadPath(c)
+    ∧   ¬separateFixpointSection                            -- fold into ac; scope prose → nonGoals, never a standalone 不动点/严格不改 section
+    ∧   (kind == epic → ac ≠ [] ∧ epicLevelCheckable(ac))    -- precedent: BACK-600, BACK-664 — epic-level done-state is real ACs, not left empty for children to define
 
-### Phase 2 — Self-review loop (up to 3 rounds)
+loop :: (Int, Proposal) → DraftOutcome
+loop(n, p) =
+  v = selfReview(p) in
+  v.pass                  → finalise(p, Approved(n))
+  ¬v.pass ∧ n < 3          → loop(n+1, revise(p, v.failures))
+  ¬v.pass ∧ n == 3         → finalise(p, NeedsHuman(n, v.failures))
+  -- round 3 failure: stop revising, leave the draft as-is, route to human
+  -- review (finalise records which criteria did not converge) rather than
+  -- silently shipping an unresolved proposal.
 
-After each draft (including the first), check it against this fixed checklist:
+selfReview :: Proposal → Verdict
+selfReview(p) = check(
+  motivation   : explainsWhy(p.background) ∧ lines(p.background) ∈ [3,8],
+  goals        : ∀ g ∈ p.goals. verifiable(g) ∧ ¬vague(g),         -- "improve"/"better"/"robust" w/o a check ⇒ fail
+  feasibility  : confirmedBySearch(p.approach),                     -- not assumed
+  completeness : stated(p.nonGoals),
+  consistency  : ¬∃ s1,s2 ∈ sections(p). contradicts(s1,s2)   -- includes: p does not
+               ∧ ¬smugglesUnrelatedScope(p),                    -- smuggle scope beyond
+                                                                  -- what background/goals justify
+  acDiscipline : ∀ c ∈ p.ac. concreteCheckable(c)                   -- a command, a file path, a grep, an assertion — not prose intent
+               ∧ ¬(allGreen(p.ac) ∧ goalStillUnmet)                 -- adversarial self-check: "could every ac go green while the goal is still unmet?" — if yes, fail this round and add the closing ac
+)
 
-- **Motivation**: does Background explain WHY, not just WHAT, in roughly 3-8 lines?
-- **Goals**: is every goal concretely verifiable (by inspection or a shell command),
-  with no vague language ("improve", "better", "robust" without a check attached)?
-- **Feasibility**: does the Approach match what the codebase can actually support —
-  did you search to confirm, rather than assume?
-- **Completeness**: are non-goals/trade-offs stated, not left implicit?
-- **Consistency**: no section contradicts another?
-- **AC discipline**: does every Acceptance Criterion name a concrete, checkable
-  fact (a command, a file path, a grep, an assertion) rather than prose intent?
-  Are convergence targets phrased as machine-checkable termination conditions,
-  and invariants phrased as negative ACs with a named check? Adversarially ask:
-  "could every AC here go green while the task's actual goal is still unmet?" —
-  if yes, this round fails; add the AC that closes that gap.
-
-If every criterion passes: record the outcome and stop (see Finalise below).
-
-If any criterion fails and this was round 1 or 2: fix the failing section(s)
-in place and re-run the checklist as the next round.
-
-If any criterion still fails after round 3: stop revising, leave the draft as-is,
-and route to human review (append a note explaining which criteria did not
-converge) rather than silently shipping an unresolved proposal.
-
-### Finalise
-
-Persist the converged Acceptance Criteria as the task's actual `--ac` list
-(replace, don't append — remove any stale/placeholder criteria first with
-`--remove-ac <index>` if the task already carried some):
-
-```bash
-epicd task edit <taskId> --ac "<criterion 1>" --ac "<criterion 2>" ...
+finalise :: (Proposal, DraftOutcome) → DraftOutcome
+finalise(p, outcome) =
+  run(epicd task edit <id> <foreach c ∈ p.ac: --ac "<c>">)
+  -- replace, not append: `--remove-ac <index>` any stale/placeholder
+  -- criteria first if the task already carried some.
+  run(epicd task edit <id> --append-notes "authoring/draft self-review: <outcome> after <n> round(s)<: unresolved criteria if NeedsHuman>")
+  -- sideEffects ⊆ {description, ac} (see draft's requires) also means:
+  -- ¬touch(phase) ∧ ¬touch(status) — that transition belongs to whatever
+  -- drives the pipeline forward next (today: a human promoting the task;
+  -- later, once E7/BACK-608 lands, the monitor's own dispatch).
+  outcome
 ```
-
-Then record the review outcome:
-
-```bash
-epicd task edit <taskId> --append-notes "authoring/draft self-review: <APPROVED|NEEDS_HUMAN> after <n> round(s)<: unresolved criteria if NEEDS_HUMAN>"
-```
-
-Do not change the task's phase/status yourself — that transition belongs to
-whatever drives the pipeline forward next (today: a human promoting the task;
-later, once E7/BACK-608 lands, the monitor's own dispatch).
-
-## Constraints
-
-- This skill produces/revises the task's Description text and its Acceptance
-  Criteria field — nothing else. It does not create branches, worktrees, or
-  child tasks, and does not touch engine mechanics (complete/adjudicate/DoD
-  re-run/merge-lock/worktree/claim/pipeline-as-data).
-- Do not invent scope beyond what the Background/Goals justify — a proposal that
-  smuggles in unrelated work fails the Consistency criterion.
-- Do not spawn further nested agents from inside this skill's execution.
