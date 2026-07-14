@@ -1,15 +1,16 @@
 ---
 id: BACK-667
-pipeline_id: authoring
-phase: draft
 title: 'CLI: Add Agent Instruction Prompt'
 assignee: []
 reporter: '@MrLesk'
 created_date: '2025-06-08'
+updated_date: '2026-07-14 01:51'
 labels:
   - cli
   - agents
 dependencies: []
+pipeline_id: execution
+phase: done
 ---
 
 ## Description
@@ -58,3 +59,9 @@ Added interactive agent instructions prompt to the CLI `backlog init` command. K
 - Preserves existing content by reading before writing
 - Ensures proper newline handling when appending content
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Feature was fully implemented and tested (src/cli.ts, src/agent-instructions.ts, src/test/agent-instructions.test.ts); all ACs already checked. Task was left in stale authoring/draft phase despite being complete — closed out during backlog audit.
+<!-- SECTION:FINAL_SUMMARY:END -->
