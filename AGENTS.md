@@ -33,7 +33,7 @@ If you can simplify the code, do it.
 Acceptance Criteria are the single place that states what must be true when a task is done. **Do not add a separate "不动点" / "fixpoint" or "严格不改" section** — that framing repeatedly caused errors (it read as "a list of files to freeze" and the freeze-list ended up enshrining the very thing that was blocking the goal). Fold both of the things those sections used to capture into Acceptance Criteria, and keep un-checkable scope prose in a plain "改动范围 / 非目标" (scope / non-goals) note.
 
 - **Convergence targets → machine-checkable ACs.** When a task's deliverable *is* a convergence mechanism, write the end-state as ACs a script/test verifies: what monotonically shrinks, the termination condition, and the exact command that goes green — not a prose claim that it terminates. This is ADR-019 integration-acceptance: the meter is *runnable*, not asserted.
-- **Invariants ("X must not change") → negative ACs, each with its own check.** State the invariant as an AC whose verification names the concrete check (e.g. "MCP server name stays `backlog`; verify: `grep MCP_SERVER_NAME src/cli.ts`"). Every such AC must be literally true for this task's actual diff. If the task's own plan changes something you were tempted to freeze, it is **not** an invariant — describe it honestly under "改动范围" instead.
+- **Invariants ("X must not change") → negative ACs, each with its own check.** State the invariant as an AC whose verification names the concrete check (e.g. "MCP server name stays `epicd`; verify: `grep MCP_SERVER_NAME src/cli.ts`"). Every such AC must be literally true for this task's actual diff. If the task's own plan changes something you were tempted to freeze, it is **not** an invariant — describe it honestly under "改动范围" instead.
 - **Do not use ACs to argue a change is safe.** State checkable facts, not rationalizations ("this is an extension, not a rewrite" is not an AC).
 - If a sibling/parent task declares an invariant your task must break, reconcile that text (or split the work) — don't silently contradict it.
 - **Trace the consumer before writing the AC.** If an AC claims a change is visible to an external tool/process/file-format consumer, name the exact field or code path that consumer actually reads or compares — verified by reading its real logic/schema — not just "the value appears in the file somewhere." A grep-for-string-presence check is not equivalent to a check against the consumer's real read path (e.g. a marketplace manifest can carry the same key name at two different JSON paths — a top-level schema-version field and a nested per-plugin version field — and only one of them is what the consuming tool compares).
@@ -65,15 +65,15 @@ Note: "fixpoint" is still the correct name for the **engine's** Stage 2 self-hos
 
 ## Core Structure
 
-- **CLI Tool**: Built with Bun and TypeScript as a global npm package (`npm i -g backlog.md`)
+- **CLI Tool**: Built with Bun and TypeScript as a global npm package (`npm i -g epicd`)
 - **Source Code**: Located in `/src` directory with modular TypeScript structure
 - **Task Management**: Uses markdown files in `.epicd/` directory structure
 - **Workflow**: Git-integrated with task IDs referenced in commits and PRs
 
 ## Agent POV
 
-- Treat Backlog.md as a shipped CLI/MCP binary that may be used from other repositories where agents cannot inspect this source tree.
-- Backlog.md is not a supported JavaScript or TypeScript library API for external consumers. Do not treat exported source symbols, classes, or methods in `/src` as stable public interfaces unless they are explicitly documented in shipped CLI/MCP/instruction surfaces.
+- Treat epicd as a shipped CLI/MCP binary that may be used from other repositories where agents cannot inspect this source tree.
+- epicd is not a supported JavaScript or TypeScript library API for external consumers. Do not treat exported source symbols, classes, or methods in `/src` as stable public interfaces unless they are explicitly documented in shipped CLI/MCP/instruction surfaces.
 - When you decide what another agent can rely on, use only the public surface: MCP workflow resources, MCP tool descriptions/schemas, CLI help, and instruction files shipped with the project.
 - Do not assume external agents know internal implementation details, constants, or source-only conventions.
 - When reviewing changes, do not ask for compatibility shims just because a source-level method exists or was removed. Only preserve compatibility for behavior that is part of the documented CLI, MCP, config, or instruction contract.
@@ -97,9 +97,9 @@ are found, the commit will be blocked until fixed.
 - **PR titles**: Use `{taskId} - {taskTitle}` (e.g. `BACK-123 - Title of the task`)
 - **Github CLI**: Use `gh` whenever possible for PRs and issues
 
-<!-- BACKLOG.MD GUIDELINES START -->
+<!-- EPICD GUIDELINES START -->
 IF request requires planning/decisions THEN run `epicd instructions overview` first. INVARIANT: .epicd/* edited only via epicd CLI.
-<!-- BACKLOG.MD GUIDELINES END -->
+<!-- EPICD GUIDELINES END -->
 
 ## L0 Config
 

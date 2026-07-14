@@ -1822,6 +1822,7 @@ export class BacklogServer {
 			const backlogDirectorySource =
 				body.backlogDirectorySource === "backlog" ||
 				body.backlogDirectorySource === ".backlog" ||
+				body.backlogDirectorySource === ".epicd" ||
 				body.backlogDirectorySource === "custom"
 					? body.backlogDirectorySource
 					: undefined;

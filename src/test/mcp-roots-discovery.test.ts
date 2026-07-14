@@ -97,7 +97,7 @@ describe("MCP roots discovery", () => {
 		expect(server.getServer().oninitialized).toBeUndefined();
 
 		const resources = await server.testInterface.listResources();
-		expect(resources.resources.map((resource) => resource.uri)).toEqual(["backlog://init-required"]);
+		expect(resources.resources.map((resource) => resource.uri)).toEqual(["epicd://init-required"]);
 		expect(resources.resources[0]?.name).toBe(`epicd Not Initialized [${uninitializedDir}]`);
 
 		const tools = await server.testInterface.listTools();
@@ -134,11 +134,11 @@ describe("MCP roots discovery", () => {
 		const toolNames = tools.tools.map((tool) => tool.name);
 		expect(toolNames).toContain("task_create");
 		expect(toolNames).toContain("task_list");
-		expect(toolNames).toContain("get_backlog_instructions");
+		expect(toolNames).toContain("get_epicd_instructions");
 
 		const resources = await server.testInterface.listResources();
 		const uris = resources.resources.map((resource) => resource.uri);
-		expect(uris).toContain("backlog://workflow/overview");
+		expect(uris).toContain("epicd://workflow/overview");
 
 		await server.stop();
 	});
@@ -154,12 +154,12 @@ describe("MCP roots discovery", () => {
 			const tools = await client.listTools();
 			const toolNames = tools.tools.map((tool) => tool.name);
 			expect(toolNames).toContain("task_create");
-			expect(toolNames).toContain("get_backlog_instructions");
+			expect(toolNames).toContain("get_epicd_instructions");
 			expect(server.filesystem.rootDir).toBe(projectRoot);
 			expect(getRootsRequestCount()).toBe(1);
 
 			const resources = await client.listResources();
-			expect(resources.resources.map((resource) => resource.uri)).toContain("backlog://workflow/overview");
+			expect(resources.resources.map((resource) => resource.uri)).toContain("epicd://workflow/overview");
 			expect(getRootsRequestCount()).toBe(1);
 		} finally {
 			await client.close();
@@ -178,7 +178,7 @@ describe("MCP roots discovery", () => {
 
 		try {
 			const resources = await client.listResources();
-			expect(resources.resources.map((resource) => resource.uri)).toContain("backlog://workflow/overview");
+			expect(resources.resources.map((resource) => resource.uri)).toContain("epicd://workflow/overview");
 			expect(server.filesystem.rootDir).toBe(projectRoot);
 			expect(getRootsRequestCount()).toBe(1);
 		} finally {
@@ -228,7 +228,7 @@ describe("MCP roots discovery", () => {
 			expect(getRootsRequestCount()).toBe(1);
 
 			const fallbackResources = await client.listResources();
-			expect(fallbackResources.resources.map((resource) => resource.uri)).toEqual(["backlog://init-required"]);
+			expect(fallbackResources.resources.map((resource) => resource.uri)).toEqual(["epicd://init-required"]);
 			expect(server.filesystem.rootDir).toBe(uninitializedDir);
 			expect(getRootsRequestCount()).toBe(2);
 

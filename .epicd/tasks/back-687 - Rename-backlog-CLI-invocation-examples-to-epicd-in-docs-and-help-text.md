@@ -4,7 +4,7 @@ title: Rename backlog CLI invocation examples to epicd in docs and help text
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 17:41'
+updated_date: '2026-07-14 09:10'
 labels: []
 dependencies:
   - BACK-681
@@ -100,6 +100,15 @@ needs-human triage (6th round): OperationalMistake, not RealGate. DoD gate #3's 
 
 Stage 3 audit (independent, fresh-context dispatched agent): all 8 ACs independently re-verified PASS via direct command execution (not self-report); bun test 2065 pass/0 fail, bunx tsc --noEmit clean. mcp-client-setup.ts fix confirmed genuine and correctly tested. 0 HIGH findings; 2 OUT_OF_SCOPE stale-mention findings noted for future follow-up (docs/task-lifecycle-model.md:207, docs/tasks/ui-smoke-test-report.md:19,96 — both outside this task's declared scope). Audit round 1: dry (0 new blockers) — loopUntilDry terminates after round 1. Stage 4 evaluate: AcceptanceResult = Met. Adjudicating -> done.
 <!-- SECTION:NOTES:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+created: 2026-07-14 09:10
+---
+其 Non-Goals 中"保留 backlog 品牌/协议标识（MCP_SERVER_NAME、backlog:// URI、npm 包名、上游归属 URL）不变"的裁定，已被 docs/proposals/2026-07-14-full-epicd-rebrand.md 推翻，本任务本身的改动范围与验收标准维持原样（历史记录），后续以该 proposal 为准。
+---
+<!-- COMMENTS:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->

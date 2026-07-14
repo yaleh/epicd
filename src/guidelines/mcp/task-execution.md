@@ -71,4 +71,4 @@ If new work appears during implementation that wasn't in the original acceptance
 
 ### Finalizing the Task
 
-When implementation is finished, follow the **Task Finalization Guide** (`backlog://workflow/task-finalization`) to finalize your work. This ensures acceptance criteria are verified, implementation is documented, and the task is properly closed.
+When implementation is finished, follow the **Task Finalization Guide** (`epicd://workflow/task-finalization`) to finalize your work. This ensures acceptance criteria are verified, implementation is documented, and the task is properly closed.

@@ -24,5 +24,5 @@ task_actions:
     command: "echo \"$TASK_ID $(date -u +%Y-%m-%dT%H:%M:%SZ)\" >> /tmp/epicd-task-action-demo.log"
   - id: "dispatch-to-worker"
     label: "Dispatch to Worker"
-    command: 'manda-dispatch submit -id="$TASK_ID" -to=worker -async -args="{\"task\":\"/epicd:fixpoint-convergence $TASK_ID\"}"'
+    command: 'manda-dispatch submit -id="$TASK_ID" -to=worker -async -args="$(jq -nc --arg id "$TASK_ID" ''{task: ("/epicd:fixpoint-convergence " + $id)}'')"'
     whenPhase: ["drafting", "backlog", "needs-human"]

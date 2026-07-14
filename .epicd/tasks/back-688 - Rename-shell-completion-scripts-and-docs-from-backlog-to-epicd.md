@@ -4,7 +4,7 @@ title: Rename shell completion scripts and docs from backlog to epicd
 assignee:
   - '@claude'
 created_date: '2026-07-08 16:09'
-updated_date: '2026-07-08 18:07'
+updated_date: '2026-07-14 09:10'
 labels: []
 dependencies:
   - BACK-681
@@ -93,6 +93,15 @@ authoring/refining review: APPROVED after 1 iteration. Goal coverage: Phase A co
 
 Stage 3 audit (independent, fresh-context dispatched agent): all 7 ACs independently re-verified PASS via direct command execution on main (not self-report), including AC#2's documented deviation (grep count 1, confirmed genuinely benign task-storage-directory prose, not a missed CLI-invocation rename). bun test 2068 pass/0 fail, bunx tsc --noEmit clean. File renames (_backlog->_epicd, backlog.{bash,fish,ps1}->epicd.{bash,fish,ps1}) confirmed as detected git renames. completion.test.ts's new tests confirmed to genuinely exercise installCompletion() with an injected homeDir (never real $HOME) and would fail on a revert. Out-of-scope invariants (src/completions/helper.ts, MCP_SERVER_NAME, backlog:// scheme, backlog/ dir name) confirmed untouched. 0 HIGH findings, 1 NIT (cosmetic README wording, not actionable). Audit round 1: dry (0 new blockers) — loopUntilDry terminates after round 1. Stage 4 evaluate: AcceptanceResult = Met. Adjudicating -> done.
 <!-- SECTION:NOTES:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+created: 2026-07-14 09:10
+---
+其 Non-Goals 中"保留 backlog 品牌/协议标识（MCP_SERVER_NAME、backlog:// URI、npm 包名、上游归属 URL）不变"的裁定，已被 docs/proposals/2026-07-14-full-epicd-rebrand.md 推翻，本任务本身的改动范围与验收标准维持原样（历史记录），后续以该 proposal 为准。
+---
+<!-- COMMENTS:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->

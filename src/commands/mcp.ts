@@ -33,12 +33,12 @@ function registerStartCommand(mcpCmd: Command): void {
 		.command("start")
 		.description("Start the MCP server using stdio transport")
 		.option("-d, --debug", "Enable debug logging", false)
-		.option("--cwd <path>", "Directory to resolve Backlog root from (overrides BACKLOG_CWD)")
+		.option("--cwd <path>", "Directory to resolve Backlog root from (overrides EPICD_CWD)")
 		.action(async (options: StartOptions) => {
 			try {
 				const runtimeCwd = await resolveRuntimeCwd({ cwd: options.cwd });
 				const projectRoot = (await findBacklogRoot(runtimeCwd.cwd)) ?? runtimeCwd.cwd;
-				// An explicit --cwd/BACKLOG_CWD pins the root; an inferred process.cwd()
+				// An explicit --cwd/EPICD_CWD pins the root; an inferred process.cwd()
 				// lets the server follow the client's workspace roots instead.
 				const pinned = runtimeCwd.source !== "process";
 				const server = await createMcpServer(projectRoot, { debug: options.debug, pinned });

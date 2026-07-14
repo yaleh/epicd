@@ -38,9 +38,9 @@ Searching first avoids duplicate tasks and helps you understand existing context
 
 Read these resources to get essential instructions when:
 
-- **Creating tasks** → `backlog://workflow/task-creation` - Scope assessment, acceptance criteria, parent/subtasks structure
-- **Planning & executing work** → `backlog://workflow/task-execution` - Planning workflow, implementation discipline, scope changes
-- **Finalizing tasks** → `backlog://workflow/task-finalization` - Definition of Done, finalization checklist, next steps
+- **Creating tasks** → `epicd://workflow/task-creation` - Scope assessment, acceptance criteria, parent/subtasks structure
+- **Planning & executing work** → `epicd://workflow/task-execution` - Planning workflow, implementation discipline, scope changes
+- **Finalizing tasks** → `epicd://workflow/task-finalization` - Definition of Done, finalization checklist, next steps
 
 These guides contain critical workflows you need to follow for proper task management.
 

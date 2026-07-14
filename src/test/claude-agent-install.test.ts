@@ -26,24 +26,22 @@ describe("installClaudeAgent", () => {
 		expect(existsSync(agentDir)).toBe(true);
 	});
 
-	it("writes the project-manager-backlog.md file with correct content", async () => {
+	it("writes the project-manager-epicd.md file with correct content", async () => {
 		await installClaudeAgent(TEST_PROJECT);
 
-		const agentPath = join(TEST_PROJECT, ".claude", "agents", "project-manager-backlog.md");
+		const agentPath = join(TEST_PROJECT, ".claude", "agents", "project-manager-epicd.md");
 		const content = await Bun.file(agentPath).text();
 
 		expect(content).toBe(CLAUDE_AGENT_CONTENT);
-		expect(content).toContain("name: project-manager-backlog");
-		expect(content).toContain(
-			"You are an expert project manager specializing in the backlog.md task management system",
-		);
+		expect(content).toContain("name: project-manager-epicd");
+		expect(content).toContain("You are an expert project manager specializing in the epicd task management system");
 	});
 
 	it("overwrites existing agent file", async () => {
 		const agentDir = join(TEST_PROJECT, ".claude", "agents");
 		await mkdir(agentDir, { recursive: true });
 
-		const agentPath = join(TEST_PROJECT, ".claude", "agents", "project-manager-backlog.md");
+		const agentPath = join(TEST_PROJECT, ".claude", "agents", "project-manager-epicd.md");
 		await Bun.write(agentPath, "Old content");
 
 		await installClaudeAgent(TEST_PROJECT);
@@ -59,7 +57,7 @@ describe("installClaudeAgent", () => {
 
 		await installClaudeAgent(subProjectPath);
 
-		const agentPath = join(subProjectPath, ".claude", "agents", "project-manager-backlog.md");
+		const agentPath = join(subProjectPath, ".claude", "agents", "project-manager-epicd.md");
 		expect(existsSync(agentPath)).toBe(true);
 	});
 });

@@ -75,7 +75,7 @@ describe("CLI root entry (bare run)", () => {
 		expect(out).toContain("epicd instructions");
 		expect(out).toContain("epicd instructions overview");
 		expect(out).toContain("epicd <command> --help");
-		expect(out).toContain("Docs: https://backlog.md");
+		expect(out).toContain("Docs: https://github.com/yaleh/epicd");
 		expect(out).not.toContain("\u001B[");
 		expect(out).not.toContain("\u001B]");
 	});
@@ -103,7 +103,7 @@ describe("CLI root entry (bare run)", () => {
 		expect(out).toContain("Local instructions:");
 		expect(out).toContain("epicd instructions task-execution");
 		expect(out).not.toContain("epicd init");
-		expect(out).toContain("Docs: https://backlog.md");
+		expect(out).toContain("Docs: https://github.com/yaleh/epicd");
 		expect(out).not.toContain("\u001B[");
 		expect(out).not.toContain("\u001B]");
 	});

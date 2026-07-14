@@ -5,7 +5,7 @@ import { apiClient } from "../lib/api";
 type IntegrationMode = "mcp" | "cli" | "none";
 type McpClient = "claude" | "codex" | "gemini" | "guide";
 type AgentFile = "CLAUDE.md" | "AGENTS.md" | "GEMINI.md" | ".github/copilot-instructions.md";
-type BacklogDirectoryChoice = "backlog" | ".backlog" | "custom";
+type BacklogDirectoryChoice = "backlog" | ".backlog" | ".epicd" | "custom";
 type ConfigLocationChoice = "folder" | "root";
 
 interface AdvancedConfig {
@@ -38,8 +38,8 @@ const InitializationScreen: React.FC<InitializationScreenProps> = ({ onInitializ
 	const [selectedAgentFiles, setSelectedAgentFiles] = useState<AgentFile[]>([]);
 	const [installClaudeAgent, setInstallClaudeAgent] = useState(false);
 	const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
-	const [backlogDirectorySource, setBacklogDirectorySource] = useState<BacklogDirectoryChoice>("backlog");
-	const [backlogDirectory, setBacklogDirectory] = useState("backlog");
+	const [backlogDirectorySource, setBacklogDirectorySource] = useState<BacklogDirectoryChoice>(".epicd");
+	const [backlogDirectory, setBacklogDirectory] = useState(".epicd");
 	const [configLocation, setConfigLocation] = useState<ConfigLocationChoice>("folder");
 	const [rootConfigPath, setRootConfigPath] = useState<string | null>(null);
 	const [advancedConfig, setAdvancedConfig] = useState<AdvancedConfig>({
@@ -78,8 +78,8 @@ const InitializationScreen: React.FC<InitializationScreenProps> = ({ onInitializ
 				if (status.initialized) {
 					return;
 				}
-				const suggestedSource = status.backlogDirectorySource ?? "backlog";
-				const suggestedDirectory = status.backlogDirectory ?? "backlog";
+				const suggestedSource = status.backlogDirectorySource ?? ".epicd";
+				const suggestedDirectory = status.backlogDirectory ?? ".epicd";
 				setRootConfigPath(status.rootConfigPath ?? null);
 				setBacklogDirectorySource(suggestedSource);
 				setBacklogDirectory(suggestedDirectory);
@@ -261,7 +261,7 @@ const InitializationScreen: React.FC<InitializationScreenProps> = ({ onInitializ
 		<div>
 			<h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">AI Integration Mode</h2>
 			<p className="text-gray-600 dark:text-gray-400 mb-6">
-				How would you like your AI tools to connect to Backlog.md?
+				How would you like your AI tools to connect to epicd?
 			</p>
 			<div className="space-y-3">
 				<label
@@ -284,7 +284,7 @@ const InitializationScreen: React.FC<InitializationScreenProps> = ({ onInitializ
 							MCP Connector (Recommended)
 						</div>
 						<div className="text-sm text-gray-500 dark:text-gray-400">
-							For Claude Code, Codex, Gemini CLI, Kiro, Cursor, etc. Agents learn the Backlog.md workflow through
+							For Claude Code, Codex, Gemini CLI, Kiro, Cursor, etc. Agents learn the epicd workflow through
 							MCP tools, resources, and prompts.
 						</div>
 					</div>
@@ -310,7 +310,7 @@ const InitializationScreen: React.FC<InitializationScreenProps> = ({ onInitializ
 							CLI Commands (Broader Compatibility)
 						</div>
 						<div className="text-sm text-gray-500 dark:text-gray-400">
-							Agents will use Backlog.md by invoking CLI commands directly. Creates instruction files for
+							Agents will use epicd by invoking CLI commands directly. Creates instruction files for
 							various AI tools.
 						</div>
 					</div>
@@ -441,7 +441,7 @@ const InitializationScreen: React.FC<InitializationScreenProps> = ({ onInitializ
 					/>
 					<div>
 						<div className="font-medium text-gray-900 dark:text-gray-100">
-							Install Claude Code Backlog.md Agent
+							Install Claude Code epicd Agent
 						</div>
 						<div className="text-sm text-gray-500 dark:text-gray-400">
 							Adds configuration under .claude/agents/ for enhanced Claude Code integration
@@ -460,6 +460,11 @@ const InitializationScreen: React.FC<InitializationScreenProps> = ({ onInitializ
 				<h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Backlog Folder</h3>
 				<div className="space-y-3">
 					{([
+						{
+							id: ".epicd" as BacklogDirectoryChoice,
+							label: ".epicd/ (default)",
+							description: "Store tasks and config in .epicd/",
+						},
 						{
 							id: "backlog" as BacklogDirectoryChoice,
 							label: "backlog/",
@@ -945,7 +950,7 @@ const InitializationScreen: React.FC<InitializationScreenProps> = ({ onInitializ
 							/>
 						</svg>
 					</div>
-					<h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Initialize Backlog.md</h1>
+					<h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Initialize epicd</h1>
 				</div>
 
 				{/* Step Indicator */}

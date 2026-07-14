@@ -4,7 +4,7 @@ title: Migrate epicd's own project directory from backlog/ to .epicd/
 assignee:
   - '@claude'
 created_date: '2026-07-13 11:54'
-updated_date: '2026-07-13 13:18'
+updated_date: '2026-07-14 09:10'
 labels:
   - config
   - migration
@@ -124,6 +124,15 @@ needs-human triage: OperationalMistake, not RealGate. engine complete hit a git 
 
 Independent fresh-context audit (full depth, dispatched round 1): verdict=done. All 9 ACs independently re-verified against live repo state and re-run gates (not implementer narrative) — all PASS. bun test 2101 pass/0 fail (matches), bunx tsc --noEmit clean, bun run check . exit 0. Pre-migration baseline check (detached worktree at 1320f5d8) confirmed the 8 legacy status-field lint warnings are pre-existing, not a regression. Scope check: no surprise files outside the described plan. One finding: NIT/OUT_OF_SCOPE — the backlog/.backlog/.epicd priority-probe logic is duplicated identically across 4 files (handle-basic-ready.sh, complete-task.sh, skill-lint.sh, scan-loop.cjs) rather than shared. No live bug today (all 4 agree), but flagged since it's exactly the class of inconsistency that caused this task's own leftover-backlog/-directory bug. Filed as follow-up BACK-701 (low priority), not a blocker for this task. newBlockers=0 (no HIGH findings) -> audit loop is dry after round 1, no further rounds required.
 <!-- SECTION:NOTES:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+created: 2026-07-14 09:10
+---
+其 Non-Goals 中"保留 backlog 品牌/协议标识（MCP_SERVER_NAME、backlog:// URI、npm 包名、上游归属 URL）不变"的裁定，已被 docs/proposals/2026-07-14-full-epicd-rebrand.md 推翻，本任务本身的改动范围与验收标准维持原样（历史记录），后续以该 proposal 为准。
+---
+<!-- COMMENTS:END -->
 
 ## Final Summary
 

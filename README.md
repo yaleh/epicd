@@ -2,15 +2,15 @@
 <p align="center">Markdown‑native Task Manager &amp; Kanban visualizer for any Git repository</p>
 
 <p align="center">
-<code>npm i -g epicd</code> or <code>bun add -g epicd</code> or <code>brew install backlog-md</code> or <code>nix run github:MrLesk/Backlog.md</code>
+<code>npm i -g epicd</code> or <code>bun add -g epicd</code>
 </p>
 
-![Backlog demo GIF using: epicd board](./.github/backlog-v1.40.gif)
+![epicd demo GIF using: epicd board](./.github/backlog-v1.40.gif)
 
 
 ---
 
-> **Backlog.md** turns any folder with a Git repo into a **self‑contained project board**
+> **epicd** turns any folder with a Git repo into a **self‑contained project board**
 > powered by plain Markdown files and a zero‑config CLI.
 > Built for **spec‑driven AI development** — structure your tasks so AI agents deliver predictable results.
 
@@ -31,7 +31,7 @@
 
 * 📤 **Board export** -- `epicd board export` creates shareable markdown reports
 
-* 🔒 **100 % private & offline** -- backlog lives entirely inside your repo and you can manage everything locally
+* 🔒 **100 % private & offline** -- epicd lives entirely inside your repo and you can manage everything locally
 
 * 💻 **Cross-platform** -- runs on macOS, Linux, and Windows
 
@@ -46,7 +46,6 @@
 # Install
 bun i -g epicd
 # or: npm i -g epicd
-# or: brew install backlog-md
 
 # Initialize in any Git repo
 epicd init "My Awesome Project"
@@ -58,9 +57,9 @@ epicd init "Personal Planning" --no-git
 The init wizard will ask how you want to connect AI tools:
 - **CLI instructions** (recommended) — creates a short instruction file that tells agents to run `epicd instructions overview`.
 - **MCP connector** — optionally auto-configures Claude Code, Codex, Gemini CLI, Kiro or Cursor for teams that prefer MCP.
-- **Skip** — no AI setup; use Backlog.md purely as a task manager.
+- **Skip** — no AI setup; use epicd purely as a task manager.
 
-Backlog data is stored in a project-local backlog folder such as `backlog/`, `.backlog/`, or a custom project-relative path configured through `backlog.config.yml`. Tasks remain human-readable Markdown files (e.g. `task-10 - Add core search functionality.md`). Git is optional: `epicd init --no-git` creates a filesystem-only project and disables cross-branch checks, remote operations, and auto-commit.
+epicd data is stored in a project-local task folder such as `backlog/`, `.backlog/`, or a custom project-relative path configured through `backlog.config.yml`. Tasks remain human-readable Markdown files (e.g. `task-10 - Add core search functionality.md`). Git is optional: `epicd init --no-git` creates a filesystem-only project and disables cross-branch checks, remote operations, and auto-commit.
 
 ---
 
@@ -72,7 +71,7 @@ After running `epicd init`, agents should start by running `epicd instructions o
 **Step 1 — Describe your idea.** Tell the agent what you want to build and ask it to split the work into small tasks with clear descriptions and acceptance criteria.
 
 **🤖 Ask your AI Agent:**
-> I want to add a search feature to the web view that searches tasks, docs, and decisions. Please decompose this into small Backlog.md tasks.
+> I want to add a search feature to the web view that searches tasks, docs, and decisions. Please decompose this into small epicd tasks.
 
 > [!NOTE]
 > **Review checkpoint #1** — read the task descriptions and acceptance criteria.
@@ -98,7 +97,7 @@ If the output is not good enough: clear the plan/notes/final summary, refine the
 
 ### Working without AI agents
 
-Use Backlog.md as a standalone task manager from the terminal or browser.
+Use epicd as a standalone task manager from the terminal or browser.
 
 ```bash
 # Create and refine tasks
@@ -115,7 +114,7 @@ epicd board
 epicd browser
 ```
 
-You can switch between AI-assisted and manual workflows at any time — both operate on the same Markdown task files. It is recommended to modify tasks via Backlog.md commands (CLI/MCP/Web) rather than editing task files manually, so field types and metadata stay consistent. Tasks can record project-root-relative modified files and later be found with `epicd search --modified-file src/path.ts --plain`. Use task comments for discussion and review notes; comment bodies may contain Markdown, but standalone `---` lines are reserved as comment delimiters. Use Implementation Notes for execution progress and Final Summary for completion notes.
+You can switch between AI-assisted and manual workflows at any time — both operate on the same Markdown task files. It is recommended to modify tasks via epicd commands (CLI/MCP/Web) rather than editing task files manually, so field types and metadata stay consistent. Tasks can record project-root-relative modified files and later be found with `epicd search --modified-file src/path.ts --plain`. Use task comments for discussion and review notes; comment bodies may contain Markdown, but standalone `---` lines are reserved as comment delimiters. Use Implementation Notes for execution progress and Final Summary for completion notes.
 
 **Learn more:** [CLI reference](CLI-INSTRUCTIONS.md) | [Advanced configuration](ADVANCED-CONFIG.md)
 
@@ -147,14 +146,14 @@ epicd browser --no-open
 
 ![Web Interface Screenshot](./.github/web.jpeg)
 
-To keep the Web UI running as an auto-starting local service, see [Running Backlog.md as a Service](.epicd/docs/doc-003%20-%20Running-Backlog-Browser-as-a-Service.md).
+To keep the Web UI running as an auto-starting local service, see [Running epicd as a Service](.epicd/docs/doc-003%20-%20Running-Backlog-Browser-as-a-Service.md).
 
 ---
 
 ## 🔧 MCP Integration (Model Context Protocol)
 
 CLI instructions are the default AI setup. MCP remains supported for AI coding assistants like Claude Code, Codex, Gemini CLI and Kiro when you explicitly prefer an MCP connector.
-You can run `epicd init` (even if you already initialized Backlog.md) and choose MCP integration, or follow the manual steps below.
+You can run `epicd init` (even if you already initialized epicd) and choose MCP integration, or follow the manual steps below.
 
 ### Client guides
 
@@ -162,7 +161,7 @@ You can run `epicd init` (even if you already initialized Backlog.md) and choose
   <summary><strong>Claude Code</strong></summary>
 
   ```bash
-  claude mcp add backlog --scope user -- epicd mcp start
+  claude mcp add epicd --scope user -- epicd mcp start
   ```
 
 </details>
@@ -171,7 +170,7 @@ You can run `epicd init` (even if you already initialized Backlog.md) and choose
   <summary><strong>Codex</strong></summary>
 
   ```bash
-  codex mcp add backlog -- epicd mcp start
+  codex mcp add epicd -- epicd mcp start
   ```
 
 </details>
@@ -180,7 +179,7 @@ You can run `epicd init` (even if you already initialized Backlog.md) and choose
   <summary><strong>Gemini CLI</strong></summary>
 
   ```bash
-  gemini mcp add backlog -s user epicd mcp start
+  gemini mcp add epicd -s user epicd mcp start
   ```
 
 </details>
@@ -189,39 +188,39 @@ You can run `epicd init` (even if you already initialized Backlog.md) and choose
   <summary><strong>Kiro</strong></summary>
 
   ```bash
-  kiro-cli mcp add --scope global --name backlog --command epicd --args mcp,start
+  kiro-cli mcp add --scope global --name epicd --command epicd --args mcp,start
   ```
 
 </details>
 
-Use the shared `backlog` server name everywhere. The server finds the active project from your client's MCP roots, and re-resolves when you switch workspace or worktree. Until it finds one, it serves `backlog://init-required`. A single user-scope server covers every repo.
+Use the shared `epicd` server name everywhere. The server finds the active project from your client's MCP roots, and re-resolves when you switch workspace or worktree. Until it finds one, it serves `epicd://init-required`. A single user-scope server covers every repo.
 
 ### Manual config
 
 ```json
 {
   "mcpServers": {
-    "backlog": {
+    "epicd": {
       "command": "epicd",
       "args": ["mcp", "start"],
       "env": {
-        "BACKLOG_CWD": "/absolute/path/to/your/project"
+        "EPICD_CWD": "/absolute/path/to/your/project"
       }
     }
   }
 }
 ```
 
-Set `BACKLOG_CWD` to pin the server to one project and stop workspace following. Use it to always target the same backlog, or when your client can't report MCP roots.
+Set `EPICD_CWD` to pin the server to one project and stop workspace following. Use it to always target the same backlog, or when your client can't report MCP roots.
 If your IDE supports custom args but not env vars, you can also use `["mcp", "start", "--cwd", "/absolute/path/to/your/project"]`.
 
 > [!IMPORTANT]
-> When adding the MCP server manually, add a short instruction to your CLAUDE.md/AGENTS.md files telling agents to read `backlog://workflow/overview`.
+> When adding the MCP server manually, add a short instruction to your CLAUDE.md/AGENTS.md files telling agents to read `epicd://workflow/overview`.
 > This step is not required when using `epicd init` as it adds these instructions automatically.
 > For CLI-based setups, use `epicd instructions overview` to fetch the current workflow guidance.
 
 
-Once connected, agents can read the Backlog.md workflow instructions via `backlog://workflow/overview`, with detailed guides at `backlog://workflow/task-creation`, `backlog://workflow/task-execution`, and `backlog://workflow/task-finalization`.
+Once connected, agents can read the epicd workflow instructions via `epicd://workflow/overview`, with detailed guides at `epicd://workflow/task-creation`, `epicd://workflow/task-execution`, and `epicd://workflow/task-finalization`.
 Use `/mcp` command in your AI tool (Claude Code, Codex, Kiro) to verify if the connection is working.
 
 ---
@@ -238,12 +237,12 @@ Full help: `epicd --help`
 
 ## <img src="./.github/configuration-256.png" alt="Configuration" width="28" height="28" align="center"> Configuration
 
-Backlog.md merges the following layers (highest → lowest):
+epicd merges the following layers (highest → lowest):
 
 1. CLI flags
 2. Project config file:
    - `backlog.config.yml` when present
-   - otherwise `backlog/config.yml` or `.backlog/config.yml`
+   - otherwise `.epicd/config.yml`, `backlog/config.yml`, or `.backlog/config.yml`
 3. Built‑ins
 
 ### Interactive wizard (`epicd config`)
@@ -256,14 +255,14 @@ Run `epicd config` with no arguments to launch the full interactive wizard. This
 - Definition of Done defaults: interactively add/remove/reorder/clear project-level `definition_of_done` checklist items.
 - Web UI defaults: choose `defaultPort` and whether `autoOpenBrowser` should run.
 
-Skipping the wizard (answering "No" during init) applies the safe defaults that ship with Backlog.md:
+Skipping the wizard (answering "No" during init) applies the safe defaults that ship with epicd:
 - `checkActiveBranches=true`, `remoteOperations=true`, `activeBranchDays=30`.
 - `autoCommit=false`, `bypassGitHooks=false`.
 - `zeroPaddedIds` disabled.
 - `defaultEditor` unset (falls back to your environment).
 - `defaultPort=6420`, `autoOpenBrowser=true`.
 
-For filesystem-only projects, run `epicd init --no-git`. Backlog.md will not run `git init`, and the saved config forces `checkActiveBranches=false`, `remoteOperations=false`, and `autoCommit=false` so CLI, Web, and MCP local-file workflows do not depend on a Git repository.
+For filesystem-only projects, run `epicd init --no-git`. epicd will not run `git init`, and the saved config forces `checkActiveBranches=false`, `remoteOperations=false`, and `autoCommit=false` so CLI, Web, and MCP local-file workflows do not depend on a Git repository.
 
 Whenever you revisit `epicd init` or rerun `epicd config`, the wizard pre-populates prompts with your current values so you can adjust only what changed.
 
@@ -294,4 +293,4 @@ For the full configuration reference (all options, commands, and detailed notes)
 
 ### License
 
-Backlog.md is released under the **MIT License** – do anything, just give credit. See [LICENSE](LICENSE).
+epicd is released under the **MIT License** – do anything, just give credit. See [LICENSE](LICENSE).

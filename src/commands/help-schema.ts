@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import type { Command } from "commander";
 import { DEFAULT_STATUSES } from "../constants/index.ts";
 import { resolveBacklogDirectory } from "../utils/backlog-directory.ts";
-import { BACKLOG_CWD_ENV } from "../utils/runtime-cwd.ts";
+import { EPICD_CWD_ENV } from "../utils/runtime-cwd.ts";
 
 export interface HelpField {
 	name: string;
@@ -152,7 +152,7 @@ function findBacklogConfigPathSync(startDir: string): string | null {
 }
 
 function getRuntimeConfigStartDir(): string {
-	const override = process.env[BACKLOG_CWD_ENV]?.trim();
+	const override = process.env[EPICD_CWD_ENV]?.trim();
 	return override ? resolve(override) : process.cwd();
 }
 

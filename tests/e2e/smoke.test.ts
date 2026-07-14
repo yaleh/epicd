@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Smoke tests for the Backlog.md Web UI.
+ * Smoke tests for the epicd Web UI.
  *
  * These assert on stable UI chrome (the "Kanban Board" heading and the
  * "+ New Task" button) rather than on specific status column names, so the
@@ -10,10 +10,10 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("Web UI smoke", () => {
-	test("home page loads with the Backlog title", async ({ page }) => {
+	test("home page loads with the epicd title", async ({ page }) => {
 		await page.goto("/");
-		// The document <title> is "Backlog.md - Task Management".
-		await expect(page).toHaveTitle(/Backlog/i);
+		// The document <title> is "epicd - Task Management".
+		await expect(page).toHaveTitle(/epicd/i);
 	});
 
 	test("Kanban Board renders core chrome", async ({ page }) => {

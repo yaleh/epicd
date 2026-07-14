@@ -100,7 +100,7 @@ describe("CLI packaging", () => {
 				timeout,
 				() => ` stderr:\n${stderr}`,
 			);
-			expect(resources.resources.map((resource) => resource.uri)).toContain("backlog://workflow/overview");
+			expect(resources.resources.map((resource) => resource.uri)).toContain("epicd://workflow/overview");
 		} finally {
 			await client.close().catch(() => {});
 		}

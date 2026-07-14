@@ -1,6 +1,6 @@
 # CLI Reference
 
-Full command reference for Backlog.md. For getting started, see [README.md](README.md).
+Full command reference for epicd. For getting started, see [README.md](README.md).
 
 ## Project Setup
 
@@ -105,7 +105,7 @@ Final paragraph"
 
 The same shape works for `--plan`, `--notes`, `--comment`, `--final-summary`, and the `--append-*` variants.
 
-**3. Shell-specific shorthand (interactive shells only — rejected by tree-sitter-based agent sandboxes, see [#595](https://github.com/MrLesk/Backlog.md/issues/595)):**
+**3. Shell-specific shorthand (interactive shells only — rejected by tree-sitter-based agent sandboxes):**
 
 - **Bash/Zsh (ANSI-C quoting)**
 
@@ -208,7 +208,7 @@ Manage task dependencies to create execution sequences and prevent circular rela
 | Web interface | `epicd browser` (launches web UI on port 6420) |
 | Web custom port | `epicd browser --port 8080 --no-open` |
 
-To keep the Web UI running in the background with auto-start on boot, see [Running Backlog.md as a Service](.epicd/docs/doc-003%20-%20Running-Backlog-Browser-as-a-Service.md).
+To keep the Web UI running in the background with auto-start on boot, see [Running epicd Browser as a Service](.epicd/docs/doc-003%20-%20Running-Backlog-Browser-as-a-Service.md).
 
 ## Documentation
 
@@ -257,7 +257,7 @@ Full help: `epicd --help`
 Export your Kanban board to a clean, shareable markdown file:
 
 ```bash
-# Export to default Backlog.md file
+# Export to default epicd.md file
 epicd board export
 
 # Export to custom file
@@ -280,7 +280,7 @@ Perfect for sharing project status, creating reports, or storing snapshots in ve
 
 ## Shell Tab Completion
 
-Backlog.md can install tab completion for bash, zsh, fish, and PowerShell.
+epicd can install tab completion for bash, zsh, fish, and PowerShell.
 
 **Quick Installation:**
 ```bash

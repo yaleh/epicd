@@ -28,7 +28,7 @@ describe("init Claude agent default", () => {
 		expect(result.exitCode).toBe(0);
 
 		// Verify that agent file was not created
-		const agentExists = await Bun.file(join(TEST_DIR, ".claude", "agents", "project-manager-backlog.md")).exists();
+		const agentExists = await Bun.file(join(TEST_DIR, ".claude", "agents", "project-manager-epicd.md")).exists();
 		expect(agentExists).toBe(false);
 	});
 
@@ -37,7 +37,7 @@ describe("init Claude agent default", () => {
 		const result = await $`bun ${CLI_PATH} init MyProj --defaults --install-claude-agent true`.cwd(TEST_DIR).quiet();
 		expect(result.exitCode).toBe(0);
 
-		const agentExists = await Bun.file(join(TEST_DIR, ".claude", "agents", "project-manager-backlog.md")).exists();
+		const agentExists = await Bun.file(join(TEST_DIR, ".claude", "agents", "project-manager-epicd.md")).exists();
 		expect(agentExists).toBe(true);
 	});
 });

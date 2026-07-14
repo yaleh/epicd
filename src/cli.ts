@@ -159,8 +159,8 @@ function normalizeIntegrationOption(value: string): IntegrationMode | null {
 	return null;
 }
 
-// Always use "backlog" as the global MCP server name so fallback mode works when the project isn't initialized.
-const MCP_SERVER_NAME = "backlog";
+// Always use "epicd" as the global MCP server name so fallback mode works when the project isn't initialized.
+const MCP_SERVER_NAME = "epicd";
 
 const MCP_CLIENT_INSTRUCTION_MAP: Record<string, AgentInstructionFile> = {
 	claude: "CLAUDE.md",
@@ -449,7 +449,7 @@ try {
 		const first = rawArgs[0];
 		if (
 			typeof first === "string" &&
-			/node_modules[\\/]+backlog\.md-(darwin|linux|windows)-[^\\/]+[\\/]+backlog(\.exe)?$/.test(first)
+			/node_modules[\\/]+epicd-(darwin|linux|windows)-[^\\/]+[\\/]+backlog(\.exe)?$/.test(first)
 		) {
 			rawArgs = rawArgs.slice(1);
 		}
@@ -938,7 +938,7 @@ addHelpSchema(program.command("init [projectName]"), {
 				let agentFiles: AgentInstructionFile[] = [];
 				let agentInstructionsSkipped = false;
 				let mcpClientSetupSummary: string | undefined;
-				const mcpGuideUrl = "https://github.com/MrLesk/Backlog.md#-mcp-integration-model-context-protocol";
+				const mcpGuideUrl = "https://github.com/yaleh/epicd#-mcp-integration-model-context-protocol";
 
 				if (
 					!integrationOption &&
