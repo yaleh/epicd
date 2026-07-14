@@ -33,7 +33,7 @@ export const WORKFLOW_GUIDES: WorkflowGuideDefinition<WorkflowGuideKey>[] = [
 	{
 		key: "overview",
 		uri: "backlog://workflow/overview",
-		name: "Backlog Workflow Overview",
+		name: "Epicd Workflow Overview",
 		description: "When to create tasks and the basic workflow",
 		mimeType: "text/markdown",
 		resourceText: MCP_WORKFLOW_OVERVIEW,
@@ -82,7 +82,7 @@ export const INSTRUCTION_GUIDES: WorkflowGuideDefinition[] = [
 	{
 		key: "init-required",
 		uri: "backlog://init-required",
-		name: "Backlog Init Required Guide",
+		name: "Epicd Init Required Guide",
 		description: "How to initialize epicd in this directory",
 		mimeType: "text/markdown",
 		resourceText: CLI_INIT_REQUIRED_GUIDE,

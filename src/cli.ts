@@ -449,7 +449,7 @@ try {
 		const first = rawArgs[0];
 		if (
 			typeof first === "string" &&
-			/node_modules[\\/]+backlog\.md-(darwin|linux|windows)-[^\\/]+[\\/]+backlog(\.exe)?$/.test(first)
+			/node_modules[\\/]+epicd-(darwin|linux|windows)-[^\\/]+[\\/]+backlog(\.exe)?$/.test(first)
 		) {
 			rawArgs = rawArgs.slice(1);
 		}

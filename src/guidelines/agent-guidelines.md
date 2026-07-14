@@ -597,7 +597,7 @@ The same shape works for `--desc`, `--plan`, `--comment`, `--final-summary`, and
   epicd task edit 42 --notes "Line1`nLine2"
   ```
 
-Prefer forms **1** and **2** when running under Claude Code, Codex, or any agent harness that screens commands through a tree‑sitter AST walker — those harnesses reject ANSI‑C strings, command substitutions, and heredoc forms (see issue [#595](https://github.com/MrLesk/Backlog.md/issues/595)).
+Prefer forms **1** and **2** when running under Claude Code, Codex, or any agent harness that screens commands through a tree‑sitter AST walker — those harnesses reject ANSI‑C strings, command substitutions, and heredoc forms.
 
 Do not expect the literal sequence `\n` inside double quotes to become a newline. The CLI stores the backslash and `n` as written.
 
@@ -752,4 +752,4 @@ epicd doc view doc-1
 **🎯 If you want to change ANYTHING in a task, use the `epicd task edit` command.**
 **📖 Use CLI to read tasks, exceptionally READ task files directly, never WRITE to them.**
 
-Full help available: `backlog --help`
+Full help available: `epicd --help`
