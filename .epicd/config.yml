@@ -22,3 +22,7 @@ task_actions:
   - id: "log-task-id"
     label: "Log Task ID"
     command: "echo \"$TASK_ID $(date -u +%Y-%m-%dT%H:%M:%SZ)\" >> /tmp/epicd-task-action-demo.log"
+  - id: "dispatch-to-worker"
+    label: "Dispatch to Worker"
+    command: 'manda-dispatch submit -id="$TASK_ID" -to=worker -async -args="{\"task\":\"/epicd:fixpoint-convergence $TASK_ID\"}"'
+    whenStatus: ["Draft", "Backlog", "Ready", "Needs Human"]

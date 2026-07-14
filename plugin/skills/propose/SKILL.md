@@ -40,6 +40,32 @@ Status is a derived display projection (BACK-664 child 1) — it is never set di
   Definition of Done checklist items, and `--dod-gate "<shell cmd>"` for a structured,
   engine-re-run DoD gate — all standard `task create` flags, nothing propose-specific.
 
+### Acceptance Criteria must follow CLAUDE.md's conventions
+
+This skill does not draft, review, or revise the `--ac` values you pass it — that
+would contradict its mechanical, single-command nature. But every criterion you
+supply must already conform to CLAUDE.md's "Acceptance Criteria conventions when
+authoring a task" before you call `propose`:
+
+- A convergence target (the task's deliverable *is* a mechanism that should reach
+  some end state) becomes a machine-checkable AC: state what shrinks, the
+  termination condition, and the exact command that goes green — not a prose
+  claim that it terminates.
+- An invariant ("X must not change") becomes a negative AC naming its own
+  concrete check (e.g. "MCP server name stays `backlog`; verify:
+  `grep MCP_SERVER_NAME src/cli.ts`"), and only when it is literally true for
+  this task's actual scope.
+- Never phrase an AC as a safety argument ("this is an extension, not a
+  rewrite") — state a checkable fact instead.
+- If an AC claims visibility to an external consumer, name the exact field or
+  code path that consumer reads, not just "the value appears in the file."
+- Do not add a separate "不动点"/"严格不改" section on the task — fold both
+  convergence targets and invariants into `--ac` as above; put un-checkable
+  scope prose in the description's Non-Goals instead.
+
+If a criterion can't be phrased this way, it isn't ready for `propose` yet — draft
+it through `authoring-draft` first, or fix it by hand before calling this skill.
+
 ## Notes
 
 - `task create` is the ONE path this skill uses. It does not shell out to any other

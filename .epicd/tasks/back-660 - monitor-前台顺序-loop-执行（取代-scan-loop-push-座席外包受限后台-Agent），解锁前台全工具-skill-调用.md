@@ -3,13 +3,15 @@ id: BACK-660
 title: manda-monitor 执行座席：并发 task subagents + epicd skill 直调 + 深层嵌套（取代受限后台 Agent）
 assignee: []
 created_date: '2026-07-06 07:44'
-updated_date: '2026-07-13 03:29'
+updated_date: '2026-07-14 02:12'
 labels:
   - 'kind:feature'
   - 'area:engine'
   - 'area:runtime'
 dependencies:
   - BACK-682
+pipeline_id: authoring
+phase: drafting
 ---
 
 ## Description
