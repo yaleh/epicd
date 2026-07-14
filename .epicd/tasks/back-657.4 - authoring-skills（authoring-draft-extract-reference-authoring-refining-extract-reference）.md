@@ -3,11 +3,10 @@ id: BACK-657.4
 title: >-
   authoring skills（authoring/draft extract/reference + authoring/refining
   extract/reference）
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 15:51'
-updated_date: '2026-07-07 12:58'
+updated_date: '2026-07-14 06:36'
 labels: []
 dependencies: []
 references:
@@ -20,6 +19,9 @@ references:
   - BACK-657.3
 parent_task_id: BACK-657
 ordinal: 89000
+pipeline_id: execution
+phase: done
+parent_id: BACK-657
 ---
 
 ## Description

@@ -1,15 +1,16 @@
 ---
 id: BACK-663
 title: 废弃旧 Draft 实体，折叠进 authoring/draft phase
-status: 'Basic: Done'
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:51'
-updated_date: '2026-07-07 09:54'
+updated_date: '2026-07-14 06:36'
 labels: []
 dependencies: []
 priority: high
 ordinal: 81000
+pipeline_id: execution
+phase: done
 ---
 
 ## Description

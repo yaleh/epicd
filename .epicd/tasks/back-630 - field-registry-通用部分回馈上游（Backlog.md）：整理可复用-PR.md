@@ -4,7 +4,7 @@ title: field-registry 通用部分回馈上游（Backlog.md）：整理可复用
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:19'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:chore'
 dependencies:
@@ -12,7 +12,7 @@ dependencies:
 priority: low
 ordinal: 45000
 pipeline_id: authoring
-phase: draft
+phase: drafting
 ---
 
 ## Description

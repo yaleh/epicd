@@ -1,13 +1,14 @@
 ---
 id: BACK-677
-pipeline_id: authoring
-phase: draft
 title: 'CLI: Export milestones board as roadmap'
 assignee: []
 created_date: '2025-06-10'
+updated_date: '2026-07-14 05:55'
 labels: []
 milestone: M2 - CLI Kanban Board
 dependencies: []
+pipeline_id: authoring
+phase: drafting
 ---
 
 ## Description

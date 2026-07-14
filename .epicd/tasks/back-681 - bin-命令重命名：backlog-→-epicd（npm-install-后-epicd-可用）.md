@@ -1,16 +1,17 @@
 ---
 id: BACK-681
 title: bin 命令重命名：backlog → epicd（npm install 后 epicd 可用）
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-07 11:43'
-updated_date: '2026-07-07 12:39'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:basic'
 dependencies: []
 priority: high
 ordinal: 91000
+pipeline_id: execution
+phase: done
 ---
 
 ## Description

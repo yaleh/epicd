@@ -3,7 +3,7 @@ id: BACK-608
 title: 'E7: Authoring 引擎 — RefineStrategy + refine driver + 状态式 draft'
 assignee: []
 created_date: '2026-07-04 01:58'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:epic'
   - 'epicd:E7'
@@ -12,7 +12,7 @@ dependencies:
   - BACK-603
 ordinal: 8000
 pipeline_id: authoring
-phase: draft
+phase: drafting
 ---
 
 ## Description

@@ -1,17 +1,19 @@
 ---
 id: BACK-657.1
 title: skill 脚手架 + contracts-lint + provenance 门
-status: Done
 assignee:
   - '@claude'
 created_date: '2026-07-06 14:44'
-updated_date: '2026-07-07 11:35'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:basic'
 dependencies: []
 parent_task_id: BACK-657
 priority: high
 ordinal: 86000
+pipeline_id: execution
+phase: done
+parent_id: BACK-657
 ---
 
 ## Description

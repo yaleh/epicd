@@ -4,7 +4,7 @@ title: child A：claim/in-flight 硬化 + entry_phase 写入 + staleness reaper
 assignee:
   - '@claude'
 created_date: '2026-07-08 03:59'
-updated_date: '2026-07-08 05:10'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -17,6 +17,7 @@ priority: high
 ordinal: 97000
 pipeline_id: execution
 phase: done
+parent_id: BACK-686
 dod:
   - text: bun test
     checked: false

@@ -1,10 +1,9 @@
 ---
 id: BACK-666
 title: Package epicd plugin for Claude Code installation (user + project scope)
-status: 'Basic: Done'
 assignee: []
 created_date: '2026-07-07 04:19'
-updated_date: '2026-07-07 08:21'
+updated_date: '2026-07-14 06:36'
 labels:
   - plugin
   - dx
@@ -18,6 +17,8 @@ references:
   - /home/yale/work/baime/Makefile
 priority: medium
 ordinal: 90000
+pipeline_id: execution
+phase: done
 ---
 
 ## Description

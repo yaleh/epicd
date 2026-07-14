@@ -3,10 +3,9 @@ id: BACK-680
 title: >-
   验证 epicd skill 跨项目可用性：在 fresh 项目中用 primitive-executor / fixpoint-convergence
   驱动真实任务到 Done
-status: Done
 assignee: []
 created_date: '2026-07-07 08:41'
-updated_date: '2026-07-07 10:53'
+updated_date: '2026-07-14 06:36'
 labels:
   - dx
   - plugin
@@ -27,6 +26,8 @@ references:
     backlog/tasks/back-657 -
     monitor-重构：前台顺序-loop-执行（取代-scan-loop-push-座席外包受限后台-Agent），解锁前台全工具-skill-调用.md
 priority: medium
+pipeline_id: execution
+phase: done
 ---
 
 ## Description

@@ -6,13 +6,13 @@ title: >-
 assignee:
   - '@claude'
 created_date: '2026-07-05 17:22'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:bug'
 dependencies: []
 ordinal: 72000
 pipeline_id: authoring
-phase: draft
+phase: drafting
 ---
 
 ## Description

@@ -4,12 +4,12 @@ title: 'queryGateEvents: validate parsed JSON shape before casting to GateEvent'
 assignee:
   - '@claude'
 created_date: '2026-07-05 09:54'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-14 06:36'
 labels: []
 dependencies: []
 ordinal: 53000
 pipeline_id: authoring
-phase: draft
+phase: drafting
 dod:
   - text: bunx tsc --noEmit
     checked: false

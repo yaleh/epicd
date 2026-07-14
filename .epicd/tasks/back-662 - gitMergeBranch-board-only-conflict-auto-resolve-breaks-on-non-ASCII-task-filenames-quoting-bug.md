@@ -6,7 +6,7 @@ title: >-
 assignee:
   - '@claude'
 created_date: '2026-07-06 09:19'
-updated_date: '2026-07-06 09:27'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:bug'
   - 'area:engine'
@@ -14,7 +14,7 @@ dependencies: []
 priority: high
 ordinal: 80000
 pipeline_id: authoring
-phase: draft
+phase: drafting
 ---
 
 ## Description

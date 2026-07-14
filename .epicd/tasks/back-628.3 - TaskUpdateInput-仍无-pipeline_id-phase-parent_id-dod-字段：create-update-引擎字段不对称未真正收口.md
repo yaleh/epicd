@@ -3,18 +3,19 @@ id: BACK-628.3
 title: >-
   TaskUpdateInput 仍无 pipeline_id/phase/parent_id/dod 字段：create/update
   引擎字段不对称未真正收口
-pipeline_id: execution
-phase: done
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:21'
-updated_date: '2026-07-05 07:02'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:refactor'
   - 'epicd:bootstrap'
 dependencies: []
 parent_task_id: BACK-628
 ordinal: 46000
+pipeline_id: execution
+phase: done
+parent_id: BACK-628
 dod:
   - text: bunx tsc --noEmit
     checked: false

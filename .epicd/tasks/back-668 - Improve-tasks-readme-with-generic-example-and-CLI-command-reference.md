@@ -1,13 +1,14 @@
 ---
 id: BACK-668
-pipeline_id: authoring
-phase: draft
 title: Improve tasks readme with generic example and CLI command reference
 assignee: []
 reporter: '@MrLesk'
 created_date: '2025-06-09'
+updated_date: '2026-07-14 06:36'
 labels: []
 dependencies: []
+pipeline_id: authoring
+phase: drafting
 ---
 
 ## Description

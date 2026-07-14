@@ -6,7 +6,7 @@ title: >-
 assignee:
   - '@claude'
 created_date: '2026-07-05 06:07'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-14 05:54'
 labels:
   - 'kind:feature'
   - 'epicd:bootstrap'
@@ -15,7 +15,7 @@ references:
   - docs/proposals/2026-07-03-adr-as-contract-harness.md
 ordinal: 44000
 pipeline_id: authoring
-phase: draft
+phase: drafting
 ---
 
 ## Description

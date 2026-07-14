@@ -4,7 +4,7 @@ title: child C：统一 implementing（ready→implementing 改名 + decomposing
 assignee:
   - '@claude'
 created_date: '2026-07-08 04:00'
-updated_date: '2026-07-08 07:10'
+updated_date: '2026-07-14 06:36'
 labels:
   - 'kind:basic'
   - 'area:engine'
@@ -18,6 +18,7 @@ priority: high
 ordinal: 99000
 pipeline_id: execution
 phase: done
+parent_id: BACK-686
 dod:
   - text: bun test
     checked: false

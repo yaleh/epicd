@@ -1,17 +1,18 @@
 ---
 id: BACK-672
-pipeline_id: authoring
-phase: draft
 title: 'GUI: Implement GUI for Drafts, Docs, Decisions'
 assignee: []
 reporter: '@MrLesk'
 created_date: '2025-06-04'
+updated_date: '2026-07-14 05:56'
 labels:
   - gui
   - feature
 milestone: M5 - Advanced GUI Features
 dependencies:
   - task-8
+pipeline_id: authoring
+phase: drafting
 ---
 
 ## Description

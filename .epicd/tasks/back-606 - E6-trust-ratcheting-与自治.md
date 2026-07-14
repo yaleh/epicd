@@ -3,7 +3,7 @@ id: BACK-606
 title: 'E6: trust ratcheting 与自治'
 assignee: []
 created_date: '2026-06-26 09:00'
-updated_date: '2026-07-06 09:16'
+updated_date: '2026-07-14 05:55'
 labels:
   - 'epicd:E6'
 dependencies:
@@ -11,7 +11,7 @@ dependencies:
   - BACK-605
 ordinal: 7000
 pipeline_id: authoring
-phase: draft
+phase: drafting
 ---
 
 ## Description
