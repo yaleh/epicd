@@ -10,7 +10,7 @@
     {
       "name": "epicd",
       "source": "./plugin",
-      "version": "1.48.15",
+      "version": "1.48.16",
       "description": "5 operation skills (propose, promote, inbox, run, init) that call only the epicd engine CLI — no external methodology-framework dependency, no epicd-repo-specific hardcoded paths.",
       "license": "MIT",
       "homepage": "https://github.com/yaleh/epicd",
@@ -23,5 +23,5 @@
       ]
     }
   ],
-  "version": "1.48.15"
+  "version": "1.48.16"
 }
