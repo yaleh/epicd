@@ -1,6 +1,6 @@
 ---
 name: init
-description: "Thin wrapper over `epicd init` — initializes a fresh epicd/Backlog.md board in the current git repository. No epicd-repo-specific defaults: every value (task prefix, project name, backlog dir) is read from CLI flags or `backlog/config.yml` after init, never hardcoded to this repo's own settings."
+description: "Thin wrapper over `epicd init` — initializes a fresh epicd board in the current git repository. No epicd-repo-specific defaults: every value (task prefix, project name, backlog dir) is read from CLI flags or `backlog/config.yml` after init, never hardcoded to this repo's own settings."
 argument-hint: [projectName] [--task-prefix <prefix>] [--defaults]
 allowed-tools: Bash
 contracts:

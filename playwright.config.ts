@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Playwright E2E configuration for the Backlog.md Web UI.
+ * Playwright E2E configuration for the epicd Web UI.
  *
  * IMPORTANT: This points `webServer` at a dedicated, free port (6455) and sets
  * `reuseExistingServer: false` so Playwright always starts a fresh server built
