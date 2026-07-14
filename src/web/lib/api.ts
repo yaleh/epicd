@@ -37,7 +37,7 @@ export interface InitializationStatus {
 	initialized: boolean;
 	projectPath: string;
 	backlogDirectory?: string | null;
-	backlogDirectorySource?: "backlog" | ".backlog" | "custom" | null;
+	backlogDirectorySource?: "backlog" | ".backlog" | ".epicd" | "custom" | null;
 	configLocation?: "folder" | "root" | null;
 	rootConfigPath?: string | null;
 }
@@ -571,7 +571,7 @@ export class ApiClient {
 	async initializeProject(options: {
 		projectName: string;
 		backlogDirectory?: string;
-		backlogDirectorySource?: "backlog" | ".backlog" | "custom";
+		backlogDirectorySource?: "backlog" | ".backlog" | ".epicd" | "custom";
 		configLocation?: "folder" | "root";
 		integrationMode: "mcp" | "cli" | "none";
 		mcpClients?: ("claude" | "codex" | "gemini" | "kiro" | "guide")[];

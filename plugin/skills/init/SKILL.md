@@ -1,6 +1,6 @@
 ---
 name: init
-description: "Thin wrapper over `epicd init` — initializes a fresh epicd board in the current git repository. No epicd-repo-specific defaults: every value (task prefix, project name, backlog dir) is read from CLI flags or `backlog/config.yml` after init, never hardcoded to this repo's own settings."
+description: "Thin wrapper over `epicd init` — initializes a fresh epicd board in the current git repository. No epicd-repo-specific defaults: every value (task prefix, project name, backlog dir) is read from CLI flags or the project's config file (`.epicd/config.yml` by default) after init, never hardcoded to this repo's own settings."
 argument-hint: [projectName] [--task-prefix <prefix>] [--defaults]
 allowed-tools: Bash
 contracts:
@@ -31,7 +31,7 @@ no defaults of its own and does not assume the project is epicd itself.
 ## Verifying no epicd-specific hardcoding
 
 After init, `task_prefix` / `project_name` (and every other init-time choice) live only
-in `backlog/config.yml` of the target repo — nothing in this skill, `epicd init`, or
-downstream `propose`/`promote`/`inbox`/`run` skills reads epicd's own `backlog/config.yml`
-or hardcodes epicd's own task prefix. `grep task_prefix backlog/config.yml` on the freshly
-initialized repo is the check.
+in the target repo's own config file (`.epicd/config.yml` by default for new repos) —
+nothing in this skill, `epicd init`, or downstream `propose`/`promote`/`inbox`/`run`
+skills reads epicd's own `.epicd/config.yml` or hardcodes epicd's own task prefix.
+`grep task_prefix .epicd/config.yml` on the freshly initialized repo is the check.

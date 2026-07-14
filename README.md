@@ -242,7 +242,7 @@ epicd merges the following layers (highest → lowest):
 1. CLI flags
 2. Project config file:
    - `backlog.config.yml` when present
-   - otherwise `backlog/config.yml` or `.backlog/config.yml`
+   - otherwise `.epicd/config.yml`, `backlog/config.yml`, or `.backlog/config.yml`
 3. Built‑ins
 
 ### Interactive wizard (`epicd config`)

@@ -9,7 +9,7 @@ via the normal board refresh once that worker claims and updates the task.
 
 ## Configuring task actions
 
-Add a `task_actions` block to `backlog/config.yml`:
+Add a `task_actions` block to your project's config file (`.epicd/config.yml` by default for new projects, or `backlog/config.yml`/`.backlog/config.yml` for older ones):
 
 ```yaml
 task_actions:

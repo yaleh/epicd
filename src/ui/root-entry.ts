@@ -67,7 +67,7 @@ export function formatRootEntry({ version, initialized, color = false }: RootEnt
 	lines.push(sectionTitle("Command help:", color));
 	lines.push(commandLine("epicd <command> --help", "Show options, fields, and examples"));
 	lines.push("");
-	lines.push("Docs: https://backlog.md");
+	lines.push("Docs: https://github.com/yaleh/epicd");
 	lines.push("");
 
 	return `${lines.join("\n")}\n`;

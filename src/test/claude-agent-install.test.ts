@@ -33,10 +33,8 @@ describe("installClaudeAgent", () => {
 		const content = await Bun.file(agentPath).text();
 
 		expect(content).toBe(CLAUDE_AGENT_CONTENT);
-		expect(content).toContain("name: project-manager-backlog");
-		expect(content).toContain(
-			"You are an expert project manager specializing in the backlog.md task management system",
-		);
+		expect(content).toContain("name: project-manager-epicd");
+		expect(content).toContain("You are an expert project manager specializing in the epicd task management system");
 	});
 
 	it("overwrites existing agent file", async () => {
