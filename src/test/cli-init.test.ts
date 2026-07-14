@@ -222,7 +222,7 @@ describe("epicd init command", () => {
 		const agents = await Bun.file(join(TEST_DIR, "AGENTS.md")).text();
 		expect(agents).toContain(CLI_AGENT_NUDGE);
 		expect(agents).toContain(
-			"For every user request in this project, run `epicd instructions overview` before answering or taking action.",
+			"IF request requires planning/decisions THEN run `epicd instructions overview` first. INVARIANT: .epicd/* edited only via epicd CLI.",
 		);
 		expect(agents).not.toContain("`epicd instructions` to list available guides");
 		expect(agents).not.toContain("# Instructions for the usage of epicd CLI Tool");
