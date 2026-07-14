@@ -105,6 +105,6 @@ Done ；DoD fail/epic 评估异常 → needs-human（gate-review 在 issue-list 
 **Human — 已实现**：Manage tasks · Search · Docs & Decisions · Config/Init/Overview/Cleanup。
 **Human — deprecated（弱化）**：Kanban board（→次要）· Milestones（≡Epic）· Folder-based drafts（→状态式）。
 **Human — planned（新主面）**：Multi-lane issue list（人机双驱动可视 + 内联 gate-review）· Capture/intake · Promote gate · Ratchet trust。
-**AI Agent（MCP）— 已实现**：`task_*` · `document_*` · `definition_of_done_defaults_*` · `get_backlog_instructions`（`milestone_*` 概念 deprecated）。
+**AI Agent（MCP）— 已实现**：`task_*` · `document_*` · `definition_of_done_defaults_*` · `get_epicd_instructions`（`milestone_*` 概念 deprecated）。
 **Architect Reviewer — planned**：Refine feature（Proposal+Plan）· Refine chore（checklist）· Refine epic（plan）。
 **引擎/execution 车道 — planned（今日 baime 跑）**：Scan(item-ready) · Execute feature/chore · Decompose epic · Evaluate epic · Complete(engine.complete) · Merge/advance · Adjudicate DoD(ENG-8) · Reap same-field peers · Flag stale-in-progress。

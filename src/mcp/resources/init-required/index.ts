@@ -4,7 +4,7 @@ import type { McpResourceHandler } from "../../types.ts";
 
 function createInitRequiredResource(server: McpServer, projectRoot: string): McpResourceHandler {
 	return {
-		uri: "backlog://init-required",
+		uri: "epicd://init-required",
 		name: `epicd Not Initialized [${projectRoot}]`,
 		description: "Instructions for initializing epicd in this project",
 		mimeType: "text/markdown",
@@ -18,7 +18,7 @@ function createInitRequiredResource(server: McpServer, projectRoot: string): Mcp
 			return {
 				contents: [
 					{
-						uri: "backlog://init-required",
+						uri: "epicd://init-required",
 						mimeType: "text/markdown",
 						text,
 					},

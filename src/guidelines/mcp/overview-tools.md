@@ -25,16 +25,16 @@ Your client is using epicd via tools. Use the following MCP tools to retrieve gu
 
 Use this tool to retrieve the required epicd guidance in markdown form:
 
-- `get_backlog_instructions` — Returns workflow guidance. Leave `instruction` empty for the overview, or select `task-creation`, `task-execution`, or `task-finalization`.
+- `get_epicd_instructions` — Returns workflow guidance. Leave `instruction` empty for the overview, or select `task-creation`, `task-execution`, or `task-finalization`.
 
-The tool returns the same content that resource-capable clients read via `backlog://workflow/...` URIs. The overview response is tool-oriented when `instruction` is omitted or set to `overview`.
+The tool returns the same content that resource-capable clients read via `epicd://workflow/...` URIs. The overview response is tool-oriented when `instruction` is omitted or set to `overview`.
 
 ### Typical Workflow (Tools)
 
 1. **Search first:** call `task_search` or `task_list` with filters to find existing work
 2. **If found:** read details via `task_view`; follow execution/plan guidance from the retrieved markdown
-3. **If not found:** call `get_backlog_instructions` with `instruction="task-creation"`, then create tasks with `task_create`
-4. **Execute & finalize:** call `get_backlog_instructions` with `instruction="task-execution"` or `instruction="task-finalization"` to manage status, plans, notes, and acceptance criteria via `task_edit`
+3. **If not found:** call `get_epicd_instructions` with `instruction="task-creation"`, then create tasks with `task_create`
+4. **Execute & finalize:** call `get_epicd_instructions` with `instruction="task-execution"` or `instruction="task-finalization"` to manage status, plans, notes, and acceptance criteria via `task_edit`
 
 **Note:** "Done" tasks stay in Done until periodic cleanup. Moving to the completed folder (`task_complete`) is a batch operation run occasionally, not part of finishing each task. Do not use `task_archive` for completed work—archive is only for duplicate, canceled, or invalid tasks.
 
@@ -44,7 +44,7 @@ Backlog tracks **commitments** (what will be built). Use your judgment to distin
 
 ### MCP Tools Quick Reference
 
-- `get_backlog_instructions`
+- `get_epicd_instructions`
 - `task_list`, `task_search`, `task_view`, `task_create`, `task_edit`, `task_complete`, `task_archive`
 - `task_search` accepts `modifiedFiles` for case-insensitive substring filtering against project-root-relative modified file paths
 - `task_edit` accepts `commentsAppend` and optional `commentAuthor` to append task discussion or review comments

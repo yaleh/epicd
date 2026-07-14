@@ -97,9 +97,9 @@ are found, the commit will be blocked until fixed.
 - **PR titles**: Use `{taskId} - {taskTitle}` (e.g. `BACK-123 - Title of the task`)
 - **Github CLI**: Use `gh` whenever possible for PRs and issues
 
-<!-- BACKLOG.MD GUIDELINES START -->
+<!-- EPICD GUIDELINES START -->
 IF request requires planning/decisions THEN run `epicd instructions overview` first. INVARIANT: .epicd/* edited only via epicd CLI.
-<!-- BACKLOG.MD GUIDELINES END -->
+<!-- EPICD GUIDELINES END -->
 
 ## L0 Config
 

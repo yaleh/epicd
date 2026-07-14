@@ -38,7 +38,7 @@ type GuidelineMarkerKind = "default" | "mcp";
  * Gets the appropriate markers for a given file type
  */
 function getMarkers(fileName: string, kind: GuidelineMarkerKind = "default"): { start: string; end: string } {
-	const label = kind === "mcp" ? "BACKLOG.MD MCP GUIDELINES" : "BACKLOG.MD GUIDELINES";
+	const label = kind === "mcp" ? "EPICD MCP GUIDELINES" : "EPICD GUIDELINES";
 	if (fileName === ".cursorrules") {
 		// .cursorrules doesn't support HTML comments, use markdown-style comments
 		return {
@@ -281,7 +281,7 @@ export async function ensureMcpGuidelines(
  */
 export async function installClaudeAgent(projectRoot: string): Promise<void> {
 	const agentDir = join(projectRoot, ".claude", "agents");
-	const agentPath = join(agentDir, "project-manager-backlog.md");
+	const agentPath = join(agentDir, "project-manager-epicd.md");
 
 	// Create the directory if it doesn't exist
 	await mkdir(agentDir, { recursive: true });
