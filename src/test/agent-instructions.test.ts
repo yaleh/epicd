@@ -36,21 +36,21 @@ describe("addAgentInstructions", () => {
 		const copilot = await Bun.file(join(TEST_DIR, ".github/copilot-instructions.md")).text();
 
 		// Check that files contain the markers and content
-		expect(agents).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(agents).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
+		expect(agents).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(agents).toContain("<!-- EPICD GUIDELINES END -->");
 		expect(agents).toContain(CLI_AGENT_NUDGE);
 		expect(agents).not.toContain("# Instructions for the usage of epicd CLI Tool");
 
-		expect(claude).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(claude).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
+		expect(claude).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(claude).toContain("<!-- EPICD GUIDELINES END -->");
 		expect(claude).toContain(CLI_AGENT_NUDGE);
 
-		expect(gemini).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(gemini).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
+		expect(gemini).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(gemini).toContain("<!-- EPICD GUIDELINES END -->");
 		expect(gemini).toContain(CLI_AGENT_NUDGE);
 
-		expect(copilot).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(copilot).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
+		expect(copilot).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(copilot).toContain("<!-- EPICD GUIDELINES END -->");
 		expect(copilot).toContain(CLI_AGENT_NUDGE);
 	});
 
@@ -59,8 +59,8 @@ describe("addAgentInstructions", () => {
 		const results = await addAgentInstructions(TEST_DIR);
 		const agents = await Bun.file(join(TEST_DIR, "AGENTS.md")).text();
 		expect(agents.startsWith("Existing\n")).toBe(true);
-		expect(agents).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(agents).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
+		expect(agents).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(agents).toContain("<!-- EPICD GUIDELINES END -->");
 		expect(agents).toContain(CLI_AGENT_NUDGE);
 		expect(results.find((result) => result.fileName === "AGENTS.md")?.action).toBe("updated");
 		expect(results.find((result) => result.fileName === "CLAUDE.md")?.action).toBe("created");
@@ -85,9 +85,9 @@ describe("addAgentInstructions", () => {
 			agentsPath,
 			[
 				"Existing header",
-				"<!-- BACKLOG.MD GUIDELINES START -->",
+				"<!-- EPICD GUIDELINES START -->",
 				"Old generated Backlog guidance",
-				"<!-- BACKLOG.MD GUIDELINES END -->",
+				"<!-- EPICD GUIDELINES END -->",
 				"Existing footer",
 				"",
 			].join("\n"),
@@ -107,7 +107,7 @@ describe("addAgentInstructions", () => {
 		expect(agents).toContain("Existing footer");
 		expect(agents).toContain(CLI_AGENT_NUDGE);
 		expect(agents).not.toContain("Old generated Backlog guidance");
-		expect((agents.match(/<!-- BACKLOG\.MD GUIDELINES START -->/g) || []).length).toBe(1);
+		expect((agents.match(/<!-- EPICD GUIDELINES START -->/g) || []).length).toBe(1);
 	});
 
 	it("creates only selected files", async () => {
@@ -123,8 +123,8 @@ describe("addAgentInstructions", () => {
 		expect(claudeExists).toBe(false);
 		expect(geminiExists).toBe(false);
 		expect(copilotExists).toBe(false);
-		expect(readme).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(readme).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
+		expect(readme).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(readme).toContain("<!-- EPICD GUIDELINES END -->");
 		expect(readme).toContain(await _loadAgentGuideline(README_GUIDELINES));
 	});
 
@@ -160,12 +160,12 @@ describe("addAgentInstructions", () => {
 
 		expect(firstRun).toBe(secondRun);
 		expect(firstRun).toContain(existingContent);
-		expect(firstRun).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(firstRun).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
+		expect(firstRun).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(firstRun).toContain("<!-- EPICD GUIDELINES END -->");
 
 		// Count occurrences of the marker to ensure it's only there once
-		const startMarkerCount = (firstRun.match(/<!-- BACKLOG\.MD GUIDELINES START -->/g) || []).length;
-		const endMarkerCount = (firstRun.match(/<!-- BACKLOG\.MD GUIDELINES END -->/g) || []).length;
+		const startMarkerCount = (firstRun.match(/<!-- EPICD GUIDELINES START -->/g) || []).length;
+		const endMarkerCount = (firstRun.match(/<!-- EPICD GUIDELINES END -->/g) || []).length;
 		expect(startMarkerCount).toBe(1);
 		expect(endMarkerCount).toBe(1);
 	});
@@ -177,17 +177,17 @@ describe("addAgentInstructions", () => {
 		await Bun.write(join(TEST_DIR, "AGENTS.md"), existingContent);
 		await addAgentInstructions(TEST_DIR, undefined, ["AGENTS.md"]);
 		const agentsContent = await Bun.file(join(TEST_DIR, "AGENTS.md")).text();
-		expect(agentsContent).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(agentsContent).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
+		expect(agentsContent).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(agentsContent).toContain("<!-- EPICD GUIDELINES END -->");
 	});
 
 	it("replaces CLI guidelines with MCP nudge when switching modes", async () => {
 		const agentsPath = join(TEST_DIR, "AGENTS.md");
 		const cliBlock = [
 			"Preface content",
-			"<!-- BACKLOG.MD GUIDELINES START -->",
+			"<!-- EPICD GUIDELINES START -->",
 			"CLI instructions here",
-			"<!-- BACKLOG.MD GUIDELINES END -->",
+			"<!-- EPICD GUIDELINES END -->",
 			"Footer line",
 			"",
 		].join("\n");
@@ -196,10 +196,10 @@ describe("addAgentInstructions", () => {
 		await ensureMcpGuidelines(TEST_DIR, "AGENTS.md");
 		const updated = await Bun.file(agentsPath).text();
 
-		expect(updated).not.toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(updated).not.toContain("<!-- BACKLOG.MD GUIDELINES END -->");
-		expect(updated).toContain("<!-- BACKLOG.MD MCP GUIDELINES START -->");
-		expect(updated).toContain("<!-- BACKLOG.MD MCP GUIDELINES END -->");
+		expect(updated).not.toContain("<!-- EPICD GUIDELINES START -->");
+		expect(updated).not.toContain("<!-- EPICD GUIDELINES END -->");
+		expect(updated).toContain("<!-- EPICD MCP GUIDELINES START -->");
+		expect(updated).toContain("<!-- EPICD MCP GUIDELINES END -->");
 		expect(updated).toContain("Preface content");
 		expect(updated).toContain("Footer line");
 	});
@@ -247,9 +247,9 @@ describe("addAgentInstructions", () => {
 		const agentsPath = join(TEST_DIR, "AGENTS.md");
 		const mcpBlock = [
 			"Header",
-			"<!-- BACKLOG.MD MCP GUIDELINES START -->",
+			"<!-- EPICD MCP GUIDELINES START -->",
 			"MCP reminder here",
-			"<!-- BACKLOG.MD MCP GUIDELINES END -->",
+			"<!-- EPICD MCP GUIDELINES END -->",
 			"",
 		].join("\n");
 		await Bun.write(agentsPath, mcpBlock);
@@ -257,10 +257,10 @@ describe("addAgentInstructions", () => {
 		await addAgentInstructions(TEST_DIR, undefined, ["AGENTS.md"]);
 		const updated = await Bun.file(agentsPath).text();
 
-		expect(updated).toContain("<!-- BACKLOG.MD GUIDELINES START -->");
-		expect(updated).toContain("<!-- BACKLOG.MD GUIDELINES END -->");
-		expect(updated).not.toContain("<!-- BACKLOG.MD MCP GUIDELINES START -->");
-		expect(updated).not.toContain("<!-- BACKLOG.MD MCP GUIDELINES END -->");
+		expect(updated).toContain("<!-- EPICD GUIDELINES START -->");
+		expect(updated).toContain("<!-- EPICD GUIDELINES END -->");
+		expect(updated).not.toContain("<!-- EPICD MCP GUIDELINES START -->");
+		expect(updated).not.toContain("<!-- EPICD MCP GUIDELINES END -->");
 		expect(updated).toContain("Header");
 	});
 });

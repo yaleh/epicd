@@ -95,7 +95,7 @@ describe("command help input schemas", () => {
 		);
 
 		// CLI-CONTRACT: verifies '--help' output reflects project-configured statuses (not hardcoded defaults) in task create/list/edit/search
-		const env = { ...process.env, BACKLOG_CWD: TEST_DIR };
+		const env = { ...process.env, EPICD_CWD: TEST_DIR };
 		const [createHelp, listHelp, searchHelp, editHelp] = await Promise.all([
 			$`bun ${CLI_PATH} task create --help`.cwd(TEST_DIR).env(env).text(),
 			$`bun ${CLI_PATH} task list --help`.cwd(TEST_DIR).env(env).text(),

@@ -1,7 +1,7 @@
 import { stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
-export const BACKLOG_CWD_ENV = "BACKLOG_CWD";
+export const EPICD_CWD_ENV = "EPICD_CWD";
 
 type RuntimeCwdSource = "option" | "env" | "process";
 
@@ -21,12 +21,12 @@ function resolveOverrideCandidate(cwdOption?: string): RuntimeCwdResolution | nu
 		};
 	}
 
-	const fromEnv = process.env[BACKLOG_CWD_ENV]?.trim();
+	const fromEnv = process.env[EPICD_CWD_ENV]?.trim();
 	if (fromEnv) {
 		return {
 			cwd: resolve(fromEnv),
 			source: "env",
-			sourceLabel: BACKLOG_CWD_ENV,
+			sourceLabel: EPICD_CWD_ENV,
 		};
 	}
 

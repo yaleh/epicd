@@ -23,7 +23,7 @@ async function initFilesystemOnlyProject(projectName = "No Git Project"): Promis
 	// CLI-CONTRACT: verifies 'epicd init --no-git' initializes a filesystem-only project
 	const result = await $`bun ${CLI_PATH} init ${projectName} --no-git --defaults --integration-mode none`
 		.cwd(TEST_DIR)
-		.env({ ...process.env, BACKLOG_CWD: TEST_DIR })
+		.env({ ...process.env, EPICD_CWD: TEST_DIR })
 		.quiet();
 	expect(result.exitCode).toBe(0);
 	return new Core(TEST_DIR);
@@ -47,7 +47,7 @@ describe("CLI init without Git", () => {
 		// CLI-CONTRACT: verifies 'init --no-git' output format and resulting config values
 		const result = await $`bun ${CLI_PATH} init "Filesystem Project" --no-git --defaults --integration-mode none`
 			.cwd(TEST_DIR)
-			.env({ ...process.env, BACKLOG_CWD: TEST_DIR })
+			.env({ ...process.env, EPICD_CWD: TEST_DIR })
 			.quiet();
 
 		expect(result.exitCode).toBe(0);
@@ -98,7 +98,7 @@ describe("CLI init without Git", () => {
 		expect(await core.gitOps.hasAnyRemote()).toBe(false);
 
 		// CLI-CONTRACT: verifies task/doc/decision/milestone flows work in filesystem-only mode with correct CLI output
-		const cliEnv = { ...process.env, BACKLOG_CWD: TEST_DIR };
+		const cliEnv = { ...process.env, EPICD_CWD: TEST_DIR };
 		const [taskResult, docResult, decisionResult] = await Promise.all([
 			$`bun ${CLI_PATH} task create "No Git Task" --plain`.cwd(TEST_DIR).env(cliEnv).quiet(),
 			$`bun ${CLI_PATH} doc create "No Git Doc"`.cwd(TEST_DIR).env(cliEnv).quiet(),
@@ -150,7 +150,7 @@ describe("CLI init without Git", () => {
 		expect(await core.gitOps.listRecentBranches(30)).toEqual([]);
 
 		// CLI-CONTRACT: verifies doc/decision create IDs start at 1 even with stale branch content when filesystemOnly=true
-		const cliEnv = { ...process.env, BACKLOG_CWD: TEST_DIR };
+		const cliEnv = { ...process.env, EPICD_CWD: TEST_DIR };
 		const docResult = await $`bun ${CLI_PATH} doc create "Fresh Doc"`.cwd(TEST_DIR).env(cliEnv).quiet();
 		expect(docResult.exitCode).toBe(0);
 		expect(docResult.stdout.toString()).toContain("Created document doc-1");

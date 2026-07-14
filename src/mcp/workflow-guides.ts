@@ -32,7 +32,7 @@ export interface WorkflowGuideDefinition<Key extends InstructionGuideKey = Instr
 export const WORKFLOW_GUIDES: WorkflowGuideDefinition<WorkflowGuideKey>[] = [
 	{
 		key: "overview",
-		uri: "backlog://workflow/overview",
+		uri: "epicd://workflow/overview",
 		name: "Backlog Workflow Overview",
 		description: "When to create tasks and the basic workflow",
 		mimeType: "text/markdown",
@@ -41,7 +41,7 @@ export const WORKFLOW_GUIDES: WorkflowGuideDefinition<WorkflowGuideKey>[] = [
 	},
 	{
 		key: "task-creation",
-		uri: "backlog://workflow/task-creation",
+		uri: "epicd://workflow/task-creation",
 		name: "Task Creation Guide",
 		description: "How to search, scope, and create tasks",
 		mimeType: "text/markdown",
@@ -49,7 +49,7 @@ export const WORKFLOW_GUIDES: WorkflowGuideDefinition<WorkflowGuideKey>[] = [
 	},
 	{
 		key: "task-execution",
-		uri: "backlog://workflow/task-execution",
+		uri: "epicd://workflow/task-execution",
 		name: "Task Execution Guide",
 		description: "How to plan, update, and work through tasks",
 		mimeType: "text/markdown",
@@ -57,7 +57,7 @@ export const WORKFLOW_GUIDES: WorkflowGuideDefinition<WorkflowGuideKey>[] = [
 	},
 	{
 		key: "task-finalization",
-		uri: "backlog://workflow/task-finalization",
+		uri: "epicd://workflow/task-finalization",
 		name: "Task Finalization Guide",
 		description: "How to verify, summarize, and finish work",
 		mimeType: "text/markdown",
@@ -81,7 +81,7 @@ export const INSTRUCTION_GUIDES: WorkflowGuideDefinition[] = [
 	})),
 	{
 		key: "init-required",
-		uri: "backlog://init-required",
+		uri: "epicd://init-required",
 		name: "Backlog Init Required Guide",
 		description: "How to initialize epicd in this directory",
 		mimeType: "text/markdown",

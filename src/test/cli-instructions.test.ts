@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { $ } from "bun";
 import { CLI_AGENT_NUDGE } from "../index.ts";
-import { BACKLOG_CWD_ENV } from "../utils/runtime-cwd.ts";
+import { EPICD_CWD_ENV } from "../utils/runtime-cwd.ts";
 import { createUniqueTestDir, safeCleanup } from "./test-utils.ts";
 
 const CLI_PATH = join(process.cwd(), "src", "cli.ts");
@@ -61,7 +61,7 @@ describe("epicd instructions command", () => {
 		expect(output).not.toContain("[");
 		expect(output).not.toContain("MCP Tools Quick Reference");
 		expect(output).not.toContain("task_search");
-		expect(output).not.toContain("backlog://workflow/");
+		expect(output).not.toContain("epicd://workflow/");
 		expect(output).not.toContain("Always operate through MCP tools");
 		expect(output).not.toContain("bundled");
 		expect(output).not.toContain("binary");
@@ -117,7 +117,7 @@ describe("epicd instructions command", () => {
 			"Important: Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use epicd commands so automatic metadata stays complete.",
 		);
 		expect(overview).not.toContain("MCP Tools Quick Reference");
-		expect(overview).not.toContain("backlog://workflow/");
+		expect(overview).not.toContain("epicd://workflow/");
 		expect(taskCreation).toContain("## Task Creation Guide");
 		expect(taskCreation).toContain('epicd task create "Add project search"');
 		expect(taskCreation).toContain('epicd search "desktop app" --plain');
@@ -174,7 +174,7 @@ describe("epicd instructions command", () => {
 		}
 	}, 15_000);
 
-	it("renders help and instruction examples from BACKLOG_CWD", async () => {
+	it("renders help and instruction examples from EPICD_CWD", async () => {
 		await mkdir(join(TEST_DIR, "backlog"), { recursive: true });
 		await Bun.write(
 			join(TEST_DIR, "backlog", "config.yml"),
@@ -189,9 +189,9 @@ describe("epicd instructions command", () => {
 		);
 		const outsideDir = join(TEST_DIR, "outside");
 		await mkdir(outsideDir, { recursive: true });
-		const env = { ...process.env, [BACKLOG_CWD_ENV]: TEST_DIR };
+		const env = { ...process.env, [EPICD_CWD_ENV]: TEST_DIR };
 
-		// CLI-CONTRACT: verifies BACKLOG_CWD env var overrides cwd for project discovery; help and instructions reflect project config from that path
+		// CLI-CONTRACT: verifies EPICD_CWD env var overrides cwd for project discovery; help and instructions reflect project config from that path
 		const overview = await $`bun ${CLI_PATH} instructions overview`.cwd(outsideDir).env(env).text();
 		const createHelp = await $`bun ${CLI_PATH} task create --help`.cwd(outsideDir).env(env).text();
 		const editHelp = await $`bun ${CLI_PATH} task edit --help`.cwd(outsideDir).env(env).text();

@@ -162,7 +162,7 @@ You can run `epicd init` (even if you already initialized Backlog.md) and choose
   <summary><strong>Claude Code</strong></summary>
 
   ```bash
-  claude mcp add backlog --scope user -- epicd mcp start
+  claude mcp add epicd --scope user -- epicd mcp start
   ```
 
 </details>
@@ -171,7 +171,7 @@ You can run `epicd init` (even if you already initialized Backlog.md) and choose
   <summary><strong>Codex</strong></summary>
 
   ```bash
-  codex mcp add backlog -- epicd mcp start
+  codex mcp add epicd -- epicd mcp start
   ```
 
 </details>
@@ -180,7 +180,7 @@ You can run `epicd init` (even if you already initialized Backlog.md) and choose
   <summary><strong>Gemini CLI</strong></summary>
 
   ```bash
-  gemini mcp add backlog -s user epicd mcp start
+  gemini mcp add epicd -s user epicd mcp start
   ```
 
 </details>
@@ -189,39 +189,39 @@ You can run `epicd init` (even if you already initialized Backlog.md) and choose
   <summary><strong>Kiro</strong></summary>
 
   ```bash
-  kiro-cli mcp add --scope global --name backlog --command epicd --args mcp,start
+  kiro-cli mcp add --scope global --name epicd --command epicd --args mcp,start
   ```
 
 </details>
 
-Use the shared `backlog` server name everywhere. The server finds the active project from your client's MCP roots, and re-resolves when you switch workspace or worktree. Until it finds one, it serves `backlog://init-required`. A single user-scope server covers every repo.
+Use the shared `epicd` server name everywhere. The server finds the active project from your client's MCP roots, and re-resolves when you switch workspace or worktree. Until it finds one, it serves `epicd://init-required`. A single user-scope server covers every repo.
 
 ### Manual config
 
 ```json
 {
   "mcpServers": {
-    "backlog": {
+    "epicd": {
       "command": "epicd",
       "args": ["mcp", "start"],
       "env": {
-        "BACKLOG_CWD": "/absolute/path/to/your/project"
+        "EPICD_CWD": "/absolute/path/to/your/project"
       }
     }
   }
 }
 ```
 
-Set `BACKLOG_CWD` to pin the server to one project and stop workspace following. Use it to always target the same backlog, or when your client can't report MCP roots.
+Set `EPICD_CWD` to pin the server to one project and stop workspace following. Use it to always target the same backlog, or when your client can't report MCP roots.
 If your IDE supports custom args but not env vars, you can also use `["mcp", "start", "--cwd", "/absolute/path/to/your/project"]`.
 
 > [!IMPORTANT]
-> When adding the MCP server manually, add a short instruction to your CLAUDE.md/AGENTS.md files telling agents to read `backlog://workflow/overview`.
+> When adding the MCP server manually, add a short instruction to your CLAUDE.md/AGENTS.md files telling agents to read `epicd://workflow/overview`.
 > This step is not required when using `epicd init` as it adds these instructions automatically.
 > For CLI-based setups, use `epicd instructions overview` to fetch the current workflow guidance.
 
 
-Once connected, agents can read the Backlog.md workflow instructions via `backlog://workflow/overview`, with detailed guides at `backlog://workflow/task-creation`, `backlog://workflow/task-execution`, and `backlog://workflow/task-finalization`.
+Once connected, agents can read the epicd workflow instructions via `epicd://workflow/overview`, with detailed guides at `epicd://workflow/task-creation`, `epicd://workflow/task-execution`, and `epicd://workflow/task-finalization`.
 Use `/mcp` command in your AI tool (Claude Code, Codex, Kiro) to verify if the connection is working.
 
 ---

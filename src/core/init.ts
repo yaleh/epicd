@@ -17,8 +17,8 @@ import {
 } from "../utils/mcp-client-setup.ts";
 import type { Core } from "./backlog.ts";
 
-export const MCP_SERVER_NAME = "backlog";
-export const MCP_GUIDE_URL = "https://github.com/MrLesk/Backlog.md#-mcp-integration-model-context-protocol";
+export const MCP_SERVER_NAME = "epicd";
+export const MCP_GUIDE_URL = "https://github.com/yaleh/epicd#-mcp-integration-model-context-protocol";
 
 export type IntegrationMode = "mcp" | "cli" | "none";
 export type McpClient = "claude" | "codex" | "gemini" | "kiro" | "guide";

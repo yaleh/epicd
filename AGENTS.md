@@ -97,7 +97,7 @@ are found, the commit will be blocked until fixed.
 - **PR titles**: Use `{taskId} - {taskTitle}` (e.g. `BACK-123 - Title of the task`)
 - **Github CLI**: Use `gh` whenever possible for PRs and issues
 
-<!-- BACKLOG.MD GUIDELINES START -->
+<!-- EPICD GUIDELINES START -->
 <CRITICAL_INSTRUCTION>
 
 ## Backlog.md Workflow
@@ -118,7 +118,7 @@ Use `epicd <command> --help` before running unfamiliar commands. Help shows opti
 Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use the `epicd` CLI so metadata, relationships, and history stay consistent.
 
 </CRITICAL_INSTRUCTION>
-<!-- BACKLOG.MD GUIDELINES END -->
+<!-- EPICD GUIDELINES END -->
 
 ## L0 Config
 

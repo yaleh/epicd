@@ -32,25 +32,25 @@ describe("MCP Server Fallback Mode", () => {
 		expect(server.getServer()).toBeDefined();
 	});
 
-	test("should provide backlog://init-required resource in fallback mode", async () => {
+	test("should provide epicd://init-required resource in fallback mode", async () => {
 		const server = await createMcpServer(tempDir, { debug: false });
 
 		const resources = await server.testInterface.listResources();
 
 		expect(resources.resources).toHaveLength(1);
-		expect(resources.resources[0]?.uri).toBe("backlog://init-required");
+		expect(resources.resources[0]?.uri).toBe("epicd://init-required");
 		expect(resources.resources[0]?.name).toBe(`epicd Not Initialized [${tempDir}]`);
 	});
 
-	test("should be able to read backlog://init-required resource", async () => {
+	test("should be able to read epicd://init-required resource", async () => {
 		const server = await createMcpServer(tempDir, { debug: false });
 
 		const result = await server.testInterface.readResource({
-			params: { uri: "backlog://init-required" },
+			params: { uri: "epicd://init-required" },
 		});
 
 		expect(result.contents).toHaveLength(1);
-		expect(result.contents[0]?.uri).toBe("backlog://init-required");
+		expect(result.contents[0]?.uri).toBe("epicd://init-required");
 		expect(getContentsText(result.contents)).toStartWith(MCP_INIT_REQUIRED_GUIDE);
 	});
 

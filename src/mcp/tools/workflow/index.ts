@@ -42,7 +42,7 @@ function createWorkflowTool(): McpToolHandler {
 
 	return createSimpleValidatedTool(
 		{
-			name: "get_backlog_instructions",
+			name: "get_epicd_instructions",
 			description:
 				"Retrieve epicd workflow guidance in markdown format. Defaults to the overview when no instruction is selected.",
 			inputSchema: workflowInstructionsSchema,

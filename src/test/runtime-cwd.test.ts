@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BACKLOG_CWD_ENV, resolveRuntimeCwd } from "../utils/runtime-cwd.ts";
+import { EPICD_CWD_ENV, resolveRuntimeCwd } from "../utils/runtime-cwd.ts";
 
 describe("resolveRuntimeCwd", () => {
 	let testDir: string;
@@ -12,17 +12,17 @@ describe("resolveRuntimeCwd", () => {
 	beforeEach(async () => {
 		testDir = await mkdtemp(join(tmpdir(), "backlog-runtime-cwd-"));
 		originalCwd = process.cwd();
-		originalBacklogCwd = process.env[BACKLOG_CWD_ENV];
-		delete process.env[BACKLOG_CWD_ENV];
+		originalBacklogCwd = process.env[EPICD_CWD_ENV];
+		delete process.env[EPICD_CWD_ENV];
 		process.chdir(testDir);
 	});
 
 	afterEach(async () => {
 		process.chdir(originalCwd);
 		if (originalBacklogCwd === undefined) {
-			delete process.env[BACKLOG_CWD_ENV];
+			delete process.env[EPICD_CWD_ENV];
 		} else {
-			process.env[BACKLOG_CWD_ENV] = originalBacklogCwd;
+			process.env[EPICD_CWD_ENV] = originalBacklogCwd;
 		}
 		await rm(testDir, { recursive: true, force: true });
 	});
@@ -39,24 +39,24 @@ describe("resolveRuntimeCwd", () => {
 		expect(result.source).toBe("process");
 	});
 
-	it("uses BACKLOG_CWD when environment override is provided", async () => {
+	it("uses EPICD_CWD when environment override is provided", async () => {
 		const nestedDir = join(testDir, "workspace", "project");
 		await mkdir(nestedDir, { recursive: true });
-		process.env[BACKLOG_CWD_ENV] = nestedDir;
+		process.env[EPICD_CWD_ENV] = nestedDir;
 
 		const result = await resolveRuntimeCwd();
 
 		await expectCanonicalPath(result.cwd, nestedDir);
 		expect(result.source).toBe("env");
-		expect(result.sourceLabel).toBe(BACKLOG_CWD_ENV);
+		expect(result.sourceLabel).toBe(EPICD_CWD_ENV);
 	});
 
-	it("gives --cwd option precedence over BACKLOG_CWD", async () => {
+	it("gives --cwd option precedence over EPICD_CWD", async () => {
 		const envDir = join(testDir, "env-dir");
 		const optionDir = join(testDir, "option-dir");
 		await mkdir(envDir, { recursive: true });
 		await mkdir(optionDir, { recursive: true });
-		process.env[BACKLOG_CWD_ENV] = envDir;
+		process.env[EPICD_CWD_ENV] = envDir;
 
 		const result = await resolveRuntimeCwd({ cwd: optionDir });
 
@@ -75,8 +75,8 @@ describe("resolveRuntimeCwd", () => {
 	});
 
 	it("throws when override path is invalid", async () => {
-		process.env[BACKLOG_CWD_ENV] = join(testDir, "missing");
+		process.env[EPICD_CWD_ENV] = join(testDir, "missing");
 
-		await expect(resolveRuntimeCwd()).rejects.toThrow(`Invalid directory from ${BACKLOG_CWD_ENV}`);
+		await expect(resolveRuntimeCwd()).rejects.toThrow(`Invalid directory from ${EPICD_CWD_ENV}`);
 	});
 });
