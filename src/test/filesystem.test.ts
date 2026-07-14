@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readdir, rename, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { FileSystem } from "../file-system/operations.ts";
+import { FileSystem, IllegalWhenPhaseError } from "../file-system/operations.ts";
 import type { BacklogConfig, Decision, Document, Task } from "../types/index.ts";
 import { createUniqueTestDir, safeCleanup } from "./test-utils.ts";
 
@@ -238,7 +238,7 @@ Invalid content`,
 						id: "dispatch",
 						label: "Dispatch to worker",
 						command: "manda-dispatch submit $TASK_ID",
-						whenStatus: ["To Do", "In Progress"],
+						whenPhase: ["backlog", "implementing"],
 					},
 					{ id: "open-wt", label: "Open worktree", command: "code $TASK_ID" },
 				],
@@ -249,7 +249,7 @@ Invalid content`,
 			expect(loaded?.taskActions).toEqual(cfg.taskActions);
 		});
 
-		it("should omit whenStatus when not configured and show button for every status", async () => {
+		it("should omit whenPhase when not configured and show button for every phase", async () => {
 			const cfg: BacklogConfig = {
 				projectName: "Actions",
 				statuses: ["To Do", "Done"],
@@ -261,7 +261,22 @@ Invalid content`,
 			await filesystem.saveConfig(cfg);
 			const loaded = await filesystem.loadConfig();
 			expect(loaded?.taskActions).toEqual([{ id: "review", label: "Review diff", command: "gh pr diff $TASK_ID" }]);
-			expect(loaded?.taskActions?.[0]?.whenStatus).toBeUndefined();
+			expect(loaded?.taskActions?.[0]?.whenPhase).toBeUndefined();
+		});
+
+		it("should throw IllegalWhenPhaseError when whenPhase has an illegal value (BACK-706 AC #3)", async () => {
+			const configContent = `project_name: "Actions"
+statuses: ["To Do", "Done"]
+labels: []
+date_format: yyyy-mm-dd
+task_actions:
+  - id: "dispatch"
+    label: "Dispatch to worker"
+    command: "manda-dispatch submit $TASK_ID"
+    whenPhase: ["Draft"]
+`;
+			await Bun.write(join(TEST_DIR, "backlog", "config.yml"), configContent);
+			await expect(filesystem.loadConfig()).rejects.toThrow(IllegalWhenPhaseError);
 		});
 
 		it("should ignore taskActions entries missing required fields", async () => {

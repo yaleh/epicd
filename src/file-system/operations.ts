@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import matter from "gray-matter";
 import lockfile from "proper-lockfile";
 import { DEFAULT_DIRECTORIES, DEFAULT_FILES, DEFAULT_STATUSES } from "../constants/index.ts";
+import { ALL_PIPELINES, isLegalPhase } from "../engine/pipeline.ts";
 import { parseDecision, parseDocument, parseMilestone, parseTask } from "../markdown/parser.ts";
 import { serializeDecision, serializeDocument, serializeTask } from "../markdown/serializer.ts";
 import type { BacklogConfig, Decision, Document, Milestone, Task, TaskAction, TaskListFilter } from "../types/index.ts";
@@ -34,6 +35,14 @@ const DEFAULT_CREATE_LOCK_STALE_MS = 10_000;
 export const CREATE_LOCK_ERROR_CODE = "ECREATELOCK";
 export const CREATE_LOCK_ERROR_MESSAGE =
 	"Another task create/promote/demote operation is already in progress. Please try again.";
+
+/**
+ * Thrown at config-load time when a `whenPhase` entry (BACK-706) is not a legal phase
+ * machine-name in any declared pipeline (see `isLegalPhase`/`ALL_PIPELINES` in
+ * src/engine/pipeline.ts). Distinguished from other parse errors so it can escape the
+ * surrounding try/catch blocks that otherwise silently swallow malformed config.
+ */
+export class IllegalWhenPhaseError extends Error {}
 
 function createLockError(message: string, cause?: unknown): Error {
 	const error = new Error(message, cause === undefined ? undefined : { cause }) as Error & { code?: string };
@@ -1085,7 +1094,12 @@ ${description || `Milestone: ${title}`}`,
 			// Cache the loaded config
 			this.cachedConfig = config;
 			return config;
-		} catch (_error) {
+		} catch (error) {
+			// BACK-706 AC#3: an illegal `whenPhase` value must fail loudly (config-load-time
+			// error), not be silently swallowed like other unexpected parse errors below.
+			if (error instanceof IllegalWhenPhaseError) {
+				throw error;
+			}
 			return null;
 		}
 	}
@@ -1424,7 +1438,10 @@ ${description || `Milestone: ${title}`}`,
 			const data = matter(`---\n${block.trimEnd()}\n---\n`).data as Record<string, unknown>;
 			const raw = data.taskActions ?? data.task_actions;
 			return this.normalizeTaskActions(raw);
-		} catch {
+		} catch (error) {
+			if (error instanceof IllegalWhenPhaseError) {
+				throw error;
+			}
 			return undefined;
 		}
 	}
@@ -1443,15 +1460,27 @@ ${description || `Milestone: ${title}`}`,
 			const command = typeof record.command === "string" ? record.command : "";
 			if (!id || !label || !command) continue;
 
-			const whenStatus = Array.isArray(record.whenStatus)
-				? record.whenStatus.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+			const whenPhase = Array.isArray(record.whenPhase)
+				? record.whenPhase.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
 				: undefined;
+
+			if (whenPhase && whenPhase.length > 0) {
+				for (const phase of whenPhase) {
+					const legal = ALL_PIPELINES.some((pipeline) => isLegalPhase(pipeline.id, phase));
+					if (!legal) {
+						const legalPhases = [...new Set(ALL_PIPELINES.flatMap((p) => p.states.map((s) => s.name)))].join(", ");
+						throw new IllegalWhenPhaseError(
+							`Illegal whenPhase value "${phase}" for task action "${id}": legal phases are [${legalPhases}]`,
+						);
+					}
+				}
+			}
 
 			actions.push({
 				id,
 				label,
 				command,
-				...(whenStatus && whenStatus.length > 0 ? { whenStatus } : {}),
+				...(whenPhase && whenPhase.length > 0 ? { whenPhase } : {}),
 			});
 		}
 
@@ -1464,8 +1493,8 @@ ${description || `Milestone: ${title}`}`,
 			lines.push(`  - id: ${JSON.stringify(action.id)}`);
 			lines.push(`    label: ${JSON.stringify(action.label)}`);
 			lines.push(`    command: ${JSON.stringify(action.command)}`);
-			if (action.whenStatus && action.whenStatus.length > 0) {
-				lines.push(`    whenStatus: [${action.whenStatus.map((s) => JSON.stringify(s)).join(", ")}]`);
+			if (action.whenPhase && action.whenPhase.length > 0) {
+				lines.push(`    whenPhase: [${action.whenPhase.map((s) => JSON.stringify(s)).join(", ")}]`);
 			}
 		}
 		return lines;

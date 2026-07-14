@@ -420,8 +420,8 @@ export interface PrefixConfig {
 
 /**
  * A manually-triggered task action button (BACK-695). Defined in config by a project
- * maintainer; the Web UI shows a button per task that matches `whenStatus` (or always,
- * when `whenStatus` is omitted) and dispatches `POST /api/tasks/:id/actions/:id` by id only
+ * maintainer; the Web UI shows a button per task that matches `whenPhase` (or always,
+ * when `whenPhase` is omitted) and dispatches `POST /api/tasks/:id/actions/:id` by id only
  * — the command string itself never crosses the network.
  */
 export interface TaskAction {
@@ -431,8 +431,20 @@ export interface TaskAction {
 	label: string;
 	/** Shell command run on the server. Supports $TASK_ID/$TASK_TITLE/$TASK_STATUS variables (see onStatusChange). */
 	command: string;
-	/** Optional status whitelist; button is shown on every task when omitted. */
-	whenStatus?: string[];
+	/**
+	 * Optional whitelist of raw pipeline phase machine-names (e.g. `drafting`, `backlog`,
+	 * `needs-human`, `implementing`, `done`, `spiking` — see `Pipeline.states` in
+	 * src/engine/pipeline.ts); button is shown on every task when omitted. Compared
+	 * directly against `task.phase` (BACK-706) — no title-case/status derivation.
+	 * Every value is validated against `isLegalPhase` (across ALL_PIPELINES) at config-load
+	 * time; an illegal value throws instead of silently hiding the button.
+	 *
+	 * Known limitation (YAGNI, BACK-706 AC#6): phase names can repeat across different
+	 * pipelines (e.g. both executionPipeline and explorationPipeline declare `done`).
+	 * `whenPhase` matches by phase name only and does not disambiguate by pipeline — no
+	 * `whenPipeline` field is added unless a real cross-pipeline confusion case appears.
+	 */
+	whenPhase?: string[];
 }
 
 export interface BacklogConfig {

@@ -3,7 +3,7 @@ import { apiClient, ApiError, type TaskActionResult } from "../lib/api";
 import { visibleTaskActions } from "../lib/task-actions";
 import type { Task, TaskAction } from "../../types";
 
-// BACK-695: shared by TaskList (row/card) and TaskDetailsModal so the whenStatus filtering,
+// BACK-695: shared by TaskList (row/card) and TaskDetailsModal so the whenPhase filtering,
 // dispatch call, and pending/receipt state have a single implementation.
 
 interface TaskActionButtonsProps {
