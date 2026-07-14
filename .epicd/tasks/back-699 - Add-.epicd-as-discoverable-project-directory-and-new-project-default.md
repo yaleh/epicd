@@ -4,7 +4,7 @@ title: Add .epicd as discoverable project directory and new-project default
 assignee:
   - '@claude'
 created_date: '2026-07-13 11:53'
-updated_date: '2026-07-13 12:23'
+updated_date: '2026-07-14 09:10'
 labels:
   - config
   - cli
@@ -46,8 +46,6 @@ entry_phase: authoring/backlog
 - [x] #4 epicd init 交互向导中 .epicd/ 为默认高亮选项，验证：cli.ts 相关测试或手工核查向导选项顺序
 - [x] #5 bun test 全绿，bunx tsc --noEmit 通过
 <!-- AC:END -->
-
-
 
 ## Implementation Plan
 
@@ -105,6 +103,15 @@ authoring/refining review: APPROVED after 1 iteration(s). Plan verified against 
 
 claimed: 2026-07-13T12:02:57Z
 <!-- SECTION:NOTES:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+created: 2026-07-14 09:10
+---
+其 Non-Goals 中"保留 backlog 品牌/协议标识（MCP_SERVER_NAME、backlog:// URI、npm 包名、上游归属 URL）不变"的裁定，已被 docs/proposals/2026-07-14-full-epicd-rebrand.md 推翻，本任务本身的改动范围与验收标准维持原样（历史记录），后续以该 proposal 为准。
+---
+<!-- COMMENTS:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->

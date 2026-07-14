@@ -6,7 +6,7 @@ title: >-
 assignee:
   - '@claude'
 created_date: '2026-07-09 02:51'
-updated_date: '2026-07-09 03:30'
+updated_date: '2026-07-14 09:10'
 labels: []
 dependencies:
   - BACK-688
@@ -141,6 +141,15 @@ authoring/draft self-review: APPROVED after 1 round (background states the manda
 
 authoring/refining review: APPROVED after 1 iteration (5 phases, each grouping a test file with its corresponding src file for genuine red-green since string-literal changes flip existing test assertions; Acceptance Gate leads with full bun test; all goals covered; no forward phase dependencies)
 <!-- SECTION:NOTES:END -->
+
+## Comments
+
+<!-- COMMENTS:BEGIN -->
+created: 2026-07-14 09:10
+---
+其 Non-Goals 中"保留 backlog 品牌/协议标识（MCP_SERVER_NAME、backlog:// URI、npm 包名、上游归属 URL）不变"的裁定，已被 docs/proposals/2026-07-14-full-epicd-rebrand.md 推翻，本任务本身的改动范围与验收标准维持原样（历史记录），后续以该 proposal 为准。
+---
+<!-- COMMENTS:END -->
 
 ## Final Summary
 
