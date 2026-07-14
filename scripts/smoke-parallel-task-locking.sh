@@ -5,7 +5,7 @@ shopt -s nullglob
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CLI_PATH="${BACKLOG_SMOKE_CLI:-${REPO_ROOT}/src/cli.ts}"
+CLI_PATH="${EPICD_SMOKE_CLI:-${REPO_ROOT}/src/cli.ts}"
 BUN_BIN="${BUN_BIN:-bun}"
 JOB_COUNT="${JOB_COUNT:-8}"
 KEEP_TEMP="${KEEP_TEMP:-0}"
@@ -19,14 +19,14 @@ usage() {
 	cat <<EOF
 Usage: $(basename "$0") [--jobs N] [--keep-temp]
 
-Runs real parallel smoke tests against the local Backlog.md CLI:
+Runs real parallel smoke tests against the local epicd CLI:
   1. concurrent task creation
   2. concurrent draft promotion
   3. concurrent task demotion
 
 Environment overrides:
   BUN_BIN            Bun executable to use (default: bun)
-  BACKLOG_SMOKE_CLI  Path to local CLI entrypoint (default: <repo>/src/cli.ts)
+  EPICD_SMOKE_CLI    Path to local CLI entrypoint (default: <repo>/src/cli.ts)
   JOB_COUNT          Number of concurrent creates for scenario 1 (default: 8)
   KEEP_TEMP          Keep temp repos after success (default: 0)
 EOF
@@ -73,7 +73,7 @@ init_repo() {
 	mkdir -p "${repo_dir}"
 	pushd "${repo_dir}" >/dev/null
 	git init -q
-	git config user.name "Backlog Smoke Test"
+	git config user.name "Epicd Smoke Test"
 	git config user.email "smoke@example.com"
 	run_cli init "Parallel Lock Smoke" --defaults --integration-mode none --check-branches false --include-remote false --backlog-dir backlog >/dev/null
 	set_check_active_branches_false "${repo_dir}/backlog/backlog.config.yml"
@@ -271,7 +271,7 @@ main() {
 		fail "JOB_COUNT must be at least 2"
 	fi
 
-	TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/backlog-lock-smoke.XXXXXX")"
+	TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/epicd-lock-smoke.XXXXXX")"
 	info "Using temp root: ${TMP_ROOT}"
 
 	scenario_parallel_create

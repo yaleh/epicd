@@ -1,6 +1,6 @@
-# Backlog.md MCP Implementation (MVP)
+# epicd MCP Implementation (MVP)
 
-This directory exposes a minimal stdio MCP surface so local agents can work with backlog.md without duplicating business
+This directory exposes a minimal stdio MCP surface so local agents can work with epicd without duplicating business
 logic.
 
 ## What’s included

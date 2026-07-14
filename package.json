@@ -85,14 +85,13 @@
   "bugs": {
     "url": "https://github.com/yaleh/epicd/issues"
   },
-  "homepage": "https://backlog.md",
+  "homepage": "https://github.com/yaleh/epicd",
   "keywords": [
     "cli",
     "markdown",
     "kanban",
     "task",
     "project-management",
-    "backlog",
     "agents"
   ],
   "license": "MIT",

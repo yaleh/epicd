@@ -1,6 +1,6 @@
-# Contributing to Backlog.md
+# Contributing to epicd
 
-Thank you for your interest in contributing to Backlog.md. This project is managed using the Backlog.md workflow and we welcome community involvement.
+Thank you for your interest in contributing to epicd. This project is managed using the epicd workflow and we welcome community involvement.
 
 ## Opening Issues
 
